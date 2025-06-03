@@ -1,5 +1,6 @@
 <template>
   <Head>
+    <title>Нэвтрэх</title>
     <link rel="stylesheet" href="/assets/css/bootstrap.min.css" />
     <link rel="stylesheet" href="/assets/css/icons.min.css" />
     <link rel="stylesheet" href="/assets/css/app.css" />
@@ -102,22 +103,38 @@
 
 <script setup>
 import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { useUserStore } from "~/store/user";
 const username = ref("");
 const password = ref("");
 const rememberMe = ref(false);
 const error = ref("");
 const msg = ref("");
+const router = useRouter();
+const userStore = useUserStore();
 
-function onLogin() {
-  // TODO: Implement login logic (API call)
-  // For now, just a placeholder
+async function onLogin() {
+  error.value = "";
+  msg.value = "";
   if (!username.value || !password.value) {
     error.value = "Нэвтрэх нэр болон нууц үг шаардлагатай.";
-    msg.value = "";
     return;
   }
-  error.value = "";
-  msg.value = "Амжилттай! (Зөвхөн загвар)"; // Placeholder
+  try {
+    const res = await $fetch("/api/login", {
+      method: "POST",
+      body: { username: username.value, password: password.value },
+    });
+    if (res.success) {
+      userStore.login(res.name, res.avatar);
+      msg.value = "Амжилттай!";
+      setTimeout(() => router.push("/dashboard"), 500);
+    } else {
+      error.value = res.error || "Алдаа гарлаа.";
+    }
+  } catch (e) {
+    error.value = "Сервертэй холбогдож чадсангүй.";
+  }
 }
 </script>
 
