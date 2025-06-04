@@ -9,4 +9,9 @@ export default defineNuxtConfig({
     "~/assets/css/icons.min.css",
     "~/assets/css/app.css",
   ],
+  vite: {
+    optimizeDeps: {
+      include: ["vue3-apexcharts"],
+    },
+  },
 });

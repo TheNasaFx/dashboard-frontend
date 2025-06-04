@@ -171,8 +171,8 @@ const handleLogin = async () => {
       messageType.value = "success";
       // TODO: Handle successful login (e.g., set auth state in Pinia store, save token/session info)
       console.log("Login successful");
-      // Example redirect:
-      await navigateTo("/dashboard");
+      // Use full page reload for now to ensure cookie is set
+      window.location.replace("/dashboard");
     } else {
       // Handle error response from the API
       message.value = response.message || "Login failed.";

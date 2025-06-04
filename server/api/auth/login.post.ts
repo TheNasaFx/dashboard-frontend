@@ -1,4 +1,4 @@
-import { defineEventHandler, readBody } from "h3";
+import { defineEventHandler, readBody, setCookie } from "h3";
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -23,6 +23,13 @@ export default defineEventHandler(async (event) => {
     // TODO: Implement proper session management or token generation here.
     // In PHP, this set $_SESSION variables and redirected.
     // In Nuxt, you might set an HTTP-only cookie or return a token to the client.
+    // For now, set a simple auth cookie.
+    setCookie(event, "auth_token", "authenticated", {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+      path: "/",
+    });
+
     // Returning user data for demonstration mirroring PHP session variables:
     return {
       success: true,

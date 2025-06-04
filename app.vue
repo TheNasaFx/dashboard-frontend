@@ -1,13 +1,13 @@
 <template>
-  <AppHeaderSidebar :name="userName" :avatar="userAvatar" />
-  <NuxtPage />
-  <AppFooter />
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
 </template>
 
 <script setup>
-import AppHeaderSidebar from "~/components/AppHeaderSidebar.vue";
-import AppFooter from "~/components/AppFooter.vue";
-
-const userName = "Админ"; // Replace with real user state
-const userAvatar = "/assets/images/avatar.jpg";
+// No need to import components that are used in layouts here
 </script>
+
+<style>
+/* Global styles can go here */
+</style>
