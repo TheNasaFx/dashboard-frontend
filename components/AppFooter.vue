@@ -7,7 +7,7 @@
             <div class="card-body">
               <p class="text-muted mb-0">
                 ©
-                <span>{{ year }}</span>
+                {{ currentYear }}
                 Нийслэлмийн Татварын Газар
                 <span class="text-muted d-none d-sm-inline-block float-end">
                   Developed by
@@ -29,5 +29,14 @@
 </template>
 
 <script setup>
-const year = new Date().getFullYear();
+import { computed } from "vue";
+
+const currentYear = computed(() => {
+  return new Date().getFullYear();
+});
 </script>
+
+<style scoped>
+/* Add any specific styles for the footer here if needed */
+/* The PHP file seems to use Bootstrap classes, which should be handled by your main CSS */
+</style>
