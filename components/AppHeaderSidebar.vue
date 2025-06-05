@@ -53,7 +53,7 @@
               >
                 <!-- Use avatar prop instead of hardcoded path -->
                 <img
-                  :src="avatar || '/assets/images/default-avatar.jpg'"
+                  :src="avatar || '/assets/images/avatar.jpg'"
                   <!--
                   Provide
                   a
@@ -70,7 +70,7 @@
                   <div class="flex-shrink-0">
                     <!-- Use avatar prop instead of hardcoded path -->
                     <img
-                      :src="avatar || '/assets/images/default-avatar.jpg'"
+                      :src="avatar || '/assets/images/avatar.jpg'"
                       <!--
                       Provide
                       a
@@ -208,7 +208,7 @@ const props = defineProps({
   },
   avatar: {
     type: String,
-    default: "/assets/images/default-avatar.jpg", // Provide a default avatar image path
+    default: "/assets/images/avatar.jpg", // Provide a default avatar image path
   },
 });
 

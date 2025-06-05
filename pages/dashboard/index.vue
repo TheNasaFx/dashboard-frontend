@@ -57,12 +57,11 @@
               <!--end card-header-->
               <div class="card-body pt-0">
                 <!-- Apex Charts placeholder -->
-                <apexchart
-                  type="bar"
+                <Bar
+                  :data="reportsChartData"
+                  :options="chartOptions"
                   height="350"
-                  :options="reportsChartOptions"
-                  :series="reportsChartSeries"
-                ></apexchart>
+                />
               </div>
               <!--end card-body-->
             </div>
@@ -101,14 +100,16 @@
                 <!--end row-->
               </div>
               <!--end card-header-->
-              <div class="card-body pt-0">
+              <div
+                class="card-body pt-0"
+                style="height: 350px; overflow: hidden"
+              >
                 <!-- Apex Charts placeholder -->
-                <apexchart
-                  type="bar"
+                <Bar
+                  :data="cashflowChartData"
+                  :options="chartOptions"
                   height="350"
-                  :options="cashflowChartOptions"
-                  :series="cashflowChartSeries"
-                ></apexchart>
+                />
                 <div class="row">
                   <div class="col-4">
                     <div class="text-center">
@@ -439,7 +440,7 @@
                             <img
                               :src="
                                 inspector.avatar ||
-                                '/assets/images/users/default-avatar.jpg'
+                                '/assets/images/users/avatar.jpg'
                               "
                               height="36"
                               class="me-2 align-self-center rounded"
@@ -501,199 +502,182 @@
   <!-- end page-wrapper -->
 </template>
 
-<script setup>
-import { definePageMeta } from "nuxt/app";
-import { ref, onMounted, watchEffect } from "vue";
+<script setup lang="ts">
+import { ref, onMounted, watchEffect, computed } from "vue";
 import { $fetch } from "ofetch";
-import VueApexCharts from "vue3-apexcharts";
+import { Bar } from "vue-chartjs";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import type { ChartData, ChartOptions as ChartJSOptions } from "chart.js";
 
-definePageMeta({
-  middleware: ["auth"],
-});
+// Define types for our data
+interface ChartSeries {
+  name: string;
+  data: number[];
+  color?: string;
+}
 
-// Define reactive state for dashboard data
-const stats = ref({}); // Placeholder for statistics
-const recentRegistrations = ref([]); // Placeholder for recent registrations table data
-const inspectors = ref([]); // Placeholder for inspectors data
-
-// Reactive variables for chart data and options
-const reportsChartSeries = ref([]); // Data for Reports chart
-const reportsChartOptions = ref({
-  chart: {
-    type: "bar",
-    height: 350,
-  },
-  plotOptions: {
-    bar: {
-      horizontal: false,
-      columnWidth: "55%",
-      endingShape: "rounded",
-    },
-  },
-  dataLabels: {
-    enabled: false,
-  },
-  stroke: {
-    show: true,
-    width: 2,
-    colors: ["transparent"],
-  },
+interface ChartOptions {
   xaxis: {
-    categories: [], // Dynamic categories
-  },
-  yaxis: {
-    title: {
-      text: "Count",
-    },
-  },
-  fill: {
-    opacity: 1,
-  },
-  tooltip: {
-    y: {
-      formatter: function (val) {
-        return val + " reports";
-      },
-    },
-  },
+    categories: string[];
+  };
+}
+
+interface RecentRegistration {
+  id: number;
+  taxpayerName: string;
+  registrationDate: string;
+  invoiceNumber: string;
+  reportNumber: string;
+  status: string;
+}
+
+interface Inspector {
+  id: number;
+  name: string;
+  status: string;
+  lastActive: string;
+  avatar?: string;
+  count?: number;
+}
+
+interface Stats {
+  registrationPercentage: string;
+  uncertainPercentage: string;
+  otherPercentage: string;
+  eInvoiceCount: number;
+  reportsSubmitted: number;
+  taxDebtCount: number;
+  vatPayerCount: number;
+  totalTaxpayers: number;
+  recentRegistrations: RecentRegistration[];
+  inspectors: Inspector[];
+}
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+// Define reactive state with proper types
+const stats = ref<Stats>({
+  registrationPercentage: "--",
+  uncertainPercentage: "--",
+  otherPercentage: "--",
+  eInvoiceCount: 0,
+  reportsSubmitted: 0,
+  taxDebtCount: 0,
+  vatPayerCount: 0,
+  totalTaxpayers: 0,
+  recentRegistrations: [],
+  inspectors: [],
 });
 
-const cashflowChartSeries = ref([]); // Data for Cashflow chart
-const cashflowChartOptions = ref({
-  chart: {
-    type: "bar",
-    height: 350,
-  },
-  plotOptions: {
-    bar: {
-      horizontal: false,
-      columnWidth: "55%",
-      endingShape: "rounded",
-    },
-  },
-  dataLabels: {
-    enabled: false,
-  },
-  stroke: {
-    show: true,
-    width: 2,
-    colors: ["transparent"],
-  },
+const recentRegistrations = computed(() => stats.value.recentRegistrations);
+const inspectors = computed(() => stats.value.inspectors);
+
+const reportsChartOptions = ref<ChartOptions>({
   xaxis: {
-    categories: [], // Dynamic categories
-  },
-  yaxis: {
-    title: {
-      text: "$ (thousands)",
-    },
-  },
-  fill: {
-    opacity: 1,
-  },
-  tooltip: {
-    y: {
-      formatter: function (val) {
-        return "$ " + val + " thousands";
-      },
-    },
+    categories: [],
   },
 });
 
-const balanceChartSeries = ref([]); // Data for Activities chart (e.g., counts)
-const balanceChartOptions = ref({
-  chart: {
-    type: "donut",
-    height: 350,
+const reportsChartSeries = ref<ChartSeries[]>([]);
+
+const cashflowChartOptions = ref<ChartOptions>({
+  xaxis: {
+    categories: [],
   },
-  labels: [], // Dynamic labels
-  responsive: [
-    {
-      breakpoint: 480,
-      options: {
-        chart: {
-          width: 200,
-        },
-        legend: {
-          position: "bottom",
-        },
-      },
-    },
-  ],
 });
 
-// Fetch dashboard data from API endpoints
-const fetchDashboardData = async () => {
+const cashflowChartSeries = ref<ChartSeries[]>([]);
+
+// Define chart data types
+const reportsChartData = computed<ChartData<"bar">>(() => ({
+  labels: reportsChartOptions.value.xaxis.categories,
+  datasets: reportsChartSeries.value.map((series) => ({
+    label: series.name,
+    data: series.data,
+    backgroundColor: series.color || "#f87979",
+  })),
+}));
+
+const cashflowChartData = computed<ChartData<"bar">>(() => ({
+  labels: cashflowChartOptions.value.xaxis.categories,
+  datasets: cashflowChartSeries.value.map((series) => ({
+    label: series.name,
+    data: series.data,
+    backgroundColor: series.color || "#f87979",
+  })),
+}));
+
+const chartOptions = computed<ChartJSOptions<"bar">>(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: "top" as const,
+    },
+  },
+}));
+
+// Type the fetch functions
+const fetchStats = async (): Promise<void> => {
   try {
-    // Fetch stats data
-    const statsData = await $fetch("/api/dashboard/stats");
-    if (statsData) {
-      stats.value = statsData;
-    }
-
-    // Fetch recent registrations data
-    const recentData = await $fetch("/api/dashboard/latest-records");
-    recentRegistrations.value = recentData;
-
-    // Fetch inspectors data
-    const inspectorsData = await $fetch("/api/dashboard/inspectors");
-    inspectors.value = inspectorsData;
-
-    // Fetch reports chart data
-    const reportsRawData = await $fetch("/api/dashboard/reports-data");
-    if (reportsRawData) {
-      // Assuming reportsRawData is an array like [{ month: 'YYYY-MM', count: N }]
-      reportsChartSeries.value = [
-        { name: "Reports", data: reportsRawData.map((item) => item.count) },
-      ];
-      reportsChartOptions.value = {
-        ...reportsChartOptions.value,
-        xaxis: { categories: reportsRawData.map((item) => item.month) },
-      };
-    }
-
-    // Fetch cashflow chart data
-    const cashflowRawData = await $fetch("/api/dashboard/cashflow-data");
-    if (cashflowRawData) {
-      // TODO: Process cashflowRawData to match multiple series if needed
-      // For the placeholder, assuming single series data structure like [{ month: 'YYYY-MM', total_amount: N }]
-      cashflowChartSeries.value = [
-        {
-          name: "Total Amount",
-          data: cashflowRawData.map((item) => item.total_amount),
-        },
-      ];
-      cashflowChartOptions.value = {
-        ...cashflowChartOptions.value,
-        xaxis: { categories: cashflowRawData.map((item) => item.month) },
-      };
-    }
-
-    // Fetch activities chart data
-    const activitiesRawData = await $fetch("/api/dashboard/activities-data");
-    if (activitiesRawData) {
-      // Assuming activitiesRawData is an array like [{ label: 'Activity', count: N }]
-      balanceChartSeries.value = activitiesRawData.map((item) => item.count);
-      balanceChartOptions.value = {
-        ...balanceChartOptions.value,
-        labels: activitiesRawData.map((item) => item.label),
-      };
-    }
+    const response = await $fetch<Stats>("/api/dashboard/stats");
+    stats.value = response;
   } catch (error) {
-    console.error("Error fetching dashboard data:", error);
-    // TODO: Display an error message to the user
+    console.error("Error fetching stats:", error);
   }
 };
 
-// Initialize ApexCharts and fetch data when component is mounted
-onMounted(() => {
-  // ApexCharts initialization is implicitly handled by the component mounting
-  fetchDashboardData();
+const fetchReportsData = async (): Promise<void> => {
+  try {
+    const response = await $fetch<{
+      options: ChartOptions;
+      series: ChartSeries[];
+    }>("/api/dashboard/reports-data");
+    reportsChartOptions.value = response.options;
+    reportsChartSeries.value = response.series;
+  } catch (error) {
+    console.error("Error fetching reports data:", error);
+  }
+};
+
+const fetchCashflowData = async (): Promise<void> => {
+  try {
+    const response = await $fetch<{
+      options: ChartOptions;
+      series: ChartSeries[];
+    }>("/api/dashboard/cashflow-data");
+    cashflowChartOptions.value = response.options;
+    cashflowChartSeries.value = response.series;
+  } catch (error) {
+    console.error("Error fetching cashflow data:", error);
+  }
+};
+
+// Watch for changes
+watchEffect(() => {
+  // Your watch effect logic here
 });
 
-// Optional: Watch for data changes and update charts if necessary
-// watchEffect(() => {
-//   // Logic to update charts when data changes
-// });
+// Lifecycle hooks
+onMounted(async () => {
+  await Promise.all([fetchStats(), fetchReportsData(), fetchCashflowData()]);
+});
 </script>
 
 <style scoped>

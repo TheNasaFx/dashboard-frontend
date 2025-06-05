@@ -213,13 +213,8 @@
 </template>
 
 <script setup>
-import { definePageMeta } from "nuxt/app";
 import { ref, onMounted } from "vue";
 import { $fetch } from "ofetch";
-
-definePageMeta({
-  middleware: ["auth"],
-});
 
 // Define reactive state for entities data
 const entities = ref([]); // Placeholder for entity list data
@@ -248,6 +243,8 @@ onMounted(() => {
 // const selectedType = ref(null);
 // Use watchEffect to call fetchEntities when filter variables change
 </script>
+
+definePageMeta({ middleware: ["auth"], });
 
 <style scoped>
 /* Add any component-specific styles here */

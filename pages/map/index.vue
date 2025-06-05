@@ -431,16 +431,12 @@
 </template>
 
 <script setup>
-import { definePageMeta } from "nuxt/app";
 import { ref, onMounted, watchEffect } from "vue";
 import { $fetch } from "ofetch";
+
 // Import Leaflet and MarkerCluster dynamically to ensure client-side rendering
 let L = null;
 let L_markerCluster = null;
-
-definePageMeta({
-  middleware: ["auth"],
-});
 
 const map = ref(null); // Reactive reference for the map instance
 const markers = ref(null); // Reactive reference for the marker cluster group
@@ -576,6 +572,8 @@ watchEffect(() => {
 
 // TODO: Implement custom icon logic based on original PHP/JS if needed
 </script>
+
+definePageMeta({ middleware: ["auth"], });
 
 <style scoped>
 /* Add any component-specific styles here */

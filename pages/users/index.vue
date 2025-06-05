@@ -103,12 +103,7 @@
 </template>
 
 <script setup>
-import { definePageMeta } from "nuxt/app";
 import { ref, onMounted } from "vue";
-
-definePageMeta({
-  middleware: ["auth"],
-});
 
 // Define reactive state for users data
 const users = ref([]); // Placeholder for user list data
@@ -131,6 +126,8 @@ onMounted(() => {
   fetchUsers();
 });
 </script>
+
+definePageMeta({ middleware: ["auth"], });
 
 <style scoped>
 /* Add any component-specific styles here */

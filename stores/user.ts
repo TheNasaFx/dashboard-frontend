@@ -9,9 +9,12 @@ interface UserState {
 
 interface LoginResponse {
   success: boolean;
-  name?: string;
-  avatar?: string;
-  error?: string;
+  user?: {
+    isLoggedIn: boolean;
+    name: string;
+    avatar: string;
+  };
+  message?: string;
 }
 
 export const useUserStore = defineStore("user", {
@@ -24,15 +27,16 @@ export const useUserStore = defineStore("user", {
   actions: {
     async login(username: string, password: string) {
       try {
-        const { data } = await useFetch<LoginResponse>("/api/login", {
+        const { data } = await useFetch<LoginResponse>("/api/auth/login", {
           method: "POST",
           body: { username, password },
         });
 
-        if (data.value?.success) {
-          this.isLoggedIn = true;
-          this.name = data.value.name || "";
-          this.avatar = data.value.avatar || "/assets/images/avatar.jpg";
+        if (data.value?.success && data.value.user) {
+          this.isLoggedIn = data.value.user.isLoggedIn;
+          this.name = data.value.user.name;
+          this.avatar = data.value.user.avatar;
+          await navigateTo("/dashboard");
           return true;
         }
         return false;
@@ -42,11 +46,32 @@ export const useUserStore = defineStore("user", {
       }
     },
 
-    logout() {
-      this.isLoggedIn = false;
-      this.name = "";
-      this.avatar = "/assets/images/avatar.jpg";
-      navigateTo("/login");
+    async logout() {
+      try {
+        await useFetch("/api/auth/logout", { method: "POST" });
+      } catch (error) {
+        console.error("Logout error:", error);
+      } finally {
+        this.isLoggedIn = false;
+        this.name = "";
+        this.avatar = "/assets/images/avatar.jpg";
+        await navigateTo("/login");
+      }
+    },
+
+    // Initialize store state from cookie
+    async initialize() {
+      try {
+        const { data } = await useFetch<LoginResponse>("/api/auth/check");
+        if (data.value?.success && data.value.user) {
+          this.isLoggedIn = data.value.user.isLoggedIn;
+          this.name = data.value.user.name;
+          this.avatar = data.value.user.avatar;
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+        this.isLoggedIn = false;
+      }
     },
   },
 

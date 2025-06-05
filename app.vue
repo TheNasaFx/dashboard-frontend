@@ -5,7 +5,14 @@
 </template>
 
 <script setup>
-// No need to import components that are used in layouts here
+import { onMounted } from "vue";
+import { useUserStore } from "~/stores/user";
+
+const userStore = useUserStore();
+
+onMounted(async () => {
+  await userStore.initialize();
+});
 </script>
 
 <style>

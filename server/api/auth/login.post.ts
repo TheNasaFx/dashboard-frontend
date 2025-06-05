@@ -20,23 +20,24 @@ export default defineEventHandler(async (event) => {
   const isAuthenticated = username === "magnate" && password === "123"; // Placeholder logic
 
   if (isAuthenticated) {
-    // TODO: Implement proper session management or token generation here.
-    // In PHP, this set $_SESSION variables and redirected.
-    // In Nuxt, you might set an HTTP-only cookie or return a token to the client.
-    // For now, set a simple auth cookie.
-    setCookie(event, "auth_token", "authenticated", {
+    // Generate a simple token for now - in production this should be a proper JWT or session token
+    const token = Buffer.from(`${username}-${Date.now()}`).toString("base64");
+
+    setCookie(event, "auth_token", token, {
       httpOnly: true,
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: "/",
+      secure: process.env.NODE_ENV === "production", // Only send cookie over HTTPS in production
+      sameSite: "strict",
     });
 
-    // Returning user data for demonstration mirroring PHP session variables:
+    // Return user data that matches our store structure
     return {
       success: true,
       user: {
-        ms_logged: true,
-        ms_name: "Админ", // This should also come from your database
-        ms_avatar: "/assets/images/avatar.jpg", // This should also come from your database
+        isLoggedIn: true,
+        name: "Админ", // This should come from your database
+        avatar: "/assets/images/avatar.jpg", // This should come from your database
       },
       // Frontend will handle redirection to dashboard based on this success response.
     };

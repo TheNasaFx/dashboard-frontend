@@ -1,7 +1,7 @@
 <script setup>
-import { definePageMeta } from "nuxt/app";
 import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
+import { definePageMeta } from "#app";
 
 // Import Chart.js and vue-chartjs components
 import {
@@ -38,10 +38,6 @@ ChartJS.register(
   RadialLinearScale, // Register RadialLinearScale
   RadarElement // Register RadarElement
 );
-
-definePageMeta({
-  middleware: ["auth"],
-});
 
 const route = useRoute();
 const entityId = route.params.id; // Get entity ID from route parameters
@@ -285,6 +281,10 @@ onMounted(() => {
   } else {
     fetchEntityData();
   }
+});
+
+definePageMeta({
+  middleware: ["auth"],
 });
 </script>
 
