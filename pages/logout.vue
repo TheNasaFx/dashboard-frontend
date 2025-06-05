@@ -1,19 +1,17 @@
 <template>
-  <div>
-    <!-- Logging out... -->
-  </div>
+  <div></div>
 </template>
 
-<script setup>
-import { onMounted } from "vue";
+<script setup lang="ts">
 import { useRouter } from "vue-router";
-import { useUserStore } from "~/store/user";
+import { onMounted } from "vue";
+import { useUser } from "../composables/useUser";
 
 const router = useRouter();
-const userStore = useUserStore();
+const { clearUser } = useUser();
 
 onMounted(() => {
-  userStore.logout();
-  router.push("/login");
+  clearUser();
+  router.replace({ path: "/login", query: { msg: "Гарсан" } });
 });
 </script>

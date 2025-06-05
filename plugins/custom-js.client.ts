@@ -1,11 +1,5 @@
-import { defineNuxtPlugin } from "nuxt/app";
+import { defineNuxtPlugin } from "#app";
 
 export default defineNuxtPlugin(() => {
-  if (process.client) {
-    import("@/assets/js/app.js");
-    import("@/assets/js/baatars.js");
-    import("@/assets/js/DynamicSelect.js");
-    import("@/assets/js/moment.js");
-    // Add more if needed
-  }
+  // No global legacy JS imports here. Use per-page/component onMounted imports instead.
 });

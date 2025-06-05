@@ -1,40 +1,55 @@
-import { defineNuxtConfig } from "nuxt/config";
-// https://nuxt.com/docs/api/configuration/nuxt-config
-export default defineNuxtConfig({
-  devtools: { enabled: true },
-  css: [
-    "bootstrap/dist/css/bootstrap.min.css",
-    "@/assets/css/app.css",
-    "@/assets/css/icons.min.css",
-  ],
-  plugins: [
-    { src: "~/plugins/bootstrap.client.ts", mode: "client" },
-    { src: "~/plugins/custom-js.client.ts", mode: "client" },
-  ],
-  modules: ["@nuxtjs/tailwindcss", "@pinia/nuxt"],
-  runtimeConfig: {
-    public: {
-      apiBase: process.env.API_BASE_URL || "http://localhost:8000",
-    },
-  },
+export default {
   app: {
     head: {
-      title: "МТА - НТГ",
+      title: "MTA | Нийслэлийн татварын газар",
       meta: [
-        { charset: "utf-8" },
-        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { name: "description", content: "MTA | Нийслэлийн татварын газар" },
+        { name: "author", content: "MaGnatE @ Mindsymbol" },
+        {
+          name: "keywords",
+          content:
+            "MTA, Нийслэлийн татварын газар, eTax, eTax систем, eTax системийн хэрэглэгчийн гарын авлага",
+        },
+        { "http-equiv": "X-UA-Compatible", content: "IE=edge" },
+      ],
+      link: [
+        {
+          rel: "icon",
+          type: "image/x-icon",
+          href: "/assets/images/favicon.png",
+        },
+        {
+          rel: "stylesheet",
+          href: "https://unpkg.com/leaflet@1.9.3/dist/leaflet.css",
+        },
+        {
+          rel: "stylesheet",
+          href: "https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/MarkerCluster.css",
+        },
+        {
+          rel: "stylesheet",
+          href: "https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.0/MarkerCluster.Default.min.css",
+        },
+      ],
+      script: [
+        { src: "https://unpkg.com/leaflet@1.9.3/dist/leaflet.js", defer: true },
+        {
+          src: "https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/leaflet.markercluster.js",
+          defer: true,
+        },
       ],
     },
   },
-  vite: {
-    optimizeDeps: {
-      include: ["vue3-apexcharts"],
-    },
+  css: [
+    "@/assets/css/bootstrap.min.css",
+    "@/assets/css/icons.min.css",
+    "@/assets/css/app.css",
+  ],
+  runtimeConfig: {
+    DB_HOST: process.env.DB_HOST,
+    DB_USER: process.env.DB_USER,
+    DB_PASSWORD: process.env.DB_PASSWORD,
+    DB_NAME: process.env.DB_NAME,
   },
-  build: {
-    transpile: ["vue3-apexcharts"],
-  },
-  nitro: {
-    compatibilityDate: "2025-06-04",
-  },
-});
+  plugins: ["~/plugins/custom-js.client.ts"],
+};
