@@ -51,7 +51,7 @@
                 data-bs-offset="0,19"
               >
                 <img
-                  :src="user.avatar || '/assets/images/avatar.png'"
+                  :src="unref(avatar) || '/assets/images/avatar.jpg'"
                   alt=""
                   class="thumb-md rounded-circle"
                 />
@@ -62,14 +62,14 @@
                 >
                   <div class="flex-shrink-0">
                     <img
-                      :src="user.avatar || '/assets/images/avatar.png'"
+                      :src="unref(avatar) || '/assets/images/avatar.jpg'"
                       alt=""
                       class="thumb-md rounded-circle"
                     />
                   </div>
                   <div class="flex-grow-1 ms-2 text-truncate align-self-center">
                     <h6 class="my-0 fw-medium text-dark fs-13">
-                      {{ user.name || "Хэрэглэгч" }}
+                      {{ unref(name) || "Хэрэглэгч" }}
                     </h6>
                     <small class="text-muted mb-0">Хэрэглэгч</small>
                   </div>
@@ -163,13 +163,12 @@
 </template>
 
 <script setup lang="ts">
-import { useUser } from "@/composables/useUser";
+import { useUser } from "~/composables/useUser";
+import { unref } from "vue";
 const { name, avatar, loadUser } = useUser();
 
 // Хэрэглэгчийн мэдээллийг ачаалах
-if (process.client) loadUser();
-
-const user = { name, avatar };
+if (typeof window !== "undefined") loadUser();
 </script>
 
 <style scoped>

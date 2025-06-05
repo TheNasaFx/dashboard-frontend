@@ -61,11 +61,13 @@
         </div>
       </div>
     </div>
+    <FooterComponent />
   </div>
 </template>
 
 <script setup lang="ts">
-import MapView from "../components/MapView.vue";
+import MapView from "~/components/MapView.vue";
+import TheMenu from "../components/TheMenu.vue";
 import "~/assets/js/baatars.js";
 </script>
 

@@ -189,14 +189,13 @@
 </template>
 
 <script setup lang="ts">
-import TheMenu from "../components/TheMenu.vue";
-import FooterComponent from "../components/FooterComponent.vue";
-import EntityLineChart from "../components/EntityLineChart.vue";
-import EntityPieChart from "../components/EntityPieChart.vue";
-import EntityBarChart from "../components/EntityBarChart.vue";
-import EntityPolarAreaChart from "../components/EntityPolarAreaChart.vue";
-import EntityPieTypeChart from "../components/EntityPieTypeChart.vue";
-import EntityRadarChart from "../components/EntityRadarChart.vue";
+import TheMenu from "~/components/TheMenu.vue";
+import EntityLineChart from "~/components/EntityLineChart.vue";
+import EntityPieChart from "~/components/EntityPieChart.vue";
+import EntityBarChart from "~/components/EntityBarChart.vue";
+import EntityPolarAreaChart from "~/components/EntityPolarAreaChart.vue";
+import EntityPieTypeChart from "~/components/EntityPieTypeChart.vue";
+import EntityRadarChart from "~/components/EntityRadarChart.vue";
 import "~/assets/libs/chart.js/chart.min.js";
 import "~/assets/js/pages/chartjs.init.js";
 import "~/assets/libs/viewbox/jquery.viewbox.min.js";
