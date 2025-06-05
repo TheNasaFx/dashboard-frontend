@@ -7,7 +7,10 @@ export default defineNuxtConfig({
     "@/assets/css/app.css",
     "@/assets/css/icons.min.css",
   ],
-  plugins: [{ src: "~/plugins/bootstrap.client.ts", mode: "client" }],
+  plugins: [
+    { src: "~/plugins/bootstrap.client.ts", mode: "client" },
+    { src: "~/plugins/custom-js.client.ts", mode: "client" },
+  ],
   modules: ["@nuxtjs/tailwindcss", "@pinia/nuxt"],
   runtimeConfig: {
     public: {

@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
       phone: "99112233",
       lastLogin: "2024-06-04 10:00",
       isActive: true,
-      avatar: "/assets/images/users/default-avatar.jpg",
+      avatar: "/assets/images/users/avatar2.jpg",
       location: "Улаанбаатар",
     },
     {
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
       phone: "99113344",
       lastLogin: "2024-06-03 09:00",
       isActive: false,
-      avatar: "/assets/images/users/default-avatar2.jpg",
+      avatar: "/assets/images/users/default-avatar3.jpg",
       location: "Дархан",
     },
   ];

@@ -517,6 +517,42 @@ import {
 } from "chart.js";
 import type { ChartData, ChartOptions as ChartJSOptions } from "chart.js";
 
+if (process.client) {
+  import("@/assets/js/pages/analytics-customers.init.js");
+  import("@/assets/js/pages/analytics-reports.init.js");
+  import("@/assets/js/pages/apexcharts.init.js");
+  import("@/assets/js/pages/calendar.init.js");
+  import("@/assets/js/pages/chartjs.init.js");
+  import("@/assets/js/pages/clipboard.init.js");
+  import("@/assets/js/pages/crop.init.js");
+  import("@/assets/js/pages/datatable.init.js");
+  import("@/assets/js/pages/dragula.init.js");
+  import("@/assets/js/pages/echarts.init.js");
+  import("@/assets/js/pages/ecommerce-index.init.js");
+  import("@/assets/js/pages/editable.init.js");
+  import("@/assets/js/pages/file-upload.init.js");
+  import("@/assets/js/pages/form-editor.init.js");
+  import("@/assets/js/pages/form-validation.js");
+  import("@/assets/js/pages/form-wizard.js");
+  import("@/assets/js/pages/forms-advanced.js");
+  import("@/assets/js/pages/gmaps.init.js");
+  import("@/assets/js/pages/index.init.js");
+  import("@/assets/js/pages/justgage.init.js");
+  import("@/assets/js/pages/leaflet-map.init.js");
+  import("@/assets/js/pages/payment.init.js");
+  import("@/assets/js/pages/profile.init.js");
+  import("@/assets/js/pages/project-kanban.init.js");
+  import("@/assets/js/pages/projects-create.init.js");
+  import("@/assets/js/pages/projects-task.init.js");
+  import("@/assets/js/pages/sweet-alert.init.js");
+  import("@/assets/js/pages/toast-ui.init.js");
+  import("@/assets/js/pages/toast.init.js");
+  import("@/assets/js/pages/transactions.init.js");
+  import("@/assets/js/pages/tree.init.js");
+  import("@/assets/js/pages/ui-slider.js");
+  import("@/assets/js/pages/vectormap.init.js");
+}
+
 // Define types for our data
 interface ChartSeries {
   name: string;
