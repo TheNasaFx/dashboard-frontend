@@ -11,7 +11,11 @@
             class="topbar-item list-unstyled d-inline-flex align-items-center mb-0"
           >
             <li>
-              <button class="nav-link mobile-menu-btn nav-icon" id="togglemenu">
+              <button
+                class="nav-link mobile-menu-btn nav-icon"
+                id="togglemenu"
+                @click="toggleSidebar"
+              >
                 <i class="iconoir-menu"></i>
               </button>
             </li>
@@ -35,6 +39,7 @@
                 class="nav-link nav-icon"
                 href="javascript:void(0);"
                 id="light-dark-mode"
+                @click="toggleTheme"
               >
                 <i class="iconoir-half-moon dark-mode"></i>
                 <i class="iconoir-sun-light light-mode"></i>
@@ -165,7 +170,11 @@
 <script setup lang="ts">
 import { useUser } from "~/composables/useUser";
 import { unref } from "vue";
+import { useSidebar } from "~/composables/useSidebar";
+import { useTheme } from "~/composables/useTheme";
 const { name, avatar, loadUser } = useUser();
+const { toggleSidebar } = useSidebar();
+const { toggleTheme } = useTheme();
 
 // Хэрэглэгчийн мэдээллийг ачаалах
 if (typeof window !== "undefined") loadUser();
@@ -173,4 +182,19 @@ if (typeof window !== "undefined") loadUser();
 
 <style scoped>
 /* Та өөрийн custom style-уудыг энд бичиж болно */
+.main-nav,
+.startbar {
+  background: #181c32 !important; /* эсвэл яг оригинал sidebar-ийн өнгө */
+  color: #fff !important;
+}
+.main-nav .nav-link,
+.startbar .nav-link,
+.startbar .menu-label span {
+  color: #fff !important;
+}
+.main-nav .nav-link.active,
+.startbar .nav-link.active {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+}
 </style>

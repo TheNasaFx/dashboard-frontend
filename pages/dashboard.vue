@@ -319,6 +319,140 @@
                           ></a>
                         </td>
                       </tr>
+                      <tr>
+                        <td>
+                          <div class="d-flex align-items-center">
+                            <img
+                              src="/assets/images/logos/lang-logo/nodejs.png"
+                              height="40"
+                              class="me-3 align-self-center rounded"
+                              alt="..."
+                            />
+                            <div class="flex-grow-1 text-truncate">
+                              <h6 class="m-0">Apple ХХК</h6>
+                              <a href="#" class="fs-12 text-primary"
+                                >Мэдээллийн технологи</a
+                              >
+                            </div>
+                          </div>
+                        </td>
+                        <td>2025-04-26</td>
+                        <td><i class="fa fa-check text-success"></i></td>
+                        <td>
+                          <span
+                            class="badge bg-success-subtle text-success fs-11 fw-medium px-2"
+                            >Баталгаажсан</span
+                          >
+                        </td>
+                        <td>
+                          <a href="#"
+                            ><i class="las la-print text-secondary fs-18"></i
+                          ></a>
+                          <a href="#"
+                            ><i class="las la-edit text-secondary fs-18"></i
+                          ></a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="d-flex align-items-center">
+                            <img
+                              src="/assets/images/logos/lang-logo/meta.png"
+                              height="40"
+                              class="me-3 align-self-center rounded"
+                              alt="..."
+                            />
+                            <div class="flex-grow-1 text-truncate">
+                              <h6 class="m-0">Пепси ХХК</h6>
+                              <a href="#" class="fs-12 text-primary">Хүнс</a>
+                            </div>
+                          </div>
+                        </td>
+                        <td>2025-04-27</td>
+                        <td><i class="fa fa-times text-danger"></i></td>
+                        <td>
+                          <span
+                            class="badge bg-danger-subtle text-danger fs-11 fw-medium px-2"
+                            >Гологдсон</span
+                          >
+                        </td>
+                        <td>
+                          <a href="#"
+                            ><i class="las la-print text-secondary fs-18"></i
+                          ></a>
+                          <a href="#"
+                            ><i class="las la-edit text-secondary fs-18"></i
+                          ></a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="d-flex align-items-center">
+                            <img
+                              src="/assets/images/logos/lang-logo/gitlab.png"
+                              height="40"
+                              class="me-3 align-self-center rounded"
+                              alt="..."
+                            />
+                            <div class="flex-grow-1 text-truncate">
+                              <h6 class="m-0">Монрос ХХК</h6>
+                              <a href="#" class="fs-12 text-primary"
+                                >Эрүүл мэнд</a
+                              >
+                            </div>
+                          </div>
+                        </td>
+                        <td>2025-04-28</td>
+                        <td><i class="fa fa-check text-success"></i></td>
+                        <td>
+                          <span
+                            class="badge bg-success-subtle text-success fs-11 fw-medium px-2"
+                            >Баталгаажсан</span
+                          >
+                        </td>
+                        <td>
+                          <a href="#"
+                            ><i class="las la-print text-secondary fs-18"></i
+                          ></a>
+                          <a href="#"
+                            ><i class="las la-edit text-secondary fs-18"></i
+                          ></a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="d-flex align-items-center">
+                            <img
+                              src="/assets/images/logos/lang-logo/python.png"
+                              height="40"
+                              class="me-3 align-self-center rounded"
+                              alt="..."
+                            />
+                            <div class="flex-grow-1 text-truncate">
+                              <h6 class="m-0">Форд ХХК</h6>
+                              <a href="#" class="fs-12 text-primary"
+                                >Үйлчилгээ</a
+                              >
+                            </div>
+                          </div>
+                        </td>
+                        <td>2025-04-29</td>
+                        <td><i class="fa fa-check text-success"></i></td>
+                        <td>
+                          <span
+                            class="badge bg-success-subtle text-success fs-11 fw-medium px-2"
+                            >Баталгаажсан</span
+                          >
+                        </td>
+                        <td>
+                          <a href="#"
+                            ><i class="las la-print text-secondary fs-18"></i
+                          ></a>
+                          <a href="#"
+                            ><i class="las la-edit text-secondary fs-18"></i
+                          ></a>
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -376,6 +510,161 @@
                           ></a>
                         </td>
                       </tr>
+                      <tr>
+                        <td class="px-0">
+                          <div class="d-flex align-items-center">
+                            <img
+                              src="/assets/images/users/avatar-2.jpg"
+                              height="36"
+                              class="me-2 align-self-center rounded"
+                              alt="..."
+                            />
+                            <div class="flex-grow-1 text-truncate">
+                              <h6 class="m-0 text-truncate">С.Эрдэнэбаяр</h6>
+                              <a
+                                href="#"
+                                class="font-12 text-muted text-decoration-underline"
+                                >#4789</a
+                              >
+                            </div>
+                          </div>
+                        </td>
+                        <td class="px-0 text-end">
+                          <span
+                            class="text-primary ps-2 align-self-center text-end fw-medium"
+                            >148.00</span
+                          >
+                        </td>
+                        <td class="px-0 text-end">
+                          <a href="#" class="text-body"
+                            ><i class="las la-sync-alt"></i
+                          ></a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="px-0">
+                          <div class="d-flex align-items-center">
+                            <img
+                              src="/assets/images/users/avatar-3.jpg"
+                              height="36"
+                              class="me-2 align-self-center rounded"
+                              alt="..."
+                            />
+                            <div class="flex-grow-1 text-truncate">
+                              <h6 class="m-0 text-truncate">С.Тамир</h6>
+                              <a
+                                href="#"
+                                class="font-12 text-muted text-decoration-underline"
+                                >#295</a
+                              >
+                            </div>
+                          </div>
+                        </td>
+                        <td class="px-0 text-end">
+                          <span
+                            class="text-primary ps-2 align-self-center text-end fw-medium"
+                            >295</span
+                          >
+                        </td>
+                        <td class="px-0 text-end">
+                          <a href="#" class="text-body"
+                            ><i class="las la-sync-alt"></i
+                          ></a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="px-0">
+                          <div class="d-flex align-items-center">
+                            <img
+                              src="/assets/images/users/avatar-4.jpg"
+                              height="36"
+                              class="me-2 align-self-center rounded"
+                              alt="..."
+                            />
+                            <div class="flex-grow-1 text-truncate">
+                              <h6 class="m-0 text-truncate">Т.Гэрэл</h6>
+                              <a
+                                href="#"
+                                class="font-12 text-muted text-decoration-underline"
+                                >#3628</a
+                              >
+                            </div>
+                          </div>
+                        </td>
+                        <td class="px-0 text-end">
+                          <span
+                            class="text-primary ps-2 align-self-center text-end fw-medium"
+                            >185</span
+                          >
+                        </td>
+                        <td class="px-0 text-end">
+                          <a href="#" class="text-body"
+                            ><i class="las la-sync-alt"></i
+                          ></a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="px-0">
+                          <div class="d-flex align-items-center">
+                            <img
+                              src="/assets/images/users/avatar-5.jpg"
+                              height="36"
+                              class="me-2 align-self-center rounded"
+                              alt="..."
+                            />
+                            <div class="flex-grow-1 text-truncate">
+                              <h6 class="m-0 text-truncate">У.Уянга</h6>
+                              <a
+                                href="#"
+                                class="font-12 text-muted text-decoration-underline"
+                                >#142</a
+                              >
+                            </div>
+                          </div>
+                        </td>
+                        <td class="px-0 text-end">
+                          <span
+                            class="text-primary ps-2 align-self-center text-end fw-medium"
+                            >142</span
+                          >
+                        </td>
+                        <td class="px-0 text-end">
+                          <a href="#" class="text-body"
+                            ><i class="las la-sync-alt"></i
+                          ></a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="px-0">
+                          <div class="d-flex align-items-center">
+                            <img
+                              src="/assets/images/users/avatar-6.jpg"
+                              height="36"
+                              class="me-2 align-self-center rounded"
+                              alt="..."
+                            />
+                            <div class="flex-grow-1 text-truncate">
+                              <h6 class="m-0 text-truncate">Steven Sharp</h6>
+                              <a
+                                href="#"
+                                class="font-12 text-muted text-decoration-underline"
+                                >#4521</a
+                              >
+                            </div>
+                          </div>
+                        </td>
+                        <td class="px-0 text-end">
+                          <span
+                            class="text-primary ps-2 align-self-center text-end fw-medium"
+                            >29</span
+                          >
+                        </td>
+                        <td class="px-0 text-end">
+                          <a href="#" class="text-body"
+                            ><i class="las la-sync-alt"></i
+                          ></a>
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -395,6 +684,7 @@ import TheMenu from "~/components/TheMenu.vue";
 import RegistrationChart from "~/components/RegistrationChart.vue";
 import CashflowChart from "~/components/CashflowChart.vue";
 import BalanceChart from "~/components/BalanceChart.vue";
+import "~/assets/js/app.js";
 import "~/assets/js/baatars.js";
 import { useRuntimeConfig } from "nuxt/app";
 

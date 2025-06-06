@@ -22,6 +22,33 @@
           <div class="col-12">
             <div class="card">
               <div class="card-body">
+                <!-- Controls row -->
+                <div
+                  class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2"
+                >
+                  <div>
+                    <label>
+                      <select
+                        v-model.number="perPage"
+                        class="form-select d-inline-block w-auto me-2"
+                      >
+                        <option :value="10">10</option>
+                        <option :value="25">25</option>
+                        <option :value="50">50</option>
+                        <option :value="100">100</option>
+                      </select>
+                      entries per page
+                    </label>
+                  </div>
+                  <div>
+                    <input
+                      v-model="search"
+                      type="search"
+                      class="form-control"
+                      placeholder="Search..."
+                    />
+                  </div>
+                </div>
                 <div class="table-responsive">
                   <table class="table mb-0">
                     <thead class="table-light">
@@ -35,7 +62,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="user in users" :key="user.email">
+                      <tr v-for="user in paginatedUsers" :key="user.email">
                         <td class="d-flex align-items-center">
                           <div class="d-flex align-items-center">
                             <img
@@ -79,8 +106,56 @@
                           ></a>
                         </td>
                       </tr>
+                      <tr v-if="paginatedUsers.length === 0">
+                        <td colspan="6" class="text-center">No data found</td>
+                      </tr>
                     </tbody>
                   </table>
+                </div>
+                <!-- Showing X to Y of Z entries -->
+                <div
+                  class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2"
+                >
+                  <div>
+                    Showing {{ startEntry }} to {{ endEntry }} of
+                    {{ filteredUsers.length }} entries
+                  </div>
+                  <!-- Pagination controls -->
+                  <nav>
+                    <ul class="pagination mb-0">
+                      <li class="page-item" :class="{ disabled: page === 1 }">
+                        <button
+                          class="page-link"
+                          @click="goToPage(page - 1)"
+                          :disabled="page === 1"
+                        >
+                          &laquo;
+                        </button>
+                      </li>
+                      <li
+                        v-for="p in totalPages"
+                        :key="p"
+                        class="page-item"
+                        :class="{ active: page === p }"
+                      >
+                        <button class="page-link" @click="goToPage(p)">
+                          {{ p }}
+                        </button>
+                      </li>
+                      <li
+                        class="page-item"
+                        :class="{ disabled: page === totalPages }"
+                      >
+                        <button
+                          class="page-link"
+                          @click="goToPage(page + 1)"
+                          :disabled="page === totalPages"
+                        >
+                          &raquo;
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
                 </div>
               </div>
             </div>
@@ -93,7 +168,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { ref, computed } from "vue";
 import TheMenu from "../components/TheMenu.vue";
 import FooterComponent from "../components/FooterComponent.vue";
 
@@ -179,12 +254,67 @@ const users = [
     lastLogin: "2025-04-29",
     status: "Active",
   },
+  {
+    name: "Энхсайхан.Ж",
+    avatar: "/assets/images/users/avatar-2.jpg",
+    district: "Чингэлтэй",
+    email: "enkhsaihan.j@mta.mn",
+    phone: "99161843",
+    lastLogin: "2025-04-29",
+    status: "Active",
+  },
+  {
+    name: "Энхсайхан.Ж",
+    avatar: "/assets/images/users/avatar-2.jpg",
+    district: "Чингэлтэй",
+    email: "enkhsaihan.j@mta.mn",
+    phone: "99161843",
+    lastLogin: "2025-04-29",
+    status: "Active",
+  },
 ];
 
-onMounted(async () => {
-  if (process.client) {
-    await import("~/assets/js/app.js");
-    await import("~/assets/js/pages/datatable.init.js");
-  }
+const search = ref("");
+const page = ref(1);
+const perPage = ref(10);
+
+const filteredUsers = computed(() => {
+  if (!search.value) return users;
+  const s = search.value.toLowerCase();
+  return users.filter(
+    (u) =>
+      u.name.toLowerCase().includes(s) ||
+      u.email.toLowerCase().includes(s) ||
+      u.district.toLowerCase().includes(s) ||
+      u.phone.includes(s) ||
+      u.status.toLowerCase().includes(s)
+  );
+});
+
+const totalPages = computed(() =>
+  Math.ceil(filteredUsers.value.length / perPage.value)
+);
+
+const paginatedUsers = computed(() => {
+  const start = (page.value - 1) * perPage.value;
+  return filteredUsers.value.slice(start, start + perPage.value);
+});
+
+const startEntry = computed(() =>
+  filteredUsers.value.length === 0 ? 0 : (page.value - 1) * perPage.value + 1
+);
+const endEntry = computed(() =>
+  Math.min(page.value * perPage.value, filteredUsers.value.length)
+);
+
+function goToPage(p: number) {
+  if (p < 1 || p > totalPages.value) return;
+  page.value = p;
+}
+
+// Watchers to reset page if search or perPage changes
+import { watch } from "vue";
+watch([search, perPage], () => {
+  page.value = 1;
 });
 </script>
