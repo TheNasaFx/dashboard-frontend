@@ -198,8 +198,8 @@
 
 <script setup lang="ts">
 import { defineAsyncComponent } from "vue";
-import TheMenu from "~/components/TheMenu.vue";
-import FooterComponent from "~/components/FooterComponent.vue";
+import TheMenu from "../components/TheMenu.vue";
+import FooterComponent from "../components/FooterComponent.vue";
 
 const EntityLineChart = defineAsyncComponent(
   () => import("../components/EntityLineChart.vue")

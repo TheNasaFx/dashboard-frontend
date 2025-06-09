@@ -680,10 +680,10 @@
 
 <script setup lang="ts">
 import { onMounted } from "vue";
-import TheMenu from "~/components/TheMenu.vue";
-import RegistrationChart from "~/components/RegistrationChart.vue";
-import CashflowChart from "~/components/CashflowChart.vue";
-import BalanceChart from "~/components/BalanceChart.vue";
+import TheMenu from "../components/TheMenu.vue";
+import RegistrationChart from "../components/RegistrationChart.vue";
+import CashflowChart from "../components/CashflowChart.vue";
+import BalanceChart from "../components/BalanceChart.vue";
 import "~/assets/js/app.js";
 import "~/assets/js/baatars.js";
 import { useRuntimeConfig } from "nuxt/app";
@@ -692,8 +692,8 @@ onMounted(async () => {
   const config = useRuntimeConfig();
   if (config.app.client) {
     await import("~/assets/js/app.js");
-    await import("~/assets/js/pages/index.init.js");
-    await import("~/assets/js/DynamicSelect.js");
+    await import("../assets/js/pages/index.init.js");
+    await import("../assets/js/DynamicSelect.js");
   }
 });
 </script>
