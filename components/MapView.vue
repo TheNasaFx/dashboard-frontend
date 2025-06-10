@@ -1,44 +1,48 @@
 <template>
-  <div id="map" style="height: 600px; width: 100%; border-radius: 10px"></div>
+  <div id="map" style="height: 700px; width: 100%; border-radius: 10px"></div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, watch, ref } from "vue";
+import { useAttrs } from "vue";
+import L from "leaflet";
+import "leaflet.markercluster";
 
-onMounted(async () => {
-  // Fetch marker data from API (or use static array for demo)
+const props = defineProps<{
+  district: string;
+  khoroo: string;
+  category: string;
+}>();
+
+const map = ref<any>(null);
+const markersLayer = ref<any>(null);
+
+async function fetchAndRenderMarkers() {
+  // API query string үүсгэх
+  const params = new URLSearchParams();
+  if (props.district) params.append("district", props.district);
+  if (props.khoroo) params.append("khoroo", props.khoroo);
+  if (props.category) params.append("category", props.category);
+  const url =
+    "/api/positions" + (params.toString() ? `?${params.toString()}` : "");
+
   let markersData = [];
   try {
-    const res = await fetch("/api/positions");
+    const res = await fetch(url);
     const data = await res.json();
     if (Array.isArray(data)) {
       markersData = data;
     }
   } catch (e) {
-    // fallback: static marker
-    markersData = [
-      {
-        lat: 47.9188691,
-        lng: 106.9175785,
-        name: "Go.to market",
-        address: "СБД 7-р хороо",
-      },
-    ];
+    markersData = [];
   }
 
-  // 1. Map үүсгэх
-  const map = L.map("map").setView([47.9188691, 106.9175785], 13);
-
-  // 2. Tile layer нэмэх
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors",
-  }).addTo(map);
-
-  // 3. MarkerClusterGroup үүсгэх
-  const markers = L.markerClusterGroup();
-
-  // 4. Маркеруудыг нэмэх
-  markersData.forEach((marker) => {
+  // Маркеруудыг шинэчлэх
+  if (markersLayer.value) {
+    markersLayer.value.clearLayers();
+  }
+  markersLayer.value = L.markerClusterGroup();
+  markersData.forEach((marker: any) => {
     if (marker.lat && marker.lng) {
       const leafletMarker = L.marker([
         parseFloat(marker.lat),
@@ -47,11 +51,28 @@ onMounted(async () => {
       leafletMarker.bindPopup(
         `<b>${marker.name}</b><br>${marker.address || ""}`
       );
-      markers.addLayer(leafletMarker);
+      markersLayer.value.addLayer(leafletMarker);
     }
   });
+  if (map.value) {
+    map.value.addLayer(markersLayer.value);
+  }
+}
 
-  // 5. MarkerCluster-г map дээр нэмэх
-  map.addLayer(markers);
+onMounted(() => {
+  map.value = L.map("map").setView([47.9188691, 106.9175785], 15);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap contributors",
+  }).addTo(map.value);
+  markersLayer.value = L.markerClusterGroup();
+  map.value.addLayer(markersLayer.value);
+  fetchAndRenderMarkers();
 });
+
+watch(
+  () => [props.district, props.khoroo, props.category],
+  () => {
+    fetchAndRenderMarkers();
+  }
+);
 </script>

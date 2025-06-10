@@ -1,5 +1,11 @@
 import { onMounted } from "vue";
 
+declare global {
+  interface Window {
+    bootstrap: any;
+  }
+}
+
 export const useVerticalMenu = () => {
   const initVerticalMenu = () => {
     const navCollapse = document.querySelectorAll(".navbar-nav li .collapse");
