@@ -231,7 +231,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import MapView from "../components/MapView.vue";
 import TheMenu from "../components/TheMenu.vue";
 import "../assets/js/baatars.js";
