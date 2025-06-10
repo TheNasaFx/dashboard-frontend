@@ -215,7 +215,7 @@
               <div class="card">
                 <div class="card-body">
                   <MapView
-                    :zips="selectedZips"
+                    :district="selectedDistrict"
                     :khoroo="selectedKhoroo"
                     :category="selectedCategory"
                   />
@@ -234,7 +234,6 @@
 import { ref, computed } from "vue";
 import MapView from "../components/MapView.vue";
 import TheMenu from "../components/TheMenu.vue";
-import { districtsZipMap } from "../components/districtsZipMap";
 import "../assets/js/baatars.js";
 import "../assets/js/app.js";
 import "../assets/js/pages/datatable.init.js";
@@ -245,11 +244,6 @@ const selectedKhoroo = ref("");
 const selectedKhorooName = ref("Хороо");
 const selectedCategory = ref("");
 const selectedCategoryName = ref("Ү/а чиглэл");
-
-const selectedZips = computed(() => {
-  if (!selectedDistrict.value) return [];
-  return districtsZipMap[selectedDistrict.value] || [];
-});
 
 function selectDistrict(val: string, name: string) {
   selectedDistrict.value = val;

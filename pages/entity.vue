@@ -69,10 +69,11 @@
                 </div>
                 <div class="card-footer">
                   <a
-                    class="btn btn-icon btn-warning btn-sm"
+                    class="btn btn-icon btn-warning btn-sm me-2"
                     :href="entity.mapUrl"
-                    ><i class="fa fa-map-pin"></i
-                  ></a>
+                  >
+                    <i class="fa fa-map-pin"></i>
+                  </a>
                   <button
                     type="button"
                     class="btn btn-icon btn-dark btn-sm dropdown-toggle"
@@ -87,8 +88,9 @@
                       :key="floor"
                       class="dropdown-item"
                       :href="`/entity?id=${entity.id}&floor=${floor}`"
-                      >{{ floor }}</a
                     >
+                      {{ floor }}
+                    </a>
                   </div>
                 </div>
               </div>
