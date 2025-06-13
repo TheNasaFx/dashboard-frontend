@@ -182,14 +182,15 @@
                   </div>
                   <div class="card-footer">
                     <a
-                      class="btn btn-icon btn-warning btn-sm"
+                      class="btn btn-icon btn-warning btn-sm me-2"
                       :href="entity.mapUrl"
-                      ><i class="fa fa-map-pin"></i
-                    ></a>
-                    <a class="btn btn-icon btn-primary btn-sm" href="#"
-                      ><i class="fa fa-edit"></i
-                    ></a>
-                    <div v-if="entity.floors" class="btn-group">
+                    >
+                      <i class="fa fa-map-pin"></i>
+                    </a>
+                    <a class="btn btn-icon btn-primary btn-sm me-2" href="#">
+                      <i class="fa fa-edit"></i>
+                    </a>
+                    <div class="btn-group me-2" v-if="entity.floors">
                       <button
                         type="button"
                         class="btn btn-icon btn-dark btn-sm dropdown-toggle"
@@ -198,17 +199,16 @@
                       >
                         Давхар <i class="las la-angle-down ms-1"></i>
                       </button>
-                      <ul class="dropdown-menu">
-                        <li v-for="floor in entity.floors" :key="floor">
-                          <a
-                            class="dropdown-item"
-                            href="#"
-                            @click.prevent="handleFloorSelect(entity.id, floor)"
-                          >
-                            {{ floor }}-р давхар
-                          </a>
-                        </li>
-                      </ul>
+                      <div class="dropdown-menu">
+                        <a
+                          v-for="floor in entity.floors"
+                          :key="floor"
+                          class="dropdown-item"
+                          :href="`/entity?id=${entity.id}&floor=${floor}`"
+                        >
+                          {{ floor }}
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
