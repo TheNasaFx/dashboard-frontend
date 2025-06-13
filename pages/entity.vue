@@ -73,22 +73,26 @@
                     :href="entity.mapUrl"
                     ><i class="fa fa-map-pin"></i
                   ></a>
-                  <button
-                    type="button"
-                    class="btn btn-icon btn-dark btn-sm dropdown-toggle"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                  >
-                    Давхар <i class="las la-angle-down ms-1"></i>
-                  </button>
-                  <div class="dropdown-menu">
-                    <a
-                      v-for="floor in entity.floors"
-                      :key="floor"
-                      class="dropdown-item"
-                      :href="`/entity?id=${entity.id}&floor=${floor}`"
-                      >{{ floor }}</a
+                  <div class="btn-group">
+                    <button
+                      type="button"
+                      class="btn btn-icon btn-dark btn-sm dropdown-toggle"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false"
                     >
+                      Давхар <i class="las la-angle-down ms-1"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li v-for="floor in entity.floors" :key="floor.number">
+                        <a
+                          class="dropdown-item"
+                          href="#"
+                          @click.prevent="selectFloor(floor)"
+                        >
+                          {{ floor.number }}-р давхар
+                        </a>
+                      </li>
+                    </ul>
                   </div>
                 </div>
               </div>
@@ -100,6 +104,32 @@
             </div>
           </div>
           <div class="row justify-content-center mt-2">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">
+                    {{ selectedFloor.number }}-р давхарт байрлах байгууллагууд
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <ul class="list-group">
+                    <li
+                      v-for="org in selectedFloor.organizations"
+                      :key="org.id"
+                      class="list-group-item"
+                    >
+                      <strong>{{ org.name }}</strong>
+                      <span class="badge bg-secondary ms-2">{{
+                        org.type
+                      }}</span>
+                      <div class="text-muted small">{{ org.address }}</div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row justify-content-center">
             <div class="col-md-6 col-lg-8">
               <div class="card">
                 <div class="card-header">
@@ -197,7 +227,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent } from "vue";
+import { ref, defineAsyncComponent } from "vue";
 import TheMenu from "../components/TheMenu.vue";
 import FooterComponent from "../components/FooterComponent.vue";
 
@@ -231,6 +261,53 @@ const entity = {
   report: 75,
   mapUrl:
     "https://www.google.com/maps/dir/?api=1&destination=47.934086900672%2C106.91685211685",
-  floors: [1, 2, 3],
+  floors: [
+    {
+      number: 1,
+      organizations: [
+        {
+          id: 101,
+          name: "Органик дэлгүүр",
+          type: "Дэлгүүр",
+          address: "1-р давхар 101",
+        },
+        {
+          id: 102,
+          name: "Кофе шоп",
+          type: "Кофе шоп",
+          address: "1-р давхар 102",
+        },
+        {
+          id: 103,
+          name: "Татварын зөвлөх",
+          type: "Зөвлөх",
+          address: "1-р давхар 103",
+        },
+      ],
+    },
+    {
+      number: 2,
+      organizations: [
+        {
+          id: 201,
+          name: "Эмийн сан",
+          type: "Эмийн сан",
+          address: "2-р давхар 201",
+        },
+      ],
+    },
+    {
+      number: 3,
+      organizations: [
+        { id: 301, name: "Банк", type: "Банк", address: "3-р давхар 301" },
+      ],
+    },
+  ],
 };
+
+const selectedFloor = ref(entity.floors[0]);
+
+function selectFloor(floor: any) {
+  selectedFloor.value = floor;
+}
 </script>

@@ -189,30 +189,27 @@
                     <a class="btn btn-icon btn-primary btn-sm" href="#"
                       ><i class="fa fa-edit"></i
                     ></a>
-                    <button
-                      v-if="entity.floors"
-                      type="button"
-                      class="btn btn-icon btn-dark btn-sm dropdown-toggle"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      Давхар <i class="las la-angle-down ms-1"></i>
-                    </button>
-                    <div v-if="entity.floors" class="dropdown-menu">
-                      <a
-                        v-for="floor in entity.floors"
-                        :key="floor"
-                        class="dropdown-item"
-                        :href="`/entity?id=${entity.id}&floor=${floor}`"
-                        >{{ floor }}</a
+                    <div v-if="entity.floors" class="btn-group">
+                      <button
+                        type="button"
+                        class="btn btn-icon btn-dark btn-sm dropdown-toggle"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
                       >
+                        Давхар <i class="las la-angle-down ms-1"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li v-for="floor in entity.floors" :key="floor">
+                          <a
+                            class="dropdown-item"
+                            href="#"
+                            @click.prevent="handleFloorSelect(entity.id, floor)"
+                          >
+                            {{ floor }}-р давхар
+                          </a>
+                        </li>
+                      </ul>
                     </div>
-                    <a
-                      v-if="entity.organization"
-                      class="btn btn-icon btn-dark btn-sm"
-                      :href="`/entity?id=${entity.id}`"
-                      >Зохион байгуулалт</a
-                    >
                   </div>
                 </div>
               </div>
@@ -227,8 +224,11 @@
 
 <script setup lang="ts">
 import { onMounted } from "vue";
+import { useRouter } from "vue-router";
 import TheMenu from "../components/TheMenu.vue";
 import FooterComponent from "../components/FooterComponent.vue";
+
+const router = useRouter();
 
 const entities = [
   {
@@ -258,13 +258,24 @@ const entities = [
     mapUrl:
       "https://www.google.com/maps/search/%D0%BD%D0%B0%D1%80%D0%B0%D0%BD%D1%82%D1%83%D1%83%D0%BB+%D0%B7%D0%B0%D1%85/@47.9471627,106.9023049,13z?entry=s&sa=X",
     organization: true,
+    floors: [1],
   },
 ];
 
+function handleFloorSelect(entityId: number, floor: number) {
+  router.push(`/entity?id=${entityId}&floor=${floor}`);
+}
+
 onMounted(async () => {
-  if (process.client) {
-    await import("~/assets/js/app.js");
-    await import("~/assets/js/pages/datatable.init.js");
+  if ((import.meta as any).client) {
+    await import("../assets/js/app.js");
+    await import("../assets/js/pages/datatable.init.js");
   }
 });
 </script>
+
+<style scoped>
+.card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+</style>
