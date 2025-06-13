@@ -691,7 +691,7 @@ import { useRuntimeConfig } from "nuxt/app";
 onMounted(async () => {
   const config = useRuntimeConfig();
   if (config.app.client) {
-    await import("~/assets/js/app.js");
+    await import("../assets/js/app.js");
     await import("../assets/js/pages/index.init.js");
     await import("../assets/js/DynamicSelect.js");
   }
