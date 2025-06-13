@@ -69,7 +69,7 @@
                 </div>
                 <div class="card-footer">
                   <a
-                    class="btn btn-icon btn-warning btn-sm me-2"
+                    class="btn btn-icon btn-warning btn-sm"
                     :href="entity.mapUrl"
                     ><i class="fa fa-map-pin"></i
                   ></a>
