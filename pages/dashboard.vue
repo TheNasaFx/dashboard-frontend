@@ -48,7 +48,9 @@
                 </div>
               </div>
               <div class="card-body pt-0">
-                <RegistrationChart />
+                <client-only>
+                  <RegistrationChart />
+                </client-only>
               </div>
             </div>
           </div>
@@ -81,7 +83,9 @@
                 </div>
               </div>
               <div class="card-body pt-0">
-                <CashflowChart />
+                <client-only>
+                  <CashflowChart />
+                </client-only>
                 <div class="row">
                   <div class="col-4">
                     <div class="text-center">
@@ -236,7 +240,9 @@
                 </div>
               </div>
               <div class="card-body pt-0">
-                <BalanceChart />
+                <client-only>
+                  <BalanceChart />
+                </client-only>
                 <div class="bg-light py-3 px-2 mb-0 mt-3 text-center rounded">
                   <h6 class="mb-0">
                     <i class="icofont-calendar fs-5 me-1"></i> 8,658 татвар
@@ -688,12 +694,9 @@ import "~/assets/js/app.js";
 import "~/assets/js/baatars.js";
 import { useRuntimeConfig } from "nuxt/app";
 
-onMounted(async () => {
-  const config = useRuntimeConfig();
-  if (config.app.client) {
-    await import("../assets/js/app.js");
-    await import("../assets/js/pages/index.init.js");
-    await import("../assets/js/DynamicSelect.js");
-  }
+onMounted(() => {
+  import("../assets/js/app.js");
+  import("../assets/js/baatars.js");
+  import("../assets/js/pages/datatable.init.js");
 });
 </script>

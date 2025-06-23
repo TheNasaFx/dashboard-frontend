@@ -83,13 +83,13 @@
                       Давхар <i class="las la-angle-down ms-1"></i>
                     </button>
                     <ul class="dropdown-menu">
-                      <li v-for="floor in entity.floors" :key="floor.number">
+                      <li v-for="floor in floors" :key="floor">
                         <a
                           class="dropdown-item"
                           href="#"
                           @click.prevent="selectFloor(floor)"
                         >
-                          {{ floor.number }}-р давхар
+                          {{ floor }}-р давхар
                         </a>
                       </li>
                     </ul>
@@ -108,23 +108,32 @@
               <div class="card mb-3">
                 <div class="card-header">
                   <h5 class="card-title mb-0">
-                    {{ selectedFloor.number }}-р давхарт байрлах байгууллагууд
+                    {{ selectedFloor }}-р давхарт байрлах байгууллагууд
                   </h5>
                 </div>
                 <div class="card-body">
-                  <ul class="list-group">
-                    <li
-                      v-for="org in selectedFloor.organizations"
-                      :key="org.id"
-                      class="list-group-item"
-                    >
-                      <strong>{{ org.name }}</strong>
-                      <span class="badge bg-secondary ms-2">{{
-                        org.type
-                      }}</span>
-                      <div class="text-muted small">{{ org.address }}</div>
-                    </li>
-                  </ul>
+                  <table class="table table-bordered table-hover">
+                    <thead>
+                      <tr>
+                        <th>Тасгийн нэр (stor_name)</th>
+                        <th>Регистр (mar_regno)</th>
+                        <th>Үйл ажиллагааны чиглэл (op_type_name)</th>
+                        <th>Дэлгэрэнгүй</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="org in organizations" :key="org.id">
+                        <td>{{ org.stor_name }}</td>
+                        <td>{{ org.mar_regno }}</td>
+                        <td>{{ org.op_type_name }}</td>
+                        <td>
+                          <button class="btn btn-sm btn-info">
+                            Дэлгэрэнгүй
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -227,7 +236,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineAsyncComponent } from "vue";
+import { ref, defineAsyncComponent, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import TheMenu from "../components/TheMenu.vue";
 import FooterComponent from "../components/FooterComponent.vue";
 
@@ -250,8 +260,11 @@ const EntityRadarChart = defineAsyncComponent(
   () => import("../components/EntityRadarChart.vue")
 );
 
-const entity = {
-  id: 1,
+const route = useRoute();
+const organizations = ref<any[]>([]);
+const floors = ref<number[]>([]);
+const selectedFloor = ref<number>(1);
+const entity = ref<any>({
   name: "Go.to market",
   taxPayers: 128,
   type: "Үйлчилгээний төв",
@@ -261,53 +274,39 @@ const entity = {
   report: 75,
   mapUrl:
     "https://www.google.com/maps/dir/?api=1&destination=47.934086900672%2C106.91685211685",
-  floors: [
-    {
-      number: 1,
-      organizations: [
-        {
-          id: 101,
-          name: "Органик дэлгүүр",
-          type: "Дэлгүүр",
-          address: "1-р давхар 101",
-        },
-        {
-          id: 102,
-          name: "Кофе шоп",
-          type: "Кофе шоп",
-          address: "1-р давхар 102",
-        },
-        {
-          id: 103,
-          name: "Татварын зөвлөх",
-          type: "Зөвлөх",
-          address: "1-р давхар 103",
-        },
-      ],
-    },
-    {
-      number: 2,
-      organizations: [
-        {
-          id: 201,
-          name: "Эмийн сан",
-          type: "Эмийн сан",
-          address: "2-р давхар 201",
-        },
-      ],
-    },
-    {
-      number: 3,
-      organizations: [
-        { id: 301, name: "Банк", type: "Банк", address: "3-р давхар 301" },
-      ],
-    },
-  ],
-};
+});
 
-const selectedFloor = ref(entity.floors[0]);
-
-function selectFloor(floor: any) {
-  selectedFloor.value = floor;
+async function fetchFloors() {
+  const id = route.query.id;
+  if (!id) return;
+  const res = await fetch(`http://localhost:8080/api/buildings/${id}/floors`);
+  const data = await res.json();
+  // floors backend-ээс string хэлбэрээр ирдэг тул number болгоно
+  floors.value = data
+    .map((f: string) => Number(f))
+    .sort((a: number, b: number) => a - b);
+  if (floors.value.length > 0) {
+    selectedFloor.value = floors.value[0];
+    fetchOrganizations();
+  }
 }
+
+async function fetchOrganizations() {
+  const id = route.query.id;
+  const floor = selectedFloor.value;
+  if (!id || !floor) return;
+  const res = await fetch(
+    `http://localhost:8080/api/buildings/${id}/floors/${floor}/organizations`
+  );
+  organizations.value = await res.json();
+}
+
+function selectFloor(floor: number) {
+  selectedFloor.value = floor;
+  fetchOrganizations();
+}
+
+onMounted(() => {
+  fetchFloors();
+});
 </script>

@@ -61,7 +61,7 @@
                         <a
                           class="dropdown-item"
                           href="#"
-                          @click.prevent="selectDistrict('4', 'Сүхбаатар')"
+                          @click.prevent="selectDistrict('25', 'Сүхбаатар')"
                           >Сүхбаатар</a
                         >
                         <a
@@ -214,11 +214,13 @@
             <div class="col-12">
               <div class="card">
                 <div class="card-body">
-                  <MapView
-                    :district="selectedDistrict"
-                    :khoroo="selectedKhoroo"
-                    :category="selectedCategory"
-                  />
+                  <client-only>
+                    <MapView
+                      :district="selectedDistrict"
+                      :khoroo="selectedKhoroo"
+                      :category="selectedCategory"
+                    />
+                  </client-only>
                 </div>
               </div>
             </div>
@@ -231,12 +233,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import MapView from "../components/MapView.vue";
 import TheMenu from "../components/TheMenu.vue";
-import "../assets/js/baatars.js";
-import "../assets/js/app.js";
-import "../assets/js/pages/datatable.init.js";
 
 const selectedDistrict = ref("");
 const selectedDistrictName = ref("Дүүрэг");
@@ -257,4 +256,10 @@ function selectCategory(val: string, name: string) {
   selectedCategory.value = val;
   selectedCategoryName.value = name;
 }
+
+onMounted(() => {
+  import("../assets/js/app.js");
+  import("../assets/js/baatars.js");
+  import("../assets/js/pages/datatable.init.js");
+});
 </script>

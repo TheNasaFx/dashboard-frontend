@@ -33,20 +33,23 @@
                       data-bs-toggle="dropdown"
                       aria-expanded="false"
                     >
-                      Дүүрэг <i class="las la-angle-down ms-1"></i>
+                      {{ selectedDistrictName }}
+                      <i class="las la-angle-down ms-1"></i>
                     </button>
                     <div class="dropdown-menu">
-                      <a class="dropdown-item" href="#">Баянгол</a>
-                      <a class="dropdown-item" href="#">Баянзүрх</a>
-                      <a class="dropdown-item" href="#">Чингэлтэй</a>
-                      <a class="dropdown-item" href="#">Сүхбаатар</a>
-                      <a class="dropdown-item" href="#">Сонгинохайрхан</a>
-                      <a class="dropdown-item" href="#">Хан-Уул</a>
-                      <a class="dropdown-item" href="#">Багахангай</a>
-                      <a class="dropdown-item" href="#">Налайх</a>
-                      <a class="dropdown-item" href="#">Багануур</a>
+                      <a
+                        class="dropdown-item"
+                        href="#"
+                        @click.prevent="selectDistrict('25', 'Сүхбаатар')"
+                        >Сүхбаатар</a
+                      >
                       <div class="dropdown-divider"></div>
-                      <a class="dropdown-item" href="#">Бүгд</a>
+                      <a
+                        class="dropdown-item"
+                        href="#"
+                        @click.prevent="selectDistrict('', 'Бүгд')"
+                        >Бүгд</a
+                      >
                     </div>
                   </div>
                   <div class="dropdown">
@@ -56,31 +59,27 @@
                       data-bs-toggle="dropdown"
                       aria-expanded="false"
                     >
-                      Хороо <i class="las la-angle-down ms-1"></i>
+                      {{ selectedKhorooName }}
+                      <i class="las la-angle-down ms-1"></i>
                     </button>
                     <div class="dropdown-menu">
-                      <a class="dropdown-item" href="#">1-р хороо</a>
-                      <a class="dropdown-item" href="#">2-р хороо</a>
-                      <a class="dropdown-item" href="#">3-р хороо</a>
-                      <a class="dropdown-item" href="#">4-р хороо</a>
-                      <a class="dropdown-item" href="#">5-р хороо</a>
-                      <a class="dropdown-item" href="#">6-р хороо</a>
-                      <a class="dropdown-item" href="#">7-р хороо</a>
-                      <a class="dropdown-item" href="#">8-р хороо</a>
-                      <a class="dropdown-item" href="#">9-р хороо</a>
-                      <a class="dropdown-item" href="#">10-р хороо</a>
-                      <a class="dropdown-item" href="#">11-р хороо</a>
-                      <a class="dropdown-item" href="#">12-р хороо</a>
-                      <a class="dropdown-item" href="#">13-р хороо</a>
-                      <a class="dropdown-item" href="#">14-р хороо</a>
-                      <a class="dropdown-item" href="#">15-р хороо</a>
-                      <a class="dropdown-item" href="#">16-р хороо</a>
-                      <a class="dropdown-item" href="#">17-р хороо</a>
-                      <a class="dropdown-item" href="#">18-р хороо</a>
-                      <a class="dropdown-item" href="#">19-р хороо</a>
-                      <a class="dropdown-item" href="#">20-р хороо</a>
+                      <a
+                        v-for="n in 20"
+                        :key="n"
+                        class="dropdown-item"
+                        href="#"
+                        @click.prevent="
+                          selectKhoroo(n.toString(), `${n}-р хороо`)
+                        "
+                        >{{ n }}-р хороо</a
+                      >
                       <div class="dropdown-divider"></div>
-                      <a class="dropdown-item" href="#">Бүгд</a>
+                      <a
+                        class="dropdown-item"
+                        href="#"
+                        @click.prevent="selectKhoroo('', 'Бүгд')"
+                        >Бүгд</a
+                      >
                     </div>
                   </div>
                   <div class="dropdown">
@@ -126,7 +125,7 @@
         </div>
         <div class="row">
           <div
-            v-for="entity in entities"
+            v-for="entity in filteredBuildings"
             :key="entity.id"
             class="col-lg-6 mb-4"
           >
@@ -134,7 +133,7 @@
               <div class="row g-0">
                 <div class="col-md-4">
                   <img
-                    :src="entity.image"
+                    :src="'/uploads/go.market.jpeg'"
                     class="img-fluid rounded-start"
                     alt="..."
                   />
@@ -151,19 +150,21 @@
                         <span
                           class="position-absolute top-0 start-100 translate-middle bg-danger border border-light rounded-circle"
                         >
-                          <small class="thumb-xs">{{ entity.taxPayers }}</small>
+                          <small class="thumb-xs">{{
+                            entity.taxPayers || 0
+                          }}</small>
                         </span>
                       </button>
                     </h5>
-                    <p class="fs-12 text-muted">{{ entity.type }}</p>
-                    <p class="card-text">{{ entity.address }}</p>
+                    <p class="fs-12 text-muted">Үйлчилгээний төв</p>
+                    <p class="card-text">{{ entity.address || "" }}</p>
                     <small class="text-muted">Бүртгэл</small>
                     <div class="progress">
                       <div
                         class="progress-bar bg-gray progress-bar-striped progress-bar-animated"
                         role="progressbar"
-                        :style="`width:${entity.registration}%`"
-                        :aria-valuenow="entity.registration"
+                        :style="`width:${entity.registration || 90}%`"
+                        :aria-valuenow="entity.registration || 90"
                         aria-valuemin="0"
                         aria-valuemax="100"
                       ></div>
@@ -173,8 +174,8 @@
                       <div
                         class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
                         role="progressbar"
-                        :style="`width:${entity.report}%`"
-                        :aria-valuenow="entity.report"
+                        :style="`width:${entity.report || 75}%`"
+                        :aria-valuenow="entity.report || 75"
                         aria-valuemin="0"
                         aria-valuemax="100"
                       ></div>
@@ -183,32 +184,17 @@
                   <div class="card-footer">
                     <a
                       class="btn btn-icon btn-warning btn-sm"
-                      :href="entity.mapUrl"
+                      :href="entity.mapUrl || '#'"
                       ><i class="fa fa-map-pin"></i
                     ></a>
-                    <a class="btn btn-icon btn-primary btn-sm" href="#"
-                      ><i class="fa fa-edit"></i
-                    ></a>
-                    <div v-if="entity.floors" class="btn-group">
+                    <div v-if="entity.build_floor" class="btn-group">
                       <button
                         type="button"
-                        class="btn btn-icon btn-dark btn-sm dropdown-toggle"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
+                        class="btn btn-icon btn-dark btn-sm"
+                        @click="handleDetailClick(entity)"
                       >
-                        Давхар <i class="las la-angle-down ms-1"></i>
+                        Дэлгэрэнгүй
                       </button>
-                      <ul class="dropdown-menu">
-                        <li v-for="floor in entity.floors" :key="floor">
-                          <a
-                            class="dropdown-item"
-                            href="#"
-                            @click.prevent="handleFloorSelect(entity.id, floor)"
-                          >
-                            {{ floor }}-р давхар
-                          </a>
-                        </li>
-                      </ul>
                     </div>
                   </div>
                 </div>
@@ -223,55 +209,81 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import TheMenu from "../components/TheMenu.vue";
 import FooterComponent from "../components/FooterComponent.vue";
 
-const router = useRouter();
-
-const entities = [
-  {
-    id: 1,
-    name: "Go.to market",
-    image: "/uploads/go.market.jpeg",
-    taxPayers: 128,
-    type: "Үйлчилгээний төв",
-    address:
-      "СБД, 11-р хороо, 7-р хороолол /Хангай хотхоны баруун талд/ 14180 Ulaanbaatar, Mongolia",
-    registration: 90,
-    report: 75,
-    mapUrl:
-      "https://www.google.com/maps/dir/?api=1&destination=47.934086900672%2C106.91685211685",
-    floors: [1, 2, 3],
-  },
-  {
-    id: 2,
-    name: "Нарантуул-2 зах",
-    image: "/uploads/narantuul2.jpeg",
-    taxPayers: 256,
-    type: "Үйлчилгээний төв",
-    address:
-      'Нарантуул-2" худалдааны төв, Чингэлтэй дүүрэг - 12 хороо, Улаанбаатар 15120',
-    registration: 45,
-    report: 35,
-    mapUrl:
-      "https://www.google.com/maps/search/%D0%BD%D0%B0%D1%80%D0%B0%D0%BD%D1%82%D1%83%D1%83%D0%BB+%D0%B7%D0%B0%D1%85/@47.9471627,106.9023049,13z?entry=s&sa=X",
-    organization: true,
-    floors: [1],
-  },
-];
-
-function handleFloorSelect(entityId: number, floor: number) {
-  router.push(`/entity?id=${entityId}&floor=${floor}`);
+interface Building {
+  id: number;
+  name: string;
+  office_code: string;
+  kho_code: string;
+  build_floor: number;
+  address?: string;
+  registration?: number;
+  report?: number;
+  mapUrl?: string;
+  taxPayers?: number;
+  // add other fields if needed
 }
 
-onMounted(async () => {
-  if ((import.meta as any).client) {
-    await import("../assets/js/app.js");
-    await import("../assets/js/pages/datatable.init.js");
-  }
+const buildings = ref<Building[]>([]);
+const router = useRouter();
+
+const selectedDistrict = ref("");
+const selectedDistrictName = ref("Дүүрэг");
+const selectedKhoroo = ref("");
+const selectedKhorooName = ref("Хороо");
+
+const districtMap: Record<string, string> = {
+  "25": "Сүхбаатар",
+  // Add more mappings as you get them
+};
+
+function selectDistrict(code: string, name: string) {
+  selectedDistrict.value = code;
+  selectedDistrictName.value = name;
+}
+function selectKhoroo(code: string, name: string) {
+  selectedKhoroo.value = code;
+  selectedKhorooName.value = name;
+}
+
+const filteredBuildings = computed(() => {
+  return buildings.value.filter((b) => {
+    const districtMatch =
+      !selectedDistrict.value || b.office_code === selectedDistrict.value;
+    const khorooMatch =
+      !selectedKhoroo.value || b.kho_code === selectedKhoroo.value;
+    return districtMatch && khorooMatch;
+  });
 });
+
+onMounted(async () => {
+  const res = await fetch("http://localhost:8080/api/buildings");
+  const data = await res.json();
+  buildings.value = data.map((b: any) => ({
+    ...b,
+    address:
+      b.address ||
+      "СБД, 11-р хороо, 7-р хороолол /Хангай хотхоны баруун талд/ 14180 Ulaanbaatar, Mongolia",
+    registration: b.registration || 90,
+    report: b.report || 75,
+    taxPayers: b.taxPayers || 137,
+    mapUrl:
+      b.mapUrl ||
+      "https://www.google.com/maps/dir/?api=1&destination=47.934086900672%2C106.91685211685",
+  }));
+});
+
+function handleFloorSelect(buildingId: number, floor: number) {
+  router.push(`/entity?id=${buildingId}&floor=${floor}`);
+}
+
+function handleDetailClick(entity: Building) {
+  router.push(`/entity?id=${entity.id}`);
+}
 </script>
 
 <style scoped>

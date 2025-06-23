@@ -22,9 +22,9 @@ async function fetchAndRenderMarkers() {
   const params = new URLSearchParams();
   if (props.district) params.append("district", props.district);
   if (props.khoroo) params.append("khoroo", props.khoroo);
-  if (props.category) params.append("category", props.category);
   const url =
-    "/api/positions" + (params.toString() ? `?${params.toString()}` : "");
+    "http://localhost:8080/api/centers" +
+    (params.toString() ? `?${params.toString()}` : "");
 
   let markersData = [];
   try {
@@ -42,15 +42,28 @@ async function fetchAndRenderMarkers() {
     markersLayer.value.clearLayers();
   }
   markersLayer.value = L.markerClusterGroup();
-  markersData.forEach((marker: any) => {
-    if (marker.lat && marker.lng) {
-      const leafletMarker = L.marker([
-        parseFloat(marker.lat),
-        parseFloat(marker.lng),
-      ]);
-      leafletMarker.bindPopup(
-        `<b>${marker.name}</b><br>${marker.address || ""}`
-      );
+  markersData.forEach((marker) => {
+    const lat = parseFloat(marker.lat);
+    const lng = parseFloat(marker.lng);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      const leafletMarker = L.marker([lat, lng]);
+      const popupHtml = `
+        <div style='width:240px'>
+          <div style='text-align:center;'>
+            <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
+            <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${
+              marker.name
+            }</div>
+          </div>
+          <div style='font-size:13px;margin-bottom:8px;'>${
+            marker.address || ""
+          }</div>
+          <a href='/entity?id=${
+            marker.id
+          }' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a>
+        </div>
+      `;
+      leafletMarker.bindPopup(popupHtml);
       markersLayer.value.addLayer(leafletMarker);
     }
   });
@@ -59,7 +72,7 @@ async function fetchAndRenderMarkers() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   map.value = L.map("map").setView([47.9188691, 106.9175785], 15);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
@@ -67,6 +80,24 @@ onMounted(() => {
   markersLayer.value = L.markerClusterGroup();
   map.value.addLayer(markersLayer.value);
   fetchAndRenderMarkers();
+
+  // KML layer loading using dynamic import
+  const omnivore = (await import("@mapbox/leaflet-omnivore")).default;
+  const kmlLayer = omnivore
+    .kml("/duureg.kml")
+    .on("ready", function () {
+      map.value.fitBounds(kmlLayer.getBounds());
+    })
+    .on("click", function (e: any) {
+      const layer = e.layer;
+      const name = layer.feature?.properties?.name;
+      const description = layer.feature?.properties?.description;
+      let content = "";
+      if (name) content += `<strong>${name}</strong><br/>`;
+      if (description) content += `${description}`;
+      layer.bindPopup(content).openPopup();
+    });
+  kmlLayer.addTo(map.value);
 });
 
 watch(
