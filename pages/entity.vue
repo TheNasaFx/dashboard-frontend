@@ -118,6 +118,7 @@
                         <th>Тасгийн нэр (stor_name)</th>
                         <th>Регистр (mar_regno)</th>
                         <th>Үйл ажиллагааны чиглэл (op_type_name)</th>
+                        <th>Баримтын тоо</th>
                         <th>Дэлгэрэнгүй</th>
                       </tr>
                     </thead>
@@ -126,6 +127,7 @@
                         <td>{{ org.stor_name }}</td>
                         <td>{{ org.mar_regno }}</td>
                         <td>{{ org.op_type_name }}</td>
+                        <td>{{ org.count_receipt ?? 0 }}</td>
                         <td>
                           <button class="btn btn-sm btn-info">
                             Дэлгэрэнгүй
