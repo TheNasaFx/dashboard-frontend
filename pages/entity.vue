@@ -24,8 +24,9 @@
               </div>
             </div>
           </div>
-          <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-8">
+          <div class="row">
+            <!-- Go.to.market мэдээлэл -->
+            <div class="col-lg-4 col-md-6 mb-3">
               <div class="card">
                 <div class="card-body">
                   <h5 class="card-title">
@@ -97,10 +98,30 @@
                 </div>
               </div>
             </div>
-            <div class="col-md-6 col-lg-4">
-              <a href="/uploads/floor1.jpg" class="image-link">
-                <img src="/uploads/floor1.jpg" alt="" class="w-100" />
-              </a>
+            <!-- Map -->
+            <div class="col-lg-4 col-md-6 mb-3">
+              <MarketMap :centerId="entity.id" />
+            </div>
+            <!-- 1-р давхарын зураг -->
+            <div class="col-lg-4 col-md-12 mb-3">
+              <div style="position: relative">
+                <img
+                  src="/uploads/floor1.jpg"
+                  alt=""
+                  class="w-100"
+                  style="cursor: pointer"
+                  @click="showFloorModal = true"
+                />
+                <div
+                  v-if="showFloorModal"
+                  class="modal-backdrop"
+                  @click.self="showFloorModal = false"
+                >
+                  <div class="modal-content-custom">
+                    <img src="/uploads/floor1.jpg" alt="" class="modal-img" />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="row justify-content-center mt-2">
@@ -242,6 +263,7 @@ import { ref, defineAsyncComponent, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import TheMenu from "../components/TheMenu.vue";
 import FooterComponent from "../components/FooterComponent.vue";
+import MarketMap from "../components/MarketMap.vue";
 
 const EntityLineChart = defineAsyncComponent(
   () => import("../components/EntityLineChart.vue")
@@ -267,6 +289,7 @@ const organizations = ref<any[]>([]);
 const floors = ref<number[]>([]);
 const selectedFloor = ref<number>(1);
 const entity = ref<any>({
+  id: route.query.id ? Number(route.query.id) : undefined,
   name: "Go.to market",
   taxPayers: 128,
   type: "Үйлчилгээний төв",
@@ -277,6 +300,7 @@ const entity = ref<any>({
   mapUrl:
     "https://www.google.com/maps/dir/?api=1&destination=47.934086900672%2C106.91685211685",
 });
+const showFloorModal = ref(false);
 
 async function fetchFloors() {
   const id = route.query.id;
@@ -312,3 +336,35 @@ onMounted(() => {
   fetchFloors();
 });
 </script>
+
+<style scoped>
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.modal-content-custom {
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px 16px 8px 16px;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.2);
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.modal-img {
+  max-width: 80vw;
+  max-height: 70vh;
+  border-radius: 8px;
+}
+</style>

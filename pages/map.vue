@@ -199,10 +199,12 @@
                         Төрөл <i class="las la-angle-down ms-1"></i>
                       </button>
                       <div class="dropdown-menu">
-                        <a class="dropdown-item" href="#">Хувь хүн</a>
-                        <a class="dropdown-item" href="#">Хуулийн этгээд</a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="#">Бүгд</a>
+                        <a class="dropdown-item" href="#"
+                          >e-баримтаар(сүүлийн 72цагт)</a
+                        >
+                        <a class="dropdown-item" href="#"
+                          >Татварын мэдээллээр</a
+                        >
                       </div>
                     </div>
                   </div>

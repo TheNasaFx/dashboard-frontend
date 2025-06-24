@@ -17,6 +17,28 @@ const props = defineProps<{
 const map = ref<any>(null);
 const markersLayer = ref<any>(null);
 
+// Улаан болон ногоон icon-ыг тодорхойлох
+const redIcon = new L.Icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+const greenIcon = new L.Icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
 async function fetchAndRenderMarkers() {
   // API query string үүсгэх
   const params = new URLSearchParams();
@@ -37,6 +59,16 @@ async function fetchAndRenderMarkers() {
     markersData = [];
   }
 
+  // pay_market_barimt.json-оос мэдээлэл авах
+  let barimtData = [];
+  try {
+    const res = await fetch("http://localhost:8080/api/barimt");
+    const json = await res.json();
+    barimtData = json.results[0].items;
+  } catch (e) {
+    barimtData = [];
+  }
+
   // Маркеруудыг шинэчлэх
   if (markersLayer.value) {
     markersLayer.value.clearLayers();
@@ -46,7 +78,9 @@ async function fetchAndRenderMarkers() {
     const lat = parseFloat(marker.lat);
     const lng = parseFloat(marker.lng);
     if (!isNaN(lat) && !isNaN(lng)) {
-      const leafletMarker = L.marker([lat, lng]);
+      // all_barimt_ok утгаар өнгө сонгоно
+      let icon = marker.all_barimt_ok ? greenIcon : redIcon;
+      const leafletMarker = L.marker([lat, lng], { icon });
       const popupHtml = `
         <div style='width:240px'>
           <div style='text-align:center;'>
@@ -58,9 +92,12 @@ async function fetchAndRenderMarkers() {
           <div style='font-size:13px;margin-bottom:8px;'>${
             marker.address || ""
           }</div>
-          <a href='/entity?id=${
-            marker.id
-          }' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a>
+          <div style='display:flex;align-items:center;gap:6px;'>
+            <a href='/entity?id=${
+              marker.id
+            }' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a>
+            <span style='font-size:12px;color:#888;'>(2025/06/21 нд шинчлэгдсэн)</span>
+          </div>
         </div>
       `;
       leafletMarker.bindPopup(popupHtml);
@@ -73,7 +110,7 @@ async function fetchAndRenderMarkers() {
 }
 
 onMounted(async () => {
-  map.value = L.map("map").setView([47.9188691, 106.9175785], 15);
+  map.value = L.map("map").setView([47.9188691, 106.9175785], 12);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map.value);
@@ -85,9 +122,9 @@ onMounted(async () => {
   const omnivore = (await import("@mapbox/leaflet-omnivore")).default;
   const kmlLayer = omnivore
     .kml("/duureg.kml")
-    .on("ready", function () {
-      map.value.fitBounds(kmlLayer.getBounds());
-    })
+    // .on("ready", function () {
+    //   map.value.fitBounds(kmlLayer.getBounds());
+    // })
     .on("click", function (e: any) {
       const layer = e.layer;
       const name = layer.feature?.properties?.name;
