@@ -1,4 +1,4 @@
-export default {
+export default defineNuxtConfig({
   app: {
     head: {
       title: "MTA | Нийслэлийн татварын газар",
@@ -45,11 +45,10 @@ export default {
     "@/assets/css/icons.min.css",
     "@/assets/css/app.css",
   ],
-  runtimeConfig: {
-    DB_HOST: process.env.DB_HOST,
-    DB_USER: process.env.DB_USER,
-    DB_PASSWORD: process.env.DB_PASSWORD,
-    DB_NAME: process.env.DB_NAME,
-  },
   plugins: ["~/plugins/custom-js.client.ts"],
-};
+  runtimeConfig: {
+    public: {
+      backendApiUrl: process.env.BACKEND_API_URL
+    }
+  }
+});

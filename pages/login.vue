@@ -25,7 +25,7 @@
                   </div>
                 </div>
                 <div class="card-body pt-0">
-                  <form class="my-4" @submit.prevent="onLogin">
+                  <form class="my-4" @submit.prevent="login">
                     <div v-if="error" class="alert alert-danger">
                       {{ error }}
                     </div>
@@ -47,13 +47,13 @@
                       />
                     </div>
                     <div class="form-group">
-                      <label class="form-label" for="userpassword"
+                      <label class="form-label" for="password"
                         >Нууц үг</label
                       >
                       <input
                         type="password"
                         class="form-control"
-                        id="userpassword"
+                        id="password"
                         v-model="password"
                         placeholder="Нууц үг"
                         required
@@ -98,7 +98,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRuntimeConfig } from "#imports";
 import { useUser } from "../composables/useUser";
 import { definePageMeta } from "#imports";
 
@@ -112,22 +112,28 @@ const success = ref("");
 const router = useRouter();
 const { setUser } = useUser();
 
-const onLogin = () => {
+const login = async () => {
   error.value = "";
-  success.value = "";
-  // Dummy authentication
-  if (username.value === "magnate" && password.value === "123") {
-    setUser({
-      name: username.value,
-      avatar: "/assets/images/users/avatar-1.jpg",
-      logged: true,
+  try {
+    const res = await fetch("http://localhost:8080/api/v1/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: username.value, password: password.value })
     });
-    success.value = "Амжилттай нэвтэрлээ!";
-    setTimeout(() => {
-      router.push("/dashboard");
-    }, 1000);
-  } else {
-    error.value = "Нэвтрэх нэр эсвэл нууц үг буруу!";
+    const data = await res.json();
+    if (!res.ok) {
+      error.value = data.message || "Нэвтрэхэд алдаа гарлаа";
+      return;
+    }
+    localStorage.setItem("token", data.token);
+    setUser(data.user);
+    router.push("/dashboard");
+  } catch (e: any) {
+    if (e instanceof TypeError && e.message === "Failed to fetch") {
+      error.value = "Сервертэй холбогдож чадсангүй. Та backend серверээ шалгана уу.";
+    } else {
+      error.value = e?.message || "Нэвтрэхэд алдаа гарлаа";
+    }
   }
 };
 </script>
