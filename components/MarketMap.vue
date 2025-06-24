@@ -7,8 +7,8 @@
 
 <script setup>
 import { onMounted, ref } from "vue";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+// import L from "leaflet";
+// import "leaflet/dist/leaflet.css";
 
 const props = defineProps({
   centerId: Number,
@@ -17,6 +17,11 @@ const props = defineProps({
 const map = ref(null);
 
 onMounted(async () => {
+  if (typeof window === "undefined") return;
+  const [{ default: L }, _] = await Promise.all([
+    import("leaflet"),
+    import("leaflet/dist/leaflet.css"),
+  ]);
   // Backend-ээс тухайн төвийн бүх байгууллагыг авна
   const res = await fetch(
     `http://localhost:8080/api/buildings/${props.centerId}/organizations`

@@ -100,7 +100,6 @@
 import { ref } from "vue";
 import { useRouter, useRuntimeConfig } from "#imports";
 import { useUser } from "../composables/useUser";
-import { definePageMeta } from "#imports";
 
 definePageMeta({ layout: "empty" });
 

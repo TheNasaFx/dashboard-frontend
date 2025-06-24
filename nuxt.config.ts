@@ -44,6 +44,9 @@ export default defineNuxtConfig({
     "@/assets/css/bootstrap.min.css",
     "@/assets/css/icons.min.css",
     "@/assets/css/app.css",
+    "leaflet/dist/leaflet.css",
+    "leaflet.markercluster/dist/MarkerCluster.css",
+    "leaflet.markercluster/dist/MarkerCluster.Default.css",
   ],
   plugins: ["~/plugins/custom-js.client.ts"],
   runtimeConfig: {

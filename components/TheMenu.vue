@@ -168,10 +168,10 @@
 </template>
 
 <script setup lang="ts">
-import { useUser } from "~/composables/useUser";
+import { useUser } from "../composables/useUser";
 import { unref } from "vue";
-import { useSidebar } from "~/composables/useSidebar";
-import { useTheme } from "~/composables/useTheme";
+import { useSidebar } from "../composables/useSidebar";
+import { useTheme } from "../composables/useTheme";
 const { name, avatar, loadUser } = useUser();
 const { toggleSidebar } = useSidebar();
 const { toggleTheme } = useTheme();
