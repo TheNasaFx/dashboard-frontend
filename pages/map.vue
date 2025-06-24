@@ -236,6 +236,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useHead } from "@unhead/vue";
 import MapView from "../components/MapView.vue";
 import TheMenu from "../components/TheMenu.vue";
 
@@ -259,9 +260,11 @@ function selectCategory(val: string, name: string) {
   selectedCategoryName.value = name;
 }
 
-onMounted(() => {
-  import("../assets/js/app.js");
-  import("../assets/js/baatars.js");
-  import("../assets/js/pages/datatable.init.js");
+useHead({
+  script: [
+    { src: "/assets/js/app.js" },
+    { src: "/assets/js/baatars.js" },
+    { src: "/assets/js/pages/datatable.init.js" },
+  ],
 });
 </script>

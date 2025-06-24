@@ -100,7 +100,6 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useUser } from "../composables/useUser";
-import { definePageMeta } from "#imports";
 
 definePageMeta({ layout: "empty" });
 

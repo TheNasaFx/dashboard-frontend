@@ -8,6 +8,15 @@ import { useAttrs } from "vue";
 // import L from "leaflet";
 // import "leaflet.markercluster";
 
+interface MarkerData {
+  id: number;
+  lat: string;
+  lng: string;
+  name: string;
+  address: string;
+  all_barimt_ok: boolean;
+}
+
 const props = defineProps<{
   district: string;
   khoroo: string;
@@ -33,12 +42,12 @@ async function fetchAndRenderMarkers() {
     "http://localhost:8080/api/centers" +
     (params.toString() ? `?${params.toString()}` : "");
 
-  let markersData = [];
+  let markersData: MarkerData[] = [];
   try {
     const res = await fetch(url);
     const data = await res.json();
     if (Array.isArray(data)) {
-      markersData = data;
+      markersData = data as MarkerData[];
     }
   } catch (e) {
     markersData = [];
@@ -61,7 +70,7 @@ async function fetchAndRenderMarkers() {
     } catch (e) {}
   }
   markersLayer.value = markerClusterGroup();
-  markersData.forEach((marker) => {
+  markersData.forEach((marker: MarkerData) => {
     const lat = parseFloat(marker.lat);
     const lng = parseFloat(marker.lng);
     if (!isNaN(lat) && !isNaN(lng)) {
@@ -100,7 +109,6 @@ onMounted(async () => {
   if (typeof window === "undefined") return;
   const leaflet = await import("leaflet");
   L = leaflet.default;
-  await import("leaflet/dist/leaflet.css");
   await import("leaflet.markercluster");
   markerClusterGroup = () => L.markerClusterGroup();
 
