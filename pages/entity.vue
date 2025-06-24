@@ -74,10 +74,10 @@
                     :href="entity.mapUrl"
                     ><i class="fa fa-map-pin"></i
                   ></a>
-                  <div class="btn-group">
+                  <div class="btn-group floor-dropdown-group">
                     <button
                       type="button"
-                      class="btn btn-icon btn-dark btn-sm dropdown-toggle"
+                      class="btn btn-icon btn-dark btn-sm dropdown-toggle floor-dropdown-btn"
                       data-bs-toggle="dropdown"
                       aria-expanded="false"
                     >
@@ -87,6 +87,7 @@
                       <li v-for="floor in floors" :key="floor">
                         <a
                           class="dropdown-item"
+                          :class="{ 'active-floor': floor === selectedFloor }"
                           href="#"
                           @click.prevent="selectFloor(floor)"
                         >
@@ -140,6 +141,7 @@
                         <th>Регистр (mar_regno)</th>
                         <th>Үйл ажиллагааны чиглэл (op_type_name)</th>
                         <th>Баримтын тоо</th>
+                        <th>Төлөв</th>
                         <th>Дэлгэрэнгүй</th>
                       </tr>
                     </thead>
@@ -149,6 +151,16 @@
                         <td>{{ org.mar_regno }}</td>
                         <td>{{ org.op_type_name }}</td>
                         <td>{{ org.count_receipt ?? 0 }}</td>
+                        <td>
+                          <span
+                            v-if="!org.count_receipt || org.count_receipt === 0"
+                            class="status-badge status-red"
+                            >Баримт гаргаагүй</span
+                          >
+                          <span v-else class="status-badge status-green"
+                            >Баримт гаргасан</span
+                          >
+                        </td>
                         <td>
                           <button class="btn btn-sm btn-info">
                             Дэлгэрэнгүй
@@ -366,5 +378,49 @@ onMounted(() => {
   max-width: 80vw;
   max-height: 70vh;
   border-radius: 8px;
+}
+.status-badge {
+  display: inline-block;
+  min-width: 110px;
+  padding: 4px 18px;
+  font-size: 13px;
+  font-weight: 400;
+  border-radius: 999px;
+  color: #fff;
+  text-align: center;
+  margin: 2px 0;
+  line-height: 22px;
+  vertical-align: middle;
+}
+.status-green {
+  background: #19b86b;
+}
+.status-red {
+  background: #f04646;
+}
+.status-yellow {
+  background: #f7b731;
+  color: #fff;
+}
+.floor-dropdown-group .floor-dropdown-btn {
+  background: #222 !important;
+  color: #fff !important;
+  border: 1px solid #222 !important;
+  box-shadow: none !important;
+}
+.floor-dropdown-group .floor-dropdown-btn:focus,
+.floor-dropdown-group .floor-dropdown-btn:active,
+.floor-dropdown-group .floor-dropdown-btn:hover {
+  background: #222 !important;
+  color: #fff !important;
+  border: 1px solid #222 !important;
+  box-shadow: none !important;
+}
+.dropdown-menu .dropdown-item.active-floor,
+.dropdown-menu .dropdown-item.active-floor:focus,
+.dropdown-menu .dropdown-item.active-floor:hover {
+  background: #19b86b !important;
+  color: #fff !important;
+  font-weight: 500;
 }
 </style>

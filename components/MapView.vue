@@ -5,8 +5,8 @@
 <script setup lang="ts">
 import { onMounted, watch, ref } from "vue";
 import { useAttrs } from "vue";
-import L from "leaflet";
-import "leaflet.markercluster";
+// import L from "leaflet";
+// import "leaflet.markercluster";
 
 const props = defineProps<{
   district: string;
@@ -16,30 +16,15 @@ const props = defineProps<{
 
 const map = ref<any>(null);
 const markersLayer = ref<any>(null);
+let L: any = null;
+let markerClusterGroup: any = null;
 
 // Улаан болон ногоон icon-ыг тодорхойлох
-const redIcon = new L.Icon({
-  iconUrl:
-    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-const greenIcon = new L.Icon({
-  iconUrl:
-    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+let redIcon: any = null;
+let greenIcon: any = null;
 
 async function fetchAndRenderMarkers() {
+  if (!L) return;
   // API query string үүсгэх
   const params = new URLSearchParams();
   if (props.district) params.append("district", props.district);
@@ -71,9 +56,11 @@ async function fetchAndRenderMarkers() {
 
   // Маркеруудыг шинэчлэх
   if (markersLayer.value) {
-    markersLayer.value.clearLayers();
+    try {
+      markersLayer.value.clearLayers();
+    } catch (e) {}
   }
-  markersLayer.value = L.markerClusterGroup();
+  markersLayer.value = markerClusterGroup();
   markersData.forEach((marker) => {
     const lat = parseFloat(marker.lat);
     const lng = parseFloat(marker.lng);
@@ -110,31 +97,69 @@ async function fetchAndRenderMarkers() {
 }
 
 onMounted(async () => {
+  if (typeof window === "undefined") return;
+  const leaflet = await import("leaflet");
+  L = leaflet.default;
+  await import("leaflet/dist/leaflet.css");
+  await import("leaflet.markercluster");
+  markerClusterGroup = () => L.markerClusterGroup();
+
+  redIcon = new L.Icon({
+    iconUrl:
+      "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+    shadowUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  });
+  greenIcon = new L.Icon({
+    iconUrl:
+      "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
+    shadowUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  });
+
+  // map дахин үүсгэгдэхэд хуучин map-ийг устгана
+  if (map.value && map.value._leaflet_id) {
+    map.value.remove();
+  }
+
   map.value = L.map("map").setView([47.9188691, 106.9175785], 12);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map.value);
-  markersLayer.value = L.markerClusterGroup();
+  markersLayer.value = markerClusterGroup();
   map.value.addLayer(markersLayer.value);
-  fetchAndRenderMarkers();
+  await fetchAndRenderMarkers();
 
   // KML layer loading using dynamic import
-  const omnivore = (await import("@mapbox/leaflet-omnivore")).default;
-  const kmlLayer = omnivore
-    .kml("/duureg.kml")
-    // .on("ready", function () {
-    //   map.value.fitBounds(kmlLayer.getBounds());
-    // })
-    .on("click", function (e: any) {
-      const layer = e.layer;
-      const name = layer.feature?.properties?.name;
-      const description = layer.feature?.properties?.description;
-      let content = "";
-      if (name) content += `<strong>${name}</strong><br/>`;
-      if (description) content += `${description}`;
-      layer.bindPopup(content).openPopup();
-    });
-  kmlLayer.addTo(map.value);
+  try {
+    const omnivoreImport = await import("@mapbox/leaflet-omnivore");
+    const omnivore = omnivoreImport.default || omnivoreImport;
+    const kmlLayer = omnivore
+      .kml("/duureg.kml")
+      // .on("ready", function () {
+      //   map.value.fitBounds(kmlLayer.getBounds());
+      // })
+      .on("click", function (e: any) {
+        const layer = e.layer;
+        const name = layer.feature?.properties?.name;
+        const description = layer.feature?.properties?.description;
+        let content = "";
+        if (name) content += `<strong>${name}</strong><br/>`;
+        if (description) content += `${description}`;
+        layer.bindPopup(content).openPopup();
+      });
+    kmlLayer.addTo(map.value);
+  } catch (e) {
+    console.error("KML layer load error", e);
+  }
 });
 
 watch(

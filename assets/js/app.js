@@ -1,16 +1,22 @@
 try {
   // Dropdown stop
   var dropdownMenus = document.querySelectorAll(".dropdown-menu.stop");
-  dropdownMenus.forEach(function (dropdownMenu) {
-    dropdownMenu.addEventListener("click", function (event) {
-      event.stopPropagation();
+  if (dropdownMenus && dropdownMenus.length > 0) {
+    dropdownMenus.forEach(function (dropdownMenu) {
+      if (dropdownMenu) {
+        dropdownMenu.addEventListener("click", function (event) {
+          event.stopPropagation();
+        });
+      }
     });
-  });
+  }
 } catch (err) {}
 
 try {
   // Icon
-  lucide.createIcons();
+  if (typeof lucide !== "undefined" && lucide.createIcons) {
+    lucide.createIcons();
+  }
 } catch (err) {}
 
 try {
@@ -32,22 +38,21 @@ try {
   //collapsed
   var collapsedToggle = document.querySelector(".mobile-menu-btn");
   const sidebarOverlay = document.querySelector(".startbar-overlay");
-  collapsedToggle?.addEventListener("click", function () {
-    var sidebarSize = document.body.getAttribute("data-sidebar-size");
-
-    if (sidebarSize == "collapsed") {
-      document.body.setAttribute("data-sidebar-size", "default");
-    } else {
-      document.body.setAttribute("data-sidebar-size", "collapsed");
-    }
-  });
-
+  if (collapsedToggle) {
+    collapsedToggle.addEventListener("click", function () {
+      var sidebarSize = document.body.getAttribute("data-sidebar-size");
+      if (sidebarSize == "collapsed") {
+        document.body.setAttribute("data-sidebar-size", "default");
+      } else {
+        document.body.setAttribute("data-sidebar-size", "collapsed");
+      }
+    });
+  }
   if (sidebarOverlay) {
     sidebarOverlay.addEventListener("click", () => {
       document.body.setAttribute("data-sidebar-size", "collapsed");
     });
   }
-
   const changeSidebarSize = () => {
     if (window.innerWidth >= 310 && window.innerWidth <= 1440) {
       document.body.setAttribute("data-sidebar-size", "collapsed");
@@ -55,11 +60,9 @@ try {
       document.body.setAttribute("data-sidebar-size", "default");
     }
   };
-
   window.addEventListener("resize", () => {
     changeSidebarSize();
   });
-
   changeSidebarSize();
 } catch (err) {}
 
@@ -67,34 +70,44 @@ try {
   const tooltipTriggerList = document.querySelectorAll(
     '[data-bs-toggle="tooltip"]'
   );
-  const tooltipList = [...tooltipTriggerList].map(
-    (tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
-  );
-
+  if (
+    tooltipTriggerList &&
+    tooltipTriggerList.length > 0 &&
+    typeof bootstrap !== "undefined" &&
+    bootstrap.Tooltip
+  ) {
+    const tooltipList = [...tooltipTriggerList].map(
+      (tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
+    );
+  }
   var popoverTriggerList = [].slice.call(
     document.querySelectorAll('[data-bs-toggle="popover"]')
   );
-  var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-    return new bootstrap.Popover(popoverTriggerEl);
-  });
+  if (
+    popoverTriggerList &&
+    popoverTriggerList.length > 0 &&
+    typeof bootstrap !== "undefined" &&
+    bootstrap.Popover
+  ) {
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl);
+    });
+  }
 } catch (err) {}
 
 try {
-  changeSidebarSize();
-
-  // Add event listener for window resize
-  window.addEventListener("resize", changeSidebarSize);
-
-  window.addEventListener("resize", () => {
+  if (typeof changeSidebarSize === "function") {
     changeSidebarSize();
-  });
-
-  changeSidebarSize();
+    window.addEventListener("resize", changeSidebarSize);
+    window.addEventListener("resize", () => {
+      changeSidebarSize();
+    });
+    changeSidebarSize();
+  }
 } catch (err) {}
 
 /*********************/
 /*   Menu Sticky     */
-
 /*********************/
 function windowScroll() {
   const navbar = document.getElementById("topbar-custom");
@@ -110,39 +123,52 @@ function windowScroll() {
   }
 }
 
-window.addEventListener("scroll", (ev) => {
-  ev.preventDefault();
-  windowScroll();
-});
+if (typeof window !== "undefined" && window.addEventListener) {
+  window.addEventListener("scroll", (ev) => {
+    if (ev && typeof ev.preventDefault === "function") ev.preventDefault();
+    windowScroll();
+  });
+}
 
 const initVerticalMenu = () => {
+  if (typeof document === "undefined") return;
   const navCollapse = document.querySelectorAll(".navbar-nav li .collapse");
   const navToggle = document.querySelectorAll(
     ".navbar-nav li [data-bs-toggle='collapse']"
   );
-
-  navToggle.forEach((toggle) => {
-    toggle.addEventListener("click", function (e) {
-      e.preventDefault();
-    });
-  });
-
-  // open one menu at a time only (Auto Close Menu)
-  navCollapse.forEach((collapse) => {
-    collapse.addEventListener("show.bs.collapse", function (event) {
-      const parent = event.target.closest(".collapse.show");
-      document
-        .querySelectorAll(".navbar-nav .collapse.show")
-        .forEach((element) => {
-          if (element !== event.target && element !== parent) {
-            const collapseInstance = new bootstrap.Collapse(element);
-            collapseInstance.hide();
-          }
+  if (navToggle && navToggle.length > 0) {
+    navToggle.forEach((toggle) => {
+      if (toggle) {
+        toggle.addEventListener("click", function (e) {
+          e.preventDefault();
         });
+      }
     });
-  });
+  }
+  if (navCollapse && navCollapse.length > 0) {
+    navCollapse.forEach((collapse) => {
+      if (collapse) {
+        collapse.addEventListener("show.bs.collapse", function (event) {
+          const parent = event.target.closest(".collapse.show");
+          document
+            .querySelectorAll(".navbar-nav .collapse.show")
+            .forEach((element) => {
+              if (element !== event.target && element !== parent) {
+                if (typeof bootstrap !== "undefined" && bootstrap.Collapse) {
+                  const collapseInstance = new bootstrap.Collapse(element);
+                  collapseInstance.hide();
+                }
+              }
+            });
+        });
+      }
+    });
+  }
 
-  if (document.querySelector(".navbar-nav")) {
+  if (
+    typeof document !== "undefined" &&
+    document.querySelector(".navbar-nav")
+  ) {
     // Activate the menu in left side bar based on url
     document.querySelectorAll(".navbar-nav a").forEach(function (link) {
       var pageUrl = window.location.href.split(/[?#]/)[0];
