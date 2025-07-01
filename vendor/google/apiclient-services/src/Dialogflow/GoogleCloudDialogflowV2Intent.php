@@ -89,7 +89,7 @@ class GoogleCloudDialogflowV2Intent extends \Google\Collection
   /**
    * @var string
    */
-  public $webhookState;
+  public $webcomposablestate;
 
   /**
    * @param string
@@ -360,16 +360,16 @@ class GoogleCloudDialogflowV2Intent extends \Google\Collection
   /**
    * @param string
    */
-  public function setWebhookState($webhookState)
+  public function setWebcomposablestate($webcomposablestate)
   {
-    $this->webhookState = $webhookState;
+    $this->webcomposablestate = $webcomposablestate;
   }
   /**
    * @return string
    */
-  public function getWebhookState()
+  public function getWebcomposablestate()
   {
-    return $this->webhookState;
+    return $this->webcomposablestate;
   }
 }
 

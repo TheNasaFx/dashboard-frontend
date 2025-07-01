@@ -93,7 +93,7 @@ class ProjectsLocationsAgentsFlows extends \Google\Service\Resource
    * fields: - `metadata`: An empty [Struct
    * message](https://developers.google.com/protocol-
    * buffers/docs/reference/google.protobuf#struct) - `response`:
-   * ExportFlowResponse Note that resources (e.g. intents, entities, webhooks)
+   * ExportFlowResponse Note that resources (e.g. intents, entities, webcomposables)
    * that the flow references will also be exported. (flows.export)
    *
    * @param string $name Required. The name of the flow to export. Format:

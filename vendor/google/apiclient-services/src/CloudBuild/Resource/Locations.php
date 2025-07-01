@@ -39,7 +39,7 @@ class Locations extends \Google\Service\Resource
    * @param HttpBody $postBody
    * @param array $optParams Optional parameters.
    *
-   * @opt_param string webhookKey For GitHub Enterprise webhooks, this key is used
+   * @opt_param string webhookKey For GitHub Enterprise webcomposables, this key is used
    * to associate the webhook request with the GitHubEnterpriseConfig to use for
    * validation.
    * @return CloudbuildEmpty

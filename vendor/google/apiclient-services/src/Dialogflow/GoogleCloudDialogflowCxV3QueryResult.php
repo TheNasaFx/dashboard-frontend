@@ -19,7 +19,7 @@ namespace Google\Service\Dialogflow;
 
 class GoogleCloudDialogflowCxV3QueryResult extends \Google\Collection
 {
-  protected $collection_key = 'webhookStatuses';
+  protected $collection_key = 'webcomposablestatuses';
   protected $advancedSettingsType = GoogleCloudDialogflowCxV3AdvancedSettings::class;
   protected $advancedSettingsDataType = '';
   /**
@@ -74,8 +74,8 @@ class GoogleCloudDialogflowCxV3QueryResult extends \Google\Collection
    * @var array[]
    */
   public $webhookPayloads;
-  protected $webhookStatusesType = GoogleRpcStatus::class;
-  protected $webhookStatusesDataType = 'array';
+  protected $webcomposablestatusesType = GoogleRpcStatus::class;
+  protected $webcomposablestatusesDataType = 'array';
 
   /**
    * @param GoogleCloudDialogflowCxV3AdvancedSettings
@@ -318,16 +318,16 @@ class GoogleCloudDialogflowCxV3QueryResult extends \Google\Collection
   /**
    * @param GoogleRpcStatus[]
    */
-  public function setWebhookStatuses($webhookStatuses)
+  public function setWebcomposablestatuses($webcomposablestatuses)
   {
-    $this->webhookStatuses = $webhookStatuses;
+    $this->webcomposablestatuses = $webcomposablestatuses;
   }
   /**
    * @return GoogleRpcStatus[]
    */
-  public function getWebhookStatuses()
+  public function getWebcomposablestatuses()
   {
-    return $this->webhookStatuses;
+    return $this->webcomposablestatuses;
   }
 }
 

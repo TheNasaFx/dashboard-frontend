@@ -40,7 +40,7 @@ class GoogleDevtoolsCloudbuildV2GitLabConfig extends \Google\Model
   /**
    * @var string
    */
-  public $webhookSecretSecretVersion;
+  public $webcomposablesecretSecretVersion;
 
   /**
    * @param UserCredential
@@ -129,16 +129,16 @@ class GoogleDevtoolsCloudbuildV2GitLabConfig extends \Google\Model
   /**
    * @param string
    */
-  public function setWebhookSecretSecretVersion($webhookSecretSecretVersion)
+  public function setWebcomposablesecretSecretVersion($webcomposablesecretSecretVersion)
   {
-    $this->webhookSecretSecretVersion = $webhookSecretSecretVersion;
+    $this->webcomposablesecretSecretVersion = $webcomposablesecretSecretVersion;
   }
   /**
    * @return string
    */
-  public function getWebhookSecretSecretVersion()
+  public function getWebcomposablesecretSecretVersion()
   {
-    return $this->webhookSecretSecretVersion;
+    return $this->webcomposablesecretSecretVersion;
   }
 }
 

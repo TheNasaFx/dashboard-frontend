@@ -39,28 +39,18 @@ async function fetchAndRenderMarkers() {
   if (props.district) params.append("district", props.district);
   if (props.khoroo) params.append("khoroo", props.khoroo);
   const url =
-    "http://localhost:8080/api/centers" +
+    "http://localhost:8080/api/v1/centers" +
     (params.toString() ? `?${params.toString()}` : "");
 
   let markersData: MarkerData[] = [];
   try {
     const res = await fetch(url);
     const data = await res.json();
-    if (Array.isArray(data)) {
-      markersData = data as MarkerData[];
+    if (Array.isArray(data.data)) {
+      markersData = data.data as MarkerData[];
     }
   } catch (e) {
     markersData = [];
-  }
-
-  // pay_market_barimt.json-оос мэдээлэл авах
-  let barimtData = [];
-  try {
-    const res = await fetch("http://localhost:8080/api/barimt");
-    const json = await res.json();
-    barimtData = json.results[0].items;
-  } catch (e) {
-    barimtData = [];
   }
 
   // Маркеруудыг шинэчлэх

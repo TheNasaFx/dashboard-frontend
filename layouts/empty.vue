@@ -1,6 +1,12 @@
 <template>
-  <slot />
+  <div>
+    <slot />
+  </div>
 </template>
+
+<script setup lang="ts">
+// Empty layout for pages that don't need sidebar/menu
+</script>
 
 <style scoped>
 html,

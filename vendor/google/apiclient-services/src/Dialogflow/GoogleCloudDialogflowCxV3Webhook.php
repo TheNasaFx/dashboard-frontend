@@ -33,7 +33,7 @@ class GoogleCloudDialogflowCxV3Webhook extends \Google\Model
    * @var string
    */
   public $name;
-  protected $serviceDirectoryType = GoogleCloudDialogflowCxV3WebhookServiceDirectoryConfig::class;
+  protected $serviceDirectoryType = GoogleCloudDialogflowCxV3WebcomposableserviceDirectoryConfig::class;
   protected $serviceDirectoryDataType = '';
   /**
    * @var string
@@ -97,14 +97,14 @@ class GoogleCloudDialogflowCxV3Webhook extends \Google\Model
     return $this->name;
   }
   /**
-   * @param GoogleCloudDialogflowCxV3WebhookServiceDirectoryConfig
+   * @param GoogleCloudDialogflowCxV3WebcomposableserviceDirectoryConfig
    */
-  public function setServiceDirectory(GoogleCloudDialogflowCxV3WebhookServiceDirectoryConfig $serviceDirectory)
+  public function setServiceDirectory(GoogleCloudDialogflowCxV3WebcomposableserviceDirectoryConfig $serviceDirectory)
   {
     $this->serviceDirectory = $serviceDirectory;
   }
   /**
-   * @return GoogleCloudDialogflowCxV3WebhookServiceDirectoryConfig
+   * @return GoogleCloudDialogflowCxV3WebcomposableserviceDirectoryConfig
    */
   public function getServiceDirectory()
   {

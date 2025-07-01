@@ -75,7 +75,7 @@ class GoogleCloudDialogflowV2QueryResult extends \Google\Collection
   /**
    * @var string
    */
-  public $webhookSource;
+  public $webcomposablesource;
 
   /**
    * @param string
@@ -290,16 +290,16 @@ class GoogleCloudDialogflowV2QueryResult extends \Google\Collection
   /**
    * @param string
    */
-  public function setWebhookSource($webhookSource)
+  public function setWebcomposablesource($webcomposablesource)
   {
-    $this->webhookSource = $webhookSource;
+    $this->webcomposablesource = $webcomposablesource;
   }
   /**
    * @return string
    */
-  public function getWebhookSource()
+  public function getWebcomposablesource()
   {
-    return $this->webhookSource;
+    return $this->webcomposablesource;
   }
 }
 

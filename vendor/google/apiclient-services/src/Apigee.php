@@ -85,7 +85,7 @@ class Apigee extends \Google\Service
   public $organizations_environments_archiveDeployments;
   public $organizations_environments_caches;
   public $organizations_environments_deployments;
-  public $organizations_environments_flowhooks;
+  public $organizations_environments_flowcomposables;
   public $organizations_environments_keystores;
   public $organizations_environments_keystores_aliases;
   public $organizations_environments_keyvaluemaps;
@@ -2675,10 +2675,10 @@ class Apigee extends \Google\Service
           ]
         ]
     );
-    $this->organizations_environments_flowhooks = new Apigee\Resource\OrganizationsEnvironmentsFlowhooks(
+    $this->organizations_environments_flowcomposables = new Apigee\Resource\OrganizationsEnvironmentsFlowcomposables(
         $this,
         $this->serviceName,
-        'flowhooks',
+        'flowcomposables',
         [
           'methods' => [
             'attachSharedFlowToFlowHook' => [

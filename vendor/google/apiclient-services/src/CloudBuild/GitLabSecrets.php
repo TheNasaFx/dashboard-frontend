@@ -34,7 +34,7 @@ class GitLabSecrets extends \Google\Model
   /**
    * @var string
    */
-  public $webhookSecretVersion;
+  public $webcomposablesecretVersion;
 
   /**
    * @param string
@@ -81,16 +81,16 @@ class GitLabSecrets extends \Google\Model
   /**
    * @param string
    */
-  public function setWebhookSecretVersion($webhookSecretVersion)
+  public function setWebcomposablesecretVersion($webcomposablesecretVersion)
   {
-    $this->webhookSecretVersion = $webhookSecretVersion;
+    $this->webcomposablesecretVersion = $webcomposablesecretVersion;
   }
   /**
    * @return string
    */
-  public function getWebhookSecretVersion()
+  public function getWebcomposablesecretVersion()
   {
-    return $this->webhookSecretVersion;
+    return $this->webcomposablesecretVersion;
   }
 }
 

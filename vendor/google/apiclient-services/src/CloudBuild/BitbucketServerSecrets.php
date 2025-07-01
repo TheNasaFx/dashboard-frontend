@@ -30,7 +30,7 @@ class BitbucketServerSecrets extends \Google\Model
   /**
    * @var string
    */
-  public $webhookSecretVersionName;
+  public $webcomposablesecretVersionName;
 
   /**
    * @param string
@@ -63,16 +63,16 @@ class BitbucketServerSecrets extends \Google\Model
   /**
    * @param string
    */
-  public function setWebhookSecretVersionName($webhookSecretVersionName)
+  public function setWebcomposablesecretVersionName($webcomposablesecretVersionName)
   {
-    $this->webhookSecretVersionName = $webhookSecretVersionName;
+    $this->webcomposablesecretVersionName = $webcomposablesecretVersionName;
   }
   /**
    * @return string
    */
-  public function getWebhookSecretVersionName()
+  public function getWebcomposablesecretVersionName()
   {
-    return $this->webhookSecretVersionName;
+    return $this->webcomposablesecretVersionName;
   }
 }
 

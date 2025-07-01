@@ -33,9 +33,7 @@
                       {{ success }}
                     </div>
                     <div class="form-group mb-2">
-                      <label class="form-label" for="username"
-                        >Нэвтрэх нэр</label
-                      >
+                      <label class="form-label" for="username">Нэвтрэх нэр</label>
                       <input
                         type="text"
                         class="form-control"
@@ -46,10 +44,8 @@
                         autofocus
                       />
                     </div>
-                    <div class="form-group">
-                      <label class="form-label" for="password"
-                        >Нууц үг</label
-                      >
+                    <div class="form-group mb-2">
+                      <label class="form-label" for="password">Нууц үг</label>
                       <input
                         type="password"
                         class="form-control"
@@ -58,23 +54,6 @@
                         placeholder="Нууц үг"
                         required
                       />
-                    </div>
-                    <div class="form-group row mt-3">
-                      <div class="col-sm-6">
-                        <div class="form-check form-switch form-switch-success">
-                          <input
-                            class="form-check-input"
-                            type="checkbox"
-                            id="customSwitchSuccess"
-                            v-model="rememberMe"
-                          />
-                          <label
-                            class="form-check-label"
-                            for="customSwitchSuccess"
-                            >Намайг сана</label
-                          >
-                        </div>
-                      </div>
                     </div>
                     <div class="form-group mb-0 row">
                       <div class="col-12">
@@ -98,18 +77,23 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { useRouter, useRuntimeConfig } from "#imports";
+import { useRouter } from "nuxt/app";
 import { useUser } from "../composables/useUser";
-
-definePageMeta({ layout: "empty" });
 
 const username = ref("");
 const password = ref("");
-const rememberMe = ref(false);
 const error = ref("");
 const success = ref("");
 const router = useRouter();
 const { setUser } = useUser();
+
+const parseJwt = (token) => {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (e) {
+    return {};
+  }
+};
 
 const login = async () => {
   error.value = "";
@@ -120,12 +104,20 @@ const login = async () => {
       body: JSON.stringify({ username: username.value, password: password.value })
     });
     const data = await res.json();
-    if (!res.ok) {
-      error.value = data.message || "Нэвтрэхэд алдаа гарлаа";
+    console.log('LOGIN RESPONSE:', data);
+    if (!res.ok || !data.success) {
+      error.value = data.error || "Нэвтрэхэд алдаа гарлаа";
       return;
     }
-    localStorage.setItem("token", data.token);
-    setUser(data.user);
+    localStorage.setItem("token", data.data.token);
+    const payload = parseJwt(data.data.token);
+    setUser({
+      name: data.data.fullName || "",
+      avatar: "",
+      logged: true,
+      token: data.data.token,
+      workerCode: payload.sub
+    });
     router.push("/dashboard");
   } catch (e: any) {
     if (e instanceof TypeError && e.message === "Failed to fetch") {

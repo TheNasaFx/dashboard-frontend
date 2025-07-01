@@ -1,167 +1,169 @@
 <template>
-  <TheMenu />
-  <div class="page-wrapper">
-    <div class="page-content">
-      <div class="container-fluid">
-        <div class="row">
-          <div class="col-sm-12">
-            <div
-              class="page-title-box d-md-flex justify-content-md-between align-items-center"
-            >
-              <h4 class="page-title">Байцаагчид</h4>
-              <div class="">
-                <ol class="breadcrumb mb-0">
-                  <li class="breadcrumb-item"><a href="#">МТА - НТГ</a></li>
-                  <li class="breadcrumb-item active">Байцаагчид</li>
-                </ol>
+  <div>
+    <TheMenu />
+    <div class="page-wrapper">
+      <div class="page-content">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-sm-12">
+              <div
+                class="page-title-box d-md-flex justify-content-md-between align-items-center"
+              >
+                <h4 class="page-title">Байцаагчид</h4>
+                <div class="">
+                  <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="#">МТА - НТГ</a></li>
+                    <li class="breadcrumb-item active">Байцаагчид</li>
+                  </ol>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div class="row">
-          <div class="col-12">
-            <div class="card">
-              <div class="card-body">
-                <!-- Controls row -->
-                <div
-                  class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2"
-                >
-                  <div>
-                    <label>
-                      <select
-                        v-model.number="perPage"
-                        class="form-select d-inline-block w-auto me-2"
-                      >
-                        <option :value="10">10</option>
-                        <option :value="25">25</option>
-                        <option :value="50">50</option>
-                        <option :value="100">100</option>
-                      </select>
-                      entries per page
-                    </label>
+          <div class="row">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <!-- Controls row -->
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2"
+                  >
+                    <div>
+                      <label>
+                        <select
+                          v-model.number="perPage"
+                          class="form-select d-inline-block w-auto me-2"
+                        >
+                          <option :value="10">10</option>
+                          <option :value="25">25</option>
+                          <option :value="50">50</option>
+                          <option :value="100">100</option>
+                        </select>
+                        entries per page
+                      </label>
+                    </div>
+                    <div>
+                      <input
+                        v-model="search"
+                        type="search"
+                        class="form-control"
+                        placeholder="Search..."
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <input
-                      v-model="search"
-                      type="search"
-                      class="form-control"
-                      placeholder="Search..."
-                    />
-                  </div>
-                </div>
-                <div class="table-responsive">
-                  <table class="table mb-0">
-                    <thead class="table-light">
-                      <tr>
-                        <th>Нэр</th>
-                        <th>Имэйл</th>
-                        <th>Утас</th>
-                        <th>Нэвтэрсэн</th>
-                        <th>Төлөв</th>
-                        <th class="text-end">Үйлдэл</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="user in paginatedUsers" :key="user.email">
-                        <td class="d-flex align-items-center">
-                          <div class="d-flex align-items-center">
-                            <img
-                              :src="user.avatar"
-                              class="me-2 thumb-md align-self-center rounded"
-                              alt="..."
-                            />
-                            <div class="flex-grow-1 text-truncate">
-                              <h6 class="m-0">{{ user.name }}</h6>
-                              <p class="fs-12 text-muted mb-0">
-                                {{ user.district }}
-                              </p>
+                  <div class="table-responsive">
+                    <table class="table mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Нэр</th>
+                          <th>Имэйл</th>
+                          <th>Утас</th>
+                          <th>Нэвтэрсэн</th>
+                          <th>Төлөв</th>
+                          <th class="text-end">Үйлдэл</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="user in paginatedUsers" :key="user.email">
+                          <td class="d-flex align-items-center">
+                            <div class="d-flex align-items-center">
+                              <img
+                                :src="user.avatar"
+                                class="me-2 thumb-md align-self-center rounded"
+                                alt="..."
+                              />
+                              <div class="flex-grow-1 text-truncate">
+                                <h6 class="m-0">{{ user.name }}</h6>
+                                <p class="fs-12 text-muted mb-0">
+                                  {{ user.district }}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td>
-                          <a
-                            href="#"
-                            class="text-body text-decoration-underline"
-                            >{{ user.email }}</a
-                          >
-                        </td>
-                        <td>{{ user.phone }}</td>
-                        <td>{{ user.lastLogin }}</td>
-                        <td>
-                          <span
-                            :class="[
-                              'badge',
-                              'rounded',
-                              user.status === 'Active'
-                                ? 'text-success bg-success-subtle'
-                                : 'text-secondary bg-secondary-subtle',
-                            ]"
-                          >
-                            {{ user.status }}
-                          </span>
-                        </td>
-                        <td class="text-end">
-                          <a href="#"
-                            ><i class="las la-pen text-secondary fs-18"></i
-                          ></a>
-                        </td>
-                      </tr>
-                      <tr v-if="paginatedUsers.length === 0">
-                        <td colspan="6" class="text-center">No data found</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <!-- Showing X to Y of Z entries -->
-                <div
-                  class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2"
-                >
-                  <div>
-                    Showing {{ startEntry }} to {{ endEntry }} of
-                    {{ filteredUsers.length }} entries
+                          </td>
+                          <td>
+                            <a
+                              href="#"
+                              class="text-body text-decoration-underline"
+                              >{{ user.email }}</a
+                            >
+                          </td>
+                          <td>{{ user.phone }}</td>
+                          <td>{{ user.lastLogin }}</td>
+                          <td>
+                            <span
+                              :class="[
+                                'badge',
+                                'rounded',
+                                user.status === 'Active'
+                                  ? 'text-success bg-success-subtle'
+                                  : 'text-secondary bg-secondary-subtle',
+                              ]"
+                            >
+                              {{ user.status }}
+                            </span>
+                          </td>
+                          <td class="text-end">
+                            <a href="#"
+                              ><i class="las la-pen text-secondary fs-18"></i
+                            ></a>
+                          </td>
+                        </tr>
+                        <tr v-if="paginatedUsers.length === 0">
+                          <td colspan="6" class="text-center">No data found</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
-                  <!-- Pagination controls -->
-                  <nav>
-                    <ul class="pagination mb-0">
-                      <li class="page-item" :class="{ disabled: page === 1 }">
-                        <button
-                          class="page-link"
-                          @click="goToPage(page - 1)"
-                          :disabled="page === 1"
+                  <!-- Showing X to Y of Z entries -->
+                  <div
+                    class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2"
+                  >
+                    <div>
+                      Showing {{ startEntry }} to {{ endEntry }} of
+                      {{ filteredUsers.length }} entries
+                    </div>
+                    <!-- Pagination controls -->
+                    <nav>
+                      <ul class="pagination mb-0">
+                        <li class="page-item" :class="{ disabled: page === 1 }">
+                          <button
+                            class="page-link"
+                            @click="goToPage(page - 1)"
+                            :disabled="page === 1"
+                          >
+                            &laquo;
+                          </button>
+                        </li>
+                        <li
+                          v-for="p in totalPages"
+                          :key="p"
+                          class="page-item"
+                          :class="{ active: page === p }"
                         >
-                          &laquo;
-                        </button>
-                      </li>
-                      <li
-                        v-for="p in totalPages"
-                        :key="p"
-                        class="page-item"
-                        :class="{ active: page === p }"
-                      >
-                        <button class="page-link" @click="goToPage(p)">
-                          {{ p }}
-                        </button>
-                      </li>
-                      <li
-                        class="page-item"
-                        :class="{ disabled: page === totalPages }"
-                      >
-                        <button
-                          class="page-link"
-                          @click="goToPage(page + 1)"
-                          :disabled="page === totalPages"
+                          <button class="page-link" @click="goToPage(p)">
+                            {{ p }}
+                          </button>
+                        </li>
+                        <li
+                          class="page-item"
+                          :class="{ disabled: page === totalPages }"
                         >
-                          &raquo;
-                        </button>
-                      </li>
-                    </ul>
-                  </nav>
+                          <button
+                            class="page-link"
+                            @click="goToPage(page + 1)"
+                            :disabled="page === totalPages"
+                          >
+                            &raquo;
+                          </button>
+                        </li>
+                      </ul>
+                    </nav>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          <FooterComponent />
         </div>
-        <FooterComponent />
       </div>
     </div>
   </div>
@@ -169,8 +171,6 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import TheMenu from "../components/TheMenu.vue";
-import FooterComponent from "../components/FooterComponent.vue";
 
 const users = [
   {

@@ -20,21 +20,21 @@ namespace Google\Service\Apigee\Resource;
 use Google\Service\Apigee\GoogleCloudApigeeV1FlowHook;
 
 /**
- * The "flowhooks" collection of methods.
+ * The "flowcomposables" collection of methods.
  * Typical usage is:
  *  <code>
  *   $apigeeService = new Google\Service\Apigee(...);
- *   $flowhooks = $apigeeService->organizations_environments_flowhooks;
+ *   $flowcomposables = $apigeeService->organizations_environments_flowcomposables;
  *  </code>
  */
-class OrganizationsEnvironmentsFlowhooks extends \Google\Service\Resource
+class OrganizationsEnvironmentsFlowcomposables extends \Google\Service\Resource
 {
   /**
-   * Attaches a shared flow to a flow hook. (flowhooks.attachSharedFlowToFlowHook)
+   * Attaches a shared flow to a flow hook. (flowcomposables.attachSharedFlowToFlowHook)
    *
    * @param string $name Required. Name of the flow hook to which the shared flow
    * should be attached in the following format:
-   * `organizations/{org}/environments/{env}/flowhooks/{flowhook}`
+   * `organizations/{org}/environments/{env}/flowcomposables/{flowhook}`
    * @param GoogleCloudApigeeV1FlowHook $postBody
    * @param array $optParams Optional parameters.
    * @return GoogleCloudApigeeV1FlowHook
@@ -47,11 +47,11 @@ class OrganizationsEnvironmentsFlowhooks extends \Google\Service\Resource
   }
   /**
    * Detaches a shared flow from a flow hook.
-   * (flowhooks.detachSharedFlowFromFlowHook)
+   * (flowcomposables.detachSharedFlowFromFlowHook)
    *
    * @param string $name Required. Name of the flow hook to detach in the
    * following format:
-   * `organizations/{org}/environments/{env}/flowhooks/{flowhook}`
+   * `organizations/{org}/environments/{env}/flowcomposables/{flowhook}`
    * @param array $optParams Optional parameters.
    * @return GoogleCloudApigeeV1FlowHook
    */
@@ -64,10 +64,10 @@ class OrganizationsEnvironmentsFlowhooks extends \Google\Service\Resource
   /**
    * Returns the name of the shared flow attached to the specified flow hook. If
    * there's no shared flow attached to the flow hook, the API does not return an
-   * error; it simply does not return a name in the response. (flowhooks.get)
+   * error; it simply does not return a name in the response. (flowcomposables.get)
    *
    * @param string $name Required. Name of the flow hook in the following format:
-   * `organizations/{org}/environments/{env}/flowhooks/{flowhook}`
+   * `organizations/{org}/environments/{env}/flowcomposables/{flowhook}`
    * @param array $optParams Optional parameters.
    * @return GoogleCloudApigeeV1FlowHook
    */
@@ -80,4 +80,4 @@ class OrganizationsEnvironmentsFlowhooks extends \Google\Service\Resource
 }
 
 // Adding a class alias for backwards compatibility with the previous class name.
-class_alias(OrganizationsEnvironmentsFlowhooks::class, 'Google_Service_Apigee_Resource_OrganizationsEnvironmentsFlowhooks');
+class_alias(OrganizationsEnvironmentsFlowcomposables::class, 'Google_Service_Apigee_Resource_OrganizationsEnvironmentsFlowcomposables');

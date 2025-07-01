@@ -507,10 +507,10 @@ var Prism = (function (_self) {
 		 * Fetches all the descendants of `container` that have a `.language-xxxx` class and then calls
 		 * {@link Prism.highlightElement} on each one of them.
 		 *
-		 * The following hooks will be run:
+		 * The following composables will be run:
 		 * 1. `before-highlightall`
 		 * 2. `before-all-elements-highlight`
-		 * 3. All hooks of {@link Prism.highlightElement} for each element.
+		 * 3. All composables of {@link Prism.highlightElement} for each element.
 		 *
 		 * @param {ParentNode} container The root element, whose descendants that have a `.language-xxxx` class will be highlighted.
 		 * @param {boolean} [async=false] Whether each element is to be highlighted asynchronously using Web Workers.
@@ -525,11 +525,11 @@ var Prism = (function (_self) {
 				selector: 'code[class*="language-"], [class*="language-"] code, code[class*="lang-"], [class*="lang-"] code'
 			};
 
-			_.hooks.run('before-highlightall', env);
+			_.composables.run('before-highlightall', env);
 
 			env.elements = Array.prototype.slice.apply(env.container.querySelectorAll(env.selector));
 
-			_.hooks.run('before-all-elements-highlight', env);
+			_.composables.run('before-all-elements-highlight', env);
 
 			for (var i = 0, element; (element = env.elements[i++]);) {
 				_.highlightElement(element, async === true, env.callback);
@@ -539,15 +539,15 @@ var Prism = (function (_self) {
 		/**
 		 * Highlights the code inside a single element.
 		 *
-		 * The following hooks will be run:
+		 * The following composables will be run:
 		 * 1. `before-sanity-check`
 		 * 2. `before-highlight`
-		 * 3. All hooks of {@link Prism.highlight}. These hooks will be run by an asynchronous worker if `async` is `true`.
+		 * 3. All composables of {@link Prism.highlight}. These composables will be run by an asynchronous worker if `async` is `true`.
 		 * 4. `before-insert`
 		 * 5. `after-highlight`
 		 * 6. `complete`
 		 *
-		 * Some the above hooks will be skipped if the element doesn't contain any text or there is no grammar loaded for
+		 * Some the above composables will be skipped if the element doesn't contain any text or there is no grammar loaded for
 		 * the element's language.
 		 *
 		 * @param {Element} element The element containing the code.
@@ -590,16 +590,16 @@ var Prism = (function (_self) {
 			function insertHighlightedCode(highlightedCode) {
 				env.highlightedCode = highlightedCode;
 
-				_.hooks.run('before-insert', env);
+				_.composables.run('before-insert', env);
 
 				env.element.innerHTML = env.highlightedCode;
 
-				_.hooks.run('after-highlight', env);
-				_.hooks.run('complete', env);
+				_.composables.run('after-highlight', env);
+				_.composables.run('complete', env);
 				callback && callback.call(env.element);
 			}
 
-			_.hooks.run('before-sanity-check', env);
+			_.composables.run('before-sanity-check', env);
 
 			// plugins may change/add the parent/element
 			parent = env.element.parentElement;
@@ -608,12 +608,12 @@ var Prism = (function (_self) {
 			}
 
 			if (!env.code) {
-				_.hooks.run('complete', env);
+				_.composables.run('complete', env);
 				callback && callback.call(env.element);
 				return;
 			}
 
-			_.hooks.run('before-highlight', env);
+			_.composables.run('before-highlight', env);
 
 			if (!env.grammar) {
 				insertHighlightedCode(_.util.encode(env.code));
@@ -641,7 +641,7 @@ var Prism = (function (_self) {
 		 * Low-level function, only use if you know what you’re doing. It accepts a string of text as input
 		 * and the language definitions to use, and returns a string with the HTML produced.
 		 *
-		 * The following hooks will be run:
+		 * The following composables will be run:
 		 * 1. `before-tokenize`
 		 * 2. `after-tokenize`
 		 * 3. `wrap`: On each {@link Token}.
@@ -663,12 +663,12 @@ var Prism = (function (_self) {
 				grammar: grammar,
 				language: language
 			};
-			_.hooks.run('before-tokenize', env);
+			_.composables.run('before-tokenize', env);
 			if (!env.grammar) {
 				throw new Error('The language "' + env.language + '" has no grammar.');
 			}
 			env.tokens = _.tokenize(env.code, env.grammar);
-			_.hooks.run('after-tokenize', env);
+			_.composables.run('after-tokenize', env);
 			return Token.stringify(_.util.encode(env.tokens), env.language);
 		},
 
@@ -719,27 +719,27 @@ var Prism = (function (_self) {
 		 * @memberof Prism
 		 * @public
 		 */
-		hooks: {
+		composables: {
 			all: {},
 
 			/**
 			 * Adds the given callback to the list of callbacks for the given hook.
 			 *
 			 * The callback will be invoked when the hook it is registered for is run.
-			 * Hooks are usually directly run by a highlight function but you can also run hooks yourself.
+			 * composables are usually directly run by a highlight function but you can also run composables yourself.
 			 *
-			 * One callback function can be registered to multiple hooks and the same hook multiple times.
+			 * One callback function can be registered to multiple composables and the same hook multiple times.
 			 *
 			 * @param {string} name The name of the hook.
 			 * @param {HookCallback} callback The callback function which is given environment variables.
 			 * @public
 			 */
 			add: function (name, callback) {
-				var hooks = _.hooks.all;
+				var composables = _.composables.all;
 
-				hooks[name] = hooks[name] || [];
+				composables[name] = composables[name] || [];
 
-				hooks[name].push(callback);
+				composables[name].push(callback);
 			},
 
 			/**
@@ -752,7 +752,7 @@ var Prism = (function (_self) {
 			 * @public
 			 */
 			run: function (name, env) {
-				var callbacks = _.hooks.all[name];
+				var callbacks = _.composables.all[name];
 
 				if (!callbacks || !callbacks.length) {
 					return;
@@ -836,7 +836,7 @@ var Prism = (function (_self) {
 	/**
 	 * Converts the given token or token stream to an HTML representation.
 	 *
-	 * The following hooks will be run:
+	 * The following composables will be run:
 	 * 1. `wrap`: On each {@link Token}.
 	 *
 	 * @param {string | Token | TokenStream} o The token or token stream to be converted.
@@ -875,7 +875,7 @@ var Prism = (function (_self) {
 			}
 		}
 
-		_.hooks.run('wrap', env);
+		_.composables.run('wrap', env);
 
 		var attributes = '';
 		for (var name in env.attributes) {
@@ -1356,7 +1356,7 @@ Prism.languages.markup['tag'].inside['attr-value'].inside['entity'] =
 Prism.languages.markup['doctype'].inside['internal-subset'].inside = Prism.languages.markup;
 
 // Plugin to make entity title show the real entity, idea by Roman Komarov
-Prism.hooks.add('wrap', function (env) {
+Prism.composables.add('wrap', function (env) {
 
 	if (env.type === 'entity') {
 		env.attributes['title'] = env.content.replace(/&amp;/, '&');
@@ -1838,11 +1838,11 @@ Prism.languages.js = Prism.languages.javascript;
 		return undefined;
 	}
 
-	Prism.hooks.add('before-highlightall', function (env) {
+	Prism.composables.add('before-highlightall', function (env) {
 		env.selector += ', ' + SELECTOR;
 	});
 
-	Prism.hooks.add('before-sanity-check', function (env) {
+	Prism.composables.add('before-sanity-check', function (env) {
 		var pre = /** @type {HTMLPreElement} */ (env.element);
 		if (pre.matches(SELECTOR)) {
 			env.code = ''; // fast-path the whole thing and go to complete

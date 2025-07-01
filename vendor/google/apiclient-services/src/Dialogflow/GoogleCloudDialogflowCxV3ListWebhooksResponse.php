@@ -17,15 +17,15 @@
 
 namespace Google\Service\Dialogflow;
 
-class GoogleCloudDialogflowCxV3ListWebhooksResponse extends \Google\Collection
+class GoogleCloudDialogflowCxV3ListWebcomposablesResponse extends \Google\Collection
 {
-  protected $collection_key = 'webhooks';
+  protected $collection_key = 'webcomposables';
   /**
    * @var string
    */
   public $nextPageToken;
-  protected $webhooksType = GoogleCloudDialogflowCxV3Webhook::class;
-  protected $webhooksDataType = 'array';
+  protected $webcomposablesType = GoogleCloudDialogflowCxV3Webhook::class;
+  protected $webcomposablesDataType = 'array';
 
   /**
    * @param string
@@ -44,18 +44,18 @@ class GoogleCloudDialogflowCxV3ListWebhooksResponse extends \Google\Collection
   /**
    * @param GoogleCloudDialogflowCxV3Webhook[]
    */
-  public function setWebhooks($webhooks)
+  public function setWebcomposables($webcomposables)
   {
-    $this->webhooks = $webhooks;
+    $this->webcomposables = $webcomposables;
   }
   /**
    * @return GoogleCloudDialogflowCxV3Webhook[]
    */
-  public function getWebhooks()
+  public function getWebcomposables()
   {
-    return $this->webhooks;
+    return $this->webcomposables;
   }
 }
 
 // Adding a class alias for backwards compatibility with the previous class name.
-class_alias(GoogleCloudDialogflowCxV3ListWebhooksResponse::class, 'Google_Service_Dialogflow_GoogleCloudDialogflowCxV3ListWebhooksResponse');
+class_alias(GoogleCloudDialogflowCxV3ListWebcomposablesResponse::class, 'Google_Service_Dialogflow_GoogleCloudDialogflowCxV3ListWebcomposablesResponse');

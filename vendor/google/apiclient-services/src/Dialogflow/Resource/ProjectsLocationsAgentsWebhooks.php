@@ -17,22 +17,22 @@
 
 namespace Google\Service\Dialogflow\Resource;
 
-use Google\Service\Dialogflow\GoogleCloudDialogflowCxV3ListWebhooksResponse;
+use Google\Service\Dialogflow\GoogleCloudDialogflowCxV3ListWebcomposablesResponse;
 use Google\Service\Dialogflow\GoogleCloudDialogflowCxV3Webhook;
 use Google\Service\Dialogflow\GoogleProtobufEmpty;
 
 /**
- * The "webhooks" collection of methods.
+ * The "webcomposables" collection of methods.
  * Typical usage is:
  *  <code>
  *   $dialogflowService = new Google\Service\Dialogflow(...);
- *   $webhooks = $dialogflowService->projects_locations_agents_webhooks;
+ *   $webcomposables = $dialogflowService->projects_locations_agents_webcomposables;
  *  </code>
  */
-class ProjectsLocationsAgentsWebhooks extends \Google\Service\Resource
+class ProjectsLocationsAgentsWebcomposables extends \Google\Service\Resource
 {
   /**
-   * Creates a webhook in the specified agent. (webhooks.create)
+   * Creates a webhook in the specified agent. (webcomposables.create)
    *
    * @param string $parent Required. The agent to create a webhook for. Format:
    * `projects//locations//agents/`.
@@ -47,14 +47,14 @@ class ProjectsLocationsAgentsWebhooks extends \Google\Service\Resource
     return $this->call('create', [$params], GoogleCloudDialogflowCxV3Webhook::class);
   }
   /**
-   * Deletes the specified webhook. (webhooks.delete)
+   * Deletes the specified webhook. (webcomposables.delete)
    *
    * @param string $name Required. The name of the webhook to delete. Format:
-   * `projects//locations//agents//webhooks/`.
+   * `projects//locations//agents//webcomposables/`.
    * @param array $optParams Optional parameters.
    *
    * @opt_param bool force This field has no effect for webhook not being used.
-   * For webhooks that are used by pages/flows/transition route groups: * If
+   * For webcomposables that are used by pages/flows/transition route groups: * If
    * `force` is set to false, an error will be returned with message indicating
    * the referenced resources. * If `force` is set to true, Dialogflow will remove
    * the webhook, as well as any references to the webhook (i.e. Webhook and tagin
@@ -68,10 +68,10 @@ class ProjectsLocationsAgentsWebhooks extends \Google\Service\Resource
     return $this->call('delete', [$params], GoogleProtobufEmpty::class);
   }
   /**
-   * Retrieves the specified webhook. (webhooks.get)
+   * Retrieves the specified webhook. (webcomposables.get)
    *
    * @param string $name Required. The name of the webhook. Format:
-   * `projects//locations//agents//webhooks/`.
+   * `projects//locations//agents//webcomposables/`.
    * @param array $optParams Optional parameters.
    * @return GoogleCloudDialogflowCxV3Webhook
    */
@@ -82,10 +82,10 @@ class ProjectsLocationsAgentsWebhooks extends \Google\Service\Resource
     return $this->call('get', [$params], GoogleCloudDialogflowCxV3Webhook::class);
   }
   /**
-   * Returns the list of all webhooks in the specified agent.
-   * (webhooks.listProjectsLocationsAgentsWebhooks)
+   * Returns the list of all webcomposables in the specified agent.
+   * (webcomposables.listProjectsLocationsAgentsWebcomposables)
    *
-   * @param string $parent Required. The agent to list all webhooks for. Format:
+   * @param string $parent Required. The agent to list all webcomposables for. Format:
    * `projects//locations//agents/`.
    * @param array $optParams Optional parameters.
    *
@@ -93,20 +93,20 @@ class ProjectsLocationsAgentsWebhooks extends \Google\Service\Resource
    * page. By default 100 and at most 1000.
    * @opt_param string pageToken The next_page_token value returned from a
    * previous list request.
-   * @return GoogleCloudDialogflowCxV3ListWebhooksResponse
+   * @return GoogleCloudDialogflowCxV3ListWebcomposablesResponse
    */
-  public function listProjectsLocationsAgentsWebhooks($parent, $optParams = [])
+  public function listProjectsLocationsAgentsWebcomposables($parent, $optParams = [])
   {
     $params = ['parent' => $parent];
     $params = array_merge($params, $optParams);
-    return $this->call('list', [$params], GoogleCloudDialogflowCxV3ListWebhooksResponse::class);
+    return $this->call('list', [$params], GoogleCloudDialogflowCxV3ListWebcomposablesResponse::class);
   }
   /**
-   * Updates the specified webhook. (webhooks.patch)
+   * Updates the specified webhook. (webcomposables.patch)
    *
    * @param string $name The unique identifier of the webhook. Required for the
-   * Webhooks.UpdateWebhook method. Webhooks.CreateWebhook populates the name
-   * automatically. Format: `projects//locations//agents//webhooks/`.
+   * Webcomposables.UpdateWebhook method. Webcomposables.CreateWebhook populates the name
+   * automatically. Format: `projects//locations//agents//webcomposables/`.
    * @param GoogleCloudDialogflowCxV3Webhook $postBody
    * @param array $optParams Optional parameters.
    *
@@ -123,4 +123,4 @@ class ProjectsLocationsAgentsWebhooks extends \Google\Service\Resource
 }
 
 // Adding a class alias for backwards compatibility with the previous class name.
-class_alias(ProjectsLocationsAgentsWebhooks::class, 'Google_Service_Dialogflow_Resource_ProjectsLocationsAgentsWebhooks');
+class_alias(ProjectsLocationsAgentsWebcomposables::class, 'Google_Service_Dialogflow_Resource_ProjectsLocationsAgentsWebcomposables');

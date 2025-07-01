@@ -2,7 +2,13 @@
   // https://nuxt.com/docs/guide/concepts/typescript
   "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
-    "types": ["node", "nuxt"]
+    "types": ["node", "nuxt"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "~/*": ["./*"],
+      "~/composables/*": ["composables/*"]
+    }
   },
   "include": ["types"]
 }

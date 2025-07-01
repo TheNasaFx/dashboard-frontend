@@ -302,8 +302,8 @@
   			this.initialize.apply(this, arguments);
   		}
 
-  		// call all constructor hooks
-  		this.callInitHooks();
+  		// call all constructor composables
+  		this.callInitcomposables();
   	};
 
   	var parentProto = NewClass.__super__ = this.prototype;
@@ -342,21 +342,21 @@
   		extend(proto.options, props.options);
   	}
 
-  	proto._initHooks = [];
+  	proto._initcomposables = [];
 
-  	// add method for calling all hooks
-  	proto.callInitHooks = function () {
+  	// add method for calling all composables
+  	proto.callInitcomposables = function () {
 
-  		if (this._initHooksCalled) { return; }
+  		if (this._initcomposablesCalled) { return; }
 
-  		if (parentProto.callInitHooks) {
-  			parentProto.callInitHooks.call(this);
+  		if (parentProto.callInitcomposables) {
+  			parentProto.callInitcomposables.call(this);
   		}
 
-  		this._initHooksCalled = true;
+  		this._initcomposablesCalled = true;
 
-  		for (var i = 0, len = proto._initHooks.length; i < len; i++) {
-  			proto._initHooks[i].call(this);
+  		for (var i = 0, len = proto._initcomposables.length; i < len; i++) {
+  			proto._initcomposables[i].call(this);
   		}
   	};
 
@@ -384,7 +384,7 @@
   };
 
   // @function addInitHook(fn: Function): this
-  // Adds a [constructor hook](#class-constructor-hooks) to the class.
+  // Adds a [constructor hook](#class-constructor-composables) to the class.
   Class.addInitHook = function (fn) { // (Function) || (String, args...)
   	var args = Array.prototype.slice.call(arguments, 1);
 
@@ -392,8 +392,8 @@
   		this[fn].apply(this, args);
   	};
 
-  	this.prototype._initHooks = this.prototype._initHooks || [];
-  	this.prototype._initHooks.push(init);
+  	this.prototype._initcomposables = this.prototype._initcomposables || [];
+  	this.prototype._initcomposables.push(init);
   	return this;
   };
 
@@ -3266,7 +3266,7 @@
   			this.setView(toLatLng(options.center), options.zoom, {reset: true});
   		}
 
-  		this.callInitHooks();
+  		this.callInitcomposables();
 
   		// don't animate on browsers without hardware-accelerated transitions or old Android/Opera
   		this._zoomAnimated = TRANSITION && Browser.any3d && !Browser.mobileOpera &&
@@ -5911,7 +5911,7 @@
   		if (this._enabled) { return this; }
 
   		this._enabled = true;
-  		this.addHooks();
+  		this.addcomposables();
   		return this;
   	},
 
@@ -5921,7 +5921,7 @@
   		if (!this._enabled) { return this; }
 
   		this._enabled = false;
-  		this.removeHooks();
+  		this.removecomposables();
   		return this;
   	},
 
@@ -5933,10 +5933,10 @@
 
   	// @section Extension methods
   	// Classes inheriting from `Handler` must implement the two following methods:
-  	// @method addHooks()
-  	// Called when the handler is enabled, should add event hooks.
-  	// @method removeHooks()
-  	// Called when the handler is disabled, should remove the event hooks added previously.
+  	// @method addcomposables()
+  	// Called when the handler is enabled, should add event composables.
+  	// @method removecomposables()
+  	// Called when the handler is disabled, should remove the event composables added previously.
   });
 
   // @section There is static function which can be called without instantiating L.Handler:
@@ -7553,7 +7553,7 @@
   		this._marker = marker;
   	},
 
-  	addHooks: function () {
+  	addcomposables: function () {
   		var icon = this._marker._icon;
 
   		if (!this._draggable) {
@@ -7570,7 +7570,7 @@
   		addClass(icon, 'leaflet-marker-draggable');
   	},
 
-  	removeHooks: function () {
+  	removecomposables: function () {
   		this._draggable.off({
   			dragstart: this._onDragStart,
   			predrag: this._onPreDrag,
@@ -7804,7 +7804,7 @@
   	onRemove: function (map) {
   		if (this.dragging && this.dragging.enabled()) {
   			this.options.draggable = true;
-  			this.dragging.removeHooks();
+  			this.dragging.removecomposables();
   		}
   		delete this.dragging;
 
@@ -13525,11 +13525,11 @@
   		map.on('unload', this._destroy, this);
   	},
 
-  	addHooks: function () {
+  	addcomposables: function () {
   		on(this._container, 'mousedown', this._onMouseDown, this);
   	},
 
-  	removeHooks: function () {
+  	removecomposables: function () {
   		off(this._container, 'mousedown', this._onMouseDown, this);
   	},
 
@@ -13664,11 +13664,11 @@
   });
 
   var DoubleClickZoom = Handler.extend({
-  	addHooks: function () {
+  	addcomposables: function () {
   		this._map.on('dblclick', this._onDoubleClick, this);
   	},
 
-  	removeHooks: function () {
+  	removecomposables: function () {
   		this._map.off('dblclick', this._onDoubleClick, this);
   	},
 
@@ -13747,7 +13747,7 @@
   });
 
   var Drag = Handler.extend({
-  	addHooks: function () {
+  	addcomposables: function () {
   		if (!this._draggable) {
   			var map = this._map;
 
@@ -13773,7 +13773,7 @@
   		this._times = [];
   	},
 
-  	removeHooks: function () {
+  	removecomposables: function () {
   		removeClass(this._map._container, 'leaflet-grab');
   		removeClass(this._map._container, 'leaflet-touch-drag');
   		this._draggable.disable();
@@ -13963,7 +13963,7 @@
   		this._setZoomDelta(map.options.zoomDelta);
   	},
 
-  	addHooks: function () {
+  	addcomposables: function () {
   		var container = this._map._container;
 
   		// make the container focusable by tabbing
@@ -13978,13 +13978,13 @@
   		}, this);
 
   		this._map.on({
-  			focus: this._addHooks,
-  			blur: this._removeHooks
+  			focus: this._addcomposables,
+  			blur: this._removecomposables
   		}, this);
   	},
 
-  	removeHooks: function () {
-  		this._removeHooks();
+  	removecomposables: function () {
+  		this._removecomposables();
 
   		off(this._map._container, {
   			focus: this._onFocus,
@@ -13993,8 +13993,8 @@
   		}, this);
 
   		this._map.off({
-  			focus: this._addHooks,
-  			blur: this._removeHooks
+  			focus: this._addcomposables,
+  			blur: this._removecomposables
   		}, this);
   	},
 
@@ -14053,11 +14053,11 @@
   		}
   	},
 
-  	_addHooks: function () {
+  	_addcomposables: function () {
   		on(document, 'keydown', this._onKeyDown, this);
   	},
 
-  	_removeHooks: function () {
+  	_removecomposables: function () {
   		off(document, 'keydown', this._onKeyDown, this);
   	},
 
@@ -14132,13 +14132,13 @@
   });
 
   var ScrollWheelZoom = Handler.extend({
-  	addHooks: function () {
+  	addcomposables: function () {
   		on(this._map._container, 'wheel', this._onWheelScroll, this);
 
   		this._delta = 0;
   	},
 
-  	removeHooks: function () {
+  	removecomposables: function () {
   		off(this._map._container, 'wheel', this._onWheelScroll, this);
   	},
 
@@ -14215,11 +14215,11 @@
   });
 
   var TapHold = Handler.extend({
-  	addHooks: function () {
+  	addcomposables: function () {
   		on(this._map._container, 'touchstart', this._onDown, this);
   	},
 
-  	removeHooks: function () {
+  	removecomposables: function () {
   		off(this._map._container, 'touchstart', this._onDown, this);
   	},
 
@@ -14311,12 +14311,12 @@
   });
 
   var TouchZoom = Handler.extend({
-  	addHooks: function () {
+  	addcomposables: function () {
   		addClass(this._map._container, 'leaflet-touch-zoom');
   		on(this._map._container, 'touchstart', this._onTouchStart, this);
   	},
 
-  	removeHooks: function () {
+  	removecomposables: function () {
   		removeClass(this._map._container, 'leaflet-touch-zoom');
   		off(this._map._container, 'touchstart', this._onTouchStart, this);
   	},

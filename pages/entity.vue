@@ -74,28 +74,20 @@
                     :href="entity.mapUrl"
                     ><i class="fa fa-map-pin"></i
                   ></a>
-                  <div class="btn-group floor-dropdown-group">
-                    <button
-                      type="button"
-                      class="btn btn-icon btn-dark btn-sm dropdown-toggle floor-dropdown-btn"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      Давхар <i class="las la-angle-down ms-1"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li v-for="floor in floors" :key="floor">
-                        <a
-                          class="dropdown-item"
-                          :class="{ 'active-floor': floor === selectedFloor }"
-                          href="#"
-                          @click.prevent="selectFloor(floor)"
-                        >
-                          {{ floor }}-р давхар
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-success btn-sm ms-2"
+                    @click="showOrganizationsTable = !showOrganizationsTable"
+                  >
+                    e-баримт
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-info btn-sm ms-2"
+                    @click="toggleRentTable"
+                  >
+                    түрээс
+                  </button>
                 </div>
               </div>
             </div>
@@ -125,10 +117,34 @@
               </div>
             </div>
           </div>
-          <div class="row justify-content-center mt-2">
+          <!-- Байгууллагуудын хүснэгт хэсэг -->
+          <div class="row justify-content-center mt-2" v-if="showOrganizationsTable">
             <div class="col-12">
               <div class="card mb-3">
-                <div class="card-header">
+                <div class="card-header d-flex align-items-center">
+                  <!-- Давхар сонгох dropdown энд байрлана -->
+                  <div class="btn-group floor-dropdown-group me-2">
+                    <button
+                      type="button"
+                      class="btn btn-icon btn-dark btn-sm dropdown-toggle floor-dropdown-btn"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false"
+                    >
+                      Давхар <i class="las la-angle-down ms-1"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li v-for="floor in floors" :key="floor">
+                        <a
+                          class="dropdown-item"
+                          :class="{ 'active-floor': floor === selectedFloor }"
+                          href="#"
+                          @click.prevent="selectFloor(floor)"
+                        >
+                          {{ floor }}-р давхар
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
                   <h5 class="card-title mb-0">
                     {{ selectedFloor }}-р давхарт байрлах байгууллагууд
                   </h5>
@@ -138,7 +154,7 @@
                     <thead>
                       <tr>
                         <th>Тасгийн нэр (stor_name)</th>
-                        <th>Регистр (mar_regno)</th>
+                        <th>Регистр (mrch_regno)</th>
                         <th>Үйл ажиллагааны чиглэл (op_type_name)</th>
                         <th>Баримтын тоо</th>
                         <th>Төлөв</th>
@@ -148,7 +164,7 @@
                     <tbody>
                       <tr v-for="org in organizations" :key="org.id">
                         <td>{{ org.stor_name }}</td>
-                        <td>{{ org.mar_regno }}</td>
+                        <td>{{ org.mrch_regno }}</td>
                         <td>{{ org.op_type_name }}</td>
                         <td>{{ org.count_receipt ?? 0 }}</td>
                         <td>
@@ -166,6 +182,51 @@
                             Дэлгэрэнгүй
                           </button>
                         </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Түрээсийн хүснэгт -->
+          <div class="row justify-content-center mt-2" v-if="showRentTable">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Түрээсийн мэдээлэл</h5>
+                </div>
+                <div class="card-body">
+                  <table class="table table-bordered table-hover">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Огноо(updated_date)</th>
+                        <th>Төрөл(property_type)</th>
+                        <th>Эзэмшигч регистр(owner_regno)</th>
+                        <th>Хэмжээ (м2)(property_size)</th>
+                        <th>Түрээсийн дүн(rent_amount)</th>
+                        <th>1мкв түрээс</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="item in rentProperties" :key="item.id">
+                        <td>{{ item.id }}</td>
+                        <td>{{ item.updated_date || item.created_date || '-' }}</td>
+                        <td>{{ item.property_type }}</td>
+                        <td>{{ item.owner_regno }}</td>
+                        <td>{{ item.property_size }}</td>
+                        <td>{{ formatNumber(item.rent_amount) }}</td>
+                        <td>
+                          {{
+                            item.property_size && item.rent_amount
+                              ? formatNumber(Math.round(item.rent_amount / item.property_size))
+                              : '-' 
+                          }}
+                        </td>
+                      </tr>
+                      <tr v-if="rentProperties.length === 0">
+                        <td colspan="7" class="text-center">Мэдээлэл олдсонгүй</td>
                       </tr>
                     </tbody>
                   </table>
@@ -273,9 +334,6 @@
 <script setup lang="ts">
 import { ref, defineAsyncComponent, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import TheMenu from "../components/TheMenu.vue";
-import FooterComponent from "../components/FooterComponent.vue";
-import MarketMap from "../components/MarketMap.vue";
 
 const EntityLineChart = defineAsyncComponent(
   () => import("../components/EntityLineChart.vue")
@@ -313,6 +371,9 @@ const entity = ref<any>({
     "https://www.google.com/maps/dir/?api=1&destination=47.934086900672%2C106.91685211685",
 });
 const showFloorModal = ref(false);
+const showOrganizationsTable = ref(false);
+const showRentTable = ref(false);
+const rentProperties = ref<any[]>([]);
 
 async function fetchFloors() {
   const id = route.query.id;
@@ -336,12 +397,50 @@ async function fetchOrganizations() {
   const res = await fetch(
     `http://localhost:8080/api/buildings/${id}/floors/${floor}/organizations`
   );
-  organizations.value = await res.json();
+  let orgs = await res.json();
+  // Байгууллага бүрийн mrch_regno-оор ebarimt авч нэмэх
+  orgs = await Promise.all(
+    orgs.map(async (org: any) => {
+      if (org.mrch_regno) {
+        try {
+          const ebarimtRes = await fetch(`http://localhost:8080/api/ebarimt/${org.mrch_regno}`);
+          const ebarimtJson = await ebarimtRes.json();
+          org.count_receipt = ebarimtJson?.data?.count_receipt ?? 0;
+        } catch (e) {
+          org.count_receipt = 0;
+        }
+      } else {
+        org.count_receipt = 0;
+      }
+      return org;
+    })
+  );
+  organizations.value = orgs;
 }
 
 function selectFloor(floor: number) {
   selectedFloor.value = floor;
   fetchOrganizations();
+}
+
+function toggleRentTable() {
+  showRentTable.value = !showRentTable.value;
+  if (showRentTable.value) {
+    fetchRentProperties();
+  }
+}
+
+async function fetchRentProperties() {
+  const res = await fetch("http://localhost:8080/api/pay_center_property");
+  const data = await res.json();
+  // Шинэ backend structure: { success, data: [...] }
+  const items = data.data || [];
+  rentProperties.value = items.filter((item: any) => Number(item.pay_center_id) === Number(entity.value.id));
+}
+
+function formatNumber(num: number | string) {
+  if (num === undefined || num === null) return '-';
+  return Number(num).toLocaleString('en-US');
 }
 
 onMounted(() => {

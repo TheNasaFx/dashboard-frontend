@@ -237,8 +237,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useHead } from "@unhead/vue";
-import MapView from "../components/MapView.vue";
-import TheMenu from "../components/TheMenu.vue";
 
 const selectedDistrict = ref("");
 const selectedDistrictName = ref("Дүүрэг");

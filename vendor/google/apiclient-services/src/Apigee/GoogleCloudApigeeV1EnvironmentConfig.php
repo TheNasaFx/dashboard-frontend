@@ -46,8 +46,8 @@ class GoogleCloudApigeeV1EnvironmentConfig extends \Google\Collection
    * @var string[]
    */
   public $featureFlags;
-  protected $flowhooksType = GoogleCloudApigeeV1FlowHookConfig::class;
-  protected $flowhooksDataType = 'array';
+  protected $flowcomposablesType = GoogleCloudApigeeV1FlowHookConfig::class;
+  protected $flowcomposablesDataType = 'array';
   /**
    * @var string
    */
@@ -220,16 +220,16 @@ class GoogleCloudApigeeV1EnvironmentConfig extends \Google\Collection
   /**
    * @param GoogleCloudApigeeV1FlowHookConfig[]
    */
-  public function setFlowhooks($flowhooks)
+  public function setFlowcomposables($flowcomposables)
   {
-    $this->flowhooks = $flowhooks;
+    $this->flowcomposables = $flowcomposables;
   }
   /**
    * @return GoogleCloudApigeeV1FlowHookConfig[]
    */
-  public function getFlowhooks()
+  public function getFlowcomposables()
   {
-    return $this->flowhooks;
+    return $this->flowcomposables;
   }
   /**
    * @param string

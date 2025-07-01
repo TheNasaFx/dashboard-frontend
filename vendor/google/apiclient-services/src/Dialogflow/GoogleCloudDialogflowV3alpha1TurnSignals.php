@@ -19,7 +19,7 @@ namespace Google\Service\Dialogflow;
 
 class GoogleCloudDialogflowV3alpha1TurnSignals extends \Google\Collection
 {
-  protected $collection_key = 'webhookStatuses';
+  protected $collection_key = 'webcomposablestatuses';
   /**
    * @var bool
    */
@@ -63,7 +63,7 @@ class GoogleCloudDialogflowV3alpha1TurnSignals extends \Google\Collection
   /**
    * @var string[]
    */
-  public $webhookStatuses;
+  public $webcomposablestatuses;
 
   /**
    * @param bool
@@ -208,16 +208,16 @@ class GoogleCloudDialogflowV3alpha1TurnSignals extends \Google\Collection
   /**
    * @param string[]
    */
-  public function setWebhookStatuses($webhookStatuses)
+  public function setWebcomposablestatuses($webcomposablestatuses)
   {
-    $this->webhookStatuses = $webhookStatuses;
+    $this->webcomposablestatuses = $webcomposablestatuses;
   }
   /**
    * @return string[]
    */
-  public function getWebhookStatuses()
+  public function getWebcomposablestatuses()
   {
-    return $this->webhookStatuses;
+    return $this->webcomposablestatuses;
   }
 }
 

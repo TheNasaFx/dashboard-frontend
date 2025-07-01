@@ -46,11 +46,11 @@ class GitHubEnterpriseSecrets extends \Google\Model
   /**
    * @var string
    */
-  public $webhookSecretName;
+  public $webcomposablesecretName;
   /**
    * @var string
    */
-  public $webhookSecretVersionName;
+  public $webcomposablesecretVersionName;
 
   /**
    * @param string
@@ -139,30 +139,30 @@ class GitHubEnterpriseSecrets extends \Google\Model
   /**
    * @param string
    */
-  public function setWebhookSecretName($webhookSecretName)
+  public function setWebcomposablesecretName($webcomposablesecretName)
   {
-    $this->webhookSecretName = $webhookSecretName;
+    $this->webcomposablesecretName = $webcomposablesecretName;
   }
   /**
    * @return string
    */
-  public function getWebhookSecretName()
+  public function getWebcomposablesecretName()
   {
-    return $this->webhookSecretName;
+    return $this->webcomposablesecretName;
   }
   /**
    * @param string
    */
-  public function setWebhookSecretVersionName($webhookSecretVersionName)
+  public function setWebcomposablesecretVersionName($webcomposablesecretVersionName)
   {
-    $this->webhookSecretVersionName = $webhookSecretVersionName;
+    $this->webcomposablesecretVersionName = $webcomposablesecretVersionName;
   }
   /**
    * @return string
    */
-  public function getWebhookSecretVersionName()
+  public function getWebcomposablesecretVersionName()
   {
-    return $this->webhookSecretVersionName;
+    return $this->webcomposablesecretVersionName;
   }
 }
 

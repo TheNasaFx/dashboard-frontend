@@ -3873,25 +3873,25 @@ class Scale extends Element {
   afterSetDimensions() {
     callback(this.options.afterSetDimensions, [this]);
   }
-  _callHooks(name) {
+  _callcomposables(name) {
     this.chart.notifyPlugins(name, this.getContext());
     callback(this.options[name], [this]);
   }
   beforeDataLimits() {
-    this._callHooks('beforeDataLimits');
+    this._callcomposables('beforeDataLimits');
   }
   determineDataLimits() {}
   afterDataLimits() {
-    this._callHooks('afterDataLimits');
+    this._callcomposables('afterDataLimits');
   }
   beforeBuildTicks() {
-    this._callHooks('beforeBuildTicks');
+    this._callcomposables('beforeBuildTicks');
   }
   buildTicks() {
     return [];
   }
   afterBuildTicks() {
-    this._callHooks('afterBuildTicks');
+    this._callcomposables('afterBuildTicks');
   }
   beforeTickToLabelConversion() {
     callback(this.options.beforeTickToLabelConversion, [this]);

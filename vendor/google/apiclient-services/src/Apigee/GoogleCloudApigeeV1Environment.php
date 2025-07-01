@@ -46,7 +46,7 @@ class GoogleCloudApigeeV1Environment extends \Google\Model
   /**
    * @var bool
    */
-  public $hasAttachedFlowHooks;
+  public $hasAttachedFlowcomposables;
   /**
    * @var string
    */
@@ -155,16 +155,16 @@ class GoogleCloudApigeeV1Environment extends \Google\Model
   /**
    * @param bool
    */
-  public function setHasAttachedFlowHooks($hasAttachedFlowHooks)
+  public function setHasAttachedFlowcomposables($hasAttachedFlowcomposables)
   {
-    $this->hasAttachedFlowHooks = $hasAttachedFlowHooks;
+    $this->hasAttachedFlowcomposables = $hasAttachedFlowcomposables;
   }
   /**
    * @return bool
    */
-  public function getHasAttachedFlowHooks()
+  public function getHasAttachedFlowcomposables()
   {
-    return $this->hasAttachedFlowHooks;
+    return $this->hasAttachedFlowcomposables;
   }
   /**
    * @param string

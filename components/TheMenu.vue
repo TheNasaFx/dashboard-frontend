@@ -45,15 +45,11 @@
                 <i class="iconoir-sun-light light-mode"></i>
               </a>
             </li>
-            <li class="dropdown topbar-item">
+            <li class="topbar-item">
               <a
-                class="nav-link dropdown-toggle arrow-none nav-icon"
-                data-bs-toggle="dropdown"
+                class="nav-link nav-icon"
                 href="#"
-                role="button"
-                aria-haspopup="false"
-                aria-expanded="false"
-                data-bs-offset="0,19"
+                @click.prevent="showProfileModal = true"
               >
                 <img
                   :src="unref(avatar) || '/assets/images/avatar.jpg'"
@@ -61,34 +57,18 @@
                   class="thumb-md rounded-circle"
                 />
               </a>
-              <div class="dropdown-menu dropdown-menu-end py-0">
-                <div
-                  class="d-flex align-items-center dropdown-item py-2 bg-secondary-subtle"
-                >
-                  <div class="flex-shrink-0">
-                    <img
-                      :src="unref(avatar) || '/assets/images/avatar.jpg'"
-                      alt=""
-                      class="thumb-md rounded-circle"
-                    />
-                  </div>
-                  <div class="flex-grow-1 ms-2 text-truncate align-self-center">
-                    <h6 class="my-0 fw-medium text-dark fs-13">
-                      {{ unref(name) || "Хэрэглэгч" }}
-                    </h6>
-                    <small class="text-muted mb-0">Хэрэглэгч</small>
-                  </div>
-                </div>
-                <NuxtLink class="dropdown-item text-danger" to="/logout"
-                  ><i class="las la-power-off fs-18 me-1 align-text-bottom"></i>
-                  Гарах</NuxtLink
-                >
-              </div>
             </li>
           </ul>
         </nav>
       </div>
     </div>
+
+    <component :is="ProfileInfoModal.default"
+      :show="showProfileModal"
+      :token="unref(token) || ''"
+      :workerCode="unref(workerCode) || ''"
+      :onClose="() => (showProfileModal = false)"
+    />
 
     <!-- Sidebar -->
     <div class="startbar d-print-none">
@@ -169,15 +149,18 @@
 
 <script setup lang="ts">
 import { useUser } from "../composables/useUser";
-import { unref } from "vue";
+import { unref, ref } from "vue";
 import { useSidebar } from "../composables/useSidebar";
 import { useTheme } from "../composables/useTheme";
-const { name, avatar, loadUser } = useUser();
+import * as ProfileInfoModal from "./ProfileInfoModal.vue";
+
+const { name, avatar, token, workerCode } = useUser();
 const { toggleSidebar } = useSidebar();
 const { toggleTheme } = useTheme();
 
-// Хэрэглэгчийн мэдээллийг ачаалах
-if (typeof window !== "undefined") loadUser();
+const showProfileModal = ref(false);
+
+// if (typeof window !== "undefined") loadUser(); // УСТГАСАН
 </script>
 
 <style scoped>

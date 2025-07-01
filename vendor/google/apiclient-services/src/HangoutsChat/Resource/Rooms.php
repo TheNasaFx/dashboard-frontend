@@ -64,7 +64,7 @@ class Rooms extends \Google\Service\Resource
   }
   /**
    * Legacy path for creating message. Calling these will result in a BadRequest
-   * response. (rooms.webhooks)
+   * response. (rooms.webcomposables)
    *
    * @param string $parent Required. The resource name of the space in which to
    * create a message. Format: spaces/{space}
@@ -89,11 +89,11 @@ class Rooms extends \Google\Service\Resource
    * thread](/chat/api/guides/crudl/messages#start_or_reply_to_a_message_thread).
    * @return Message
    */
-  public function webhooks($parent, Message $postBody, $optParams = [])
+  public function webcomposables($parent, Message $postBody, $optParams = [])
   {
     $params = ['parent' => $parent, 'postBody' => $postBody];
     $params = array_merge($params, $optParams);
-    return $this->call('webhooks', [$params], Message::class);
+    return $this->call('webcomposables', [$params], Message::class);
   }
 }
 

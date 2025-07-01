@@ -17,7 +17,7 @@
 
 namespace Google\Service\Dialogflow;
 
-class GoogleCloudDialogflowCxV3beta1WebhookServiceDirectoryConfig extends \Google\Model
+class GoogleCloudDialogflowCxV3beta1WebcomposableserviceDirectoryConfig extends \Google\Model
 {
   protected $genericWebServiceType = GoogleCloudDialogflowCxV3beta1WebhookGenericWebService::class;
   protected $genericWebServiceDataType = '';
@@ -57,4 +57,4 @@ class GoogleCloudDialogflowCxV3beta1WebhookServiceDirectoryConfig extends \Googl
 }
 
 // Adding a class alias for backwards compatibility with the previous class name.
-class_alias(GoogleCloudDialogflowCxV3beta1WebhookServiceDirectoryConfig::class, 'Google_Service_Dialogflow_GoogleCloudDialogflowCxV3beta1WebhookServiceDirectoryConfig');
+class_alias(GoogleCloudDialogflowCxV3beta1WebcomposableserviceDirectoryConfig::class, 'Google_Service_Dialogflow_GoogleCloudDialogflowCxV3beta1WebcomposableserviceDirectoryConfig');

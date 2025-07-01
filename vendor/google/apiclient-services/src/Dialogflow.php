@@ -62,7 +62,7 @@ class Dialogflow extends \Google\Service
   public $projects_locations_agents_testCases;
   public $projects_locations_agents_testCases_results;
   public $projects_locations_agents_transitionRouteGroups;
-  public $projects_locations_agents_webhooks;
+  public $projects_locations_agents_webcomposables;
   public $projects_locations_operations;
   public $projects_locations_securitySettings;
   public $projects_operations;
@@ -1703,14 +1703,14 @@ class Dialogflow extends \Google\Service
           ]
         ]
     );
-    $this->projects_locations_agents_webhooks = new Dialogflow\Resource\ProjectsLocationsAgentsWebhooks(
+    $this->projects_locations_agents_webcomposables = new Dialogflow\Resource\ProjectsLocationsAgentsWebcomposables(
         $this,
         $this->serviceName,
-        'webhooks',
+        'webcomposables',
         [
           'methods' => [
             'create' => [
-              'path' => 'v3/{+parent}/webhooks',
+              'path' => 'v3/{+parent}/webcomposables',
               'httpMethod' => 'POST',
               'parameters' => [
                 'parent' => [
@@ -1744,7 +1744,7 @@ class Dialogflow extends \Google\Service
                 ],
               ],
             ],'list' => [
-              'path' => 'v3/{+parent}/webhooks',
+              'path' => 'v3/{+parent}/webcomposables',
               'httpMethod' => 'GET',
               'parameters' => [
                 'parent' => [

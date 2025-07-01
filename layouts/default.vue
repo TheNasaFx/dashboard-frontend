@@ -35,8 +35,8 @@
 </template>
 
 <script setup lang="ts">
-import { useSidebar } from "~/composables/useSidebar";
-import { useTheme } from "~/composables/useTheme";
+import { useSidebar } from "../composables/useSidebar";
+import { useTheme } from "../composables/useTheme";
 const { toggleSidebar } = useSidebar();
 const { isDark, toggleTheme } = useTheme();
 </script>

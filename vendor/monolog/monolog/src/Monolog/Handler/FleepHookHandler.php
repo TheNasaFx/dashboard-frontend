@@ -21,7 +21,7 @@ use Monolog\LogRecord;
  *
  * You'll need a Fleep.io account to use this handler.
  *
- * @see https://fleep.io/integrations/webhooks/ Fleep Webhooks Documentation
+ * @see https://fleep.io/integrations/webcomposables/ Fleep Webcomposables Documentation
  * @author Ando Roots <ando@sqroot.eu>
  */
 class FleepHookHandler extends SocketHandler
@@ -39,7 +39,7 @@ class FleepHookHandler extends SocketHandler
      * Construct a new Fleep.io Handler.
      *
      * For instructions on how to create a new web hook in your conversations
-     * see https://fleep.io/integrations/webhooks/
+     * see https://fleep.io/integrations/webcomposables/
      *
      * @param  string                    $token Webhook token
      * @throws MissingExtensionException if OpenSSL is missing

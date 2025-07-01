@@ -1,3 +1,5 @@
+import { defineNuxtConfig } from 'nuxt/config';
+
 export default defineNuxtConfig({
   app: {
     head: {
@@ -52,6 +54,14 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       backendApiUrl: process.env.BACKEND_API_URL
+    }
+  },
+  nitro: {
+    devProxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      }
     }
   }
 });

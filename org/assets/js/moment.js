@@ -8,7 +8,7 @@
 
     var hookCallback;
 
-    function hooks () {
+    function composables () {
         return hookCallback.apply(null, arguments);
     }
 
@@ -181,7 +181,7 @@
 
     // Plugins that add properties should also add the key here (null value),
     // so we can properly clone ourselves.
-    var momentProperties = hooks.momentProperties = [];
+    var momentProperties = composables.momentProperties = [];
 
     function copyConfig(to, from) {
         var i, prop, val;
@@ -243,7 +243,7 @@
         // objects.
         if (updateInProgress === false) {
             updateInProgress = true;
-            hooks.updateOffset(this);
+            composables.updateOffset(this);
             updateInProgress = false;
         }
     }
@@ -288,7 +288,7 @@
     }
 
     function warn(msg) {
-        if (hooks.suppressDeprecationWarnings === false &&
+        if (composables.suppressDeprecationWarnings === false &&
                 (typeof console !==  'undefined') && console.warn) {
             console.warn('Deprecation warning: ' + msg);
         }
@@ -298,8 +298,8 @@
         var firstTime = true;
 
         return extend(function () {
-            if (hooks.deprecationHandler != null) {
-                hooks.deprecationHandler(null, msg);
+            if (composables.deprecationHandler != null) {
+                composables.deprecationHandler(null, msg);
             }
             if (firstTime) {
                 var args = [];
@@ -327,8 +327,8 @@
     var deprecations = {};
 
     function deprecateSimple(name, msg) {
-        if (hooks.deprecationHandler != null) {
-            hooks.deprecationHandler(name, msg);
+        if (composables.deprecationHandler != null) {
+            composables.deprecationHandler(name, msg);
         }
         if (!deprecations[name]) {
             warn(msg);
@@ -336,8 +336,8 @@
         }
     }
 
-    hooks.suppressDeprecationWarnings = false;
-    hooks.deprecationHandler = null;
+    composables.suppressDeprecationWarnings = false;
+    composables.deprecationHandler = null;
 
     function isFunction(input) {
         return input instanceof Function || Object.prototype.toString.call(input) === '[object Function]';
@@ -757,10 +757,10 @@
 
     addParseToken(['YYYYY', 'YYYYYY'], YEAR);
     addParseToken('YYYY', function (input, array) {
-        array[YEAR] = input.length === 2 ? hooks.parseTwoDigitYear(input) : toInt(input);
+        array[YEAR] = input.length === 2 ? composables.parseTwoDigitYear(input) : toInt(input);
     });
     addParseToken('YY', function (input, array) {
-        array[YEAR] = hooks.parseTwoDigitYear(input);
+        array[YEAR] = composables.parseTwoDigitYear(input);
     });
     addParseToken('Y', function (input, array) {
         array[YEAR] = parseInt(input, 10);
@@ -776,9 +776,9 @@
         return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
     }
 
-    // HOOKS
+    // composables
 
-    hooks.parseTwoDigitYear = function (input) {
+    composables.parseTwoDigitYear = function (input) {
         return toInt(input) + (toInt(input) > 68 ? 1900 : 2000);
     };
 
@@ -794,7 +794,7 @@
         return function (value) {
             if (value != null) {
                 set$1(this, unit, value);
-                hooks.updateOffset(this, keepTime);
+                composables.updateOffset(this, keepTime);
                 return this;
             } else {
                 return get(this, unit);
@@ -1054,7 +1054,7 @@
     function getSetMonth (value) {
         if (value != null) {
             setMonth(this, value);
-            hooks.updateOffset(this, true);
+            composables.updateOffset(this, true);
             return this;
         } else {
             return get(this, 'Month');
@@ -2035,8 +2035,8 @@
     }
 
     function currentDateArray(config) {
-        // hooks is actually the exported moment object
-        var nowValue = new Date(hooks.now());
+        // composables is actually the exported moment object
+        var nowValue = new Date(composables.now());
         if (config._useUTC) {
             return [nowValue.getUTCFullYear(), nowValue.getUTCMonth(), nowValue.getUTCDate()];
         }
@@ -2382,10 +2382,10 @@
         }
 
         // Final attempt, use Input Fallback
-        hooks.createFromInputFallback(config);
+        composables.createFromInputFallback(config);
     }
 
-    hooks.createFromInputFallback = deprecate(
+    composables.createFromInputFallback = deprecate(
         'value provided is not in a recognized RFC2822 or ISO format. moment construction falls back to js Date(), ' +
         'which is not reliable across all browsers and versions. Non RFC2822/ISO date formats are ' +
         'discouraged and will be removed in an upcoming major release. Please refer to ' +
@@ -2396,19 +2396,19 @@
     );
 
     // constant that refers to the ISO standard
-    hooks.ISO_8601 = function () {};
+    composables.ISO_8601 = function () {};
 
     // constant that refers to the RFC 2822 form
-    hooks.RFC_2822 = function () {};
+    composables.RFC_2822 = function () {};
 
     // date from string and format string
     function configFromStringAndFormat(config) {
         // TODO: Move this to another part of the creation flow to prevent circular deps
-        if (config._f === hooks.ISO_8601) {
+        if (config._f === composables.ISO_8601) {
             configFromISO(config);
             return;
         }
-        if (config._f === hooks.RFC_2822) {
+        if (config._f === composables.RFC_2822) {
             configFromRFC2822(config);
             return;
         }
@@ -2604,7 +2604,7 @@
     function configFromInput(config) {
         var input = config._i;
         if (isUndefined(input)) {
-            config._d = new Date(hooks.now());
+            config._d = new Date(composables.now());
         } else if (isDate(input)) {
             config._d = new Date(input.valueOf());
         } else if (typeof input === 'string') {
@@ -2620,7 +2620,7 @@
             // from milliseconds
             config._d = new Date(input);
         } else {
-            hooks.createFromInputFallback(config);
+            composables.createFromInputFallback(config);
         }
     }
 
@@ -2853,7 +2853,7 @@
             diff = (isMoment(input) || isDate(input) ? input.valueOf() : createLocal(input).valueOf()) - res.valueOf();
             // Use low-level api, because this fn is low-level api.
             res._d.setTime(res._d.valueOf() + diff);
-            hooks.updateOffset(res, false);
+            composables.updateOffset(res, false);
             return res;
         } else {
             return createLocal(input).local();
@@ -2866,11 +2866,11 @@
         return -Math.round(m._d.getTimezoneOffset() / 15) * 15;
     }
 
-    // HOOKS
+    // composables
 
     // This function will be called whenever a moment is mutated.
     // It is intended to keep the offset in sync with the timezone.
-    hooks.updateOffset = function () {};
+    composables.updateOffset = function () {};
 
     // MOMENTS
 
@@ -2912,7 +2912,7 @@
                     addSubtract(this, createDuration(input - offset, 'm'), 1, false);
                 } else if (!this._changeInProgress) {
                     this._changeInProgress = true;
-                    hooks.updateOffset(this, true);
+                    composables.updateOffset(this, true);
                     this._changeInProgress = null;
                 }
             }
@@ -3169,7 +3169,7 @@
             mom._d.setTime(mom._d.valueOf() + milliseconds * isAdding);
         }
         if (updateOffset) {
-            hooks.updateOffset(mom, days || months);
+            composables.updateOffset(mom, days || months);
         }
     }
 
@@ -3191,7 +3191,7 @@
         // Getting start-of-today depends on whether we're local/utc/offset or not.
         var now = time || createLocal(),
             sod = cloneWithOffset(now, this).startOf('day'),
-            format = hooks.calendarFormat(this, sod) || 'sameElse';
+            format = composables.calendarFormat(this, sod) || 'sameElse';
 
         var output = formats && (isFunction(formats[format]) ? formats[format].call(this, now) : formats[format]);
 
@@ -3317,8 +3317,8 @@
         return -(wholeMonthDiff + adjust) || 0;
     }
 
-    hooks.defaultFormat = 'YYYY-MM-DDTHH:mm:ssZ';
-    hooks.defaultFormatUtc = 'YYYY-MM-DDTHH:mm:ss[Z]';
+    composables.defaultFormat = 'YYYY-MM-DDTHH:mm:ssZ';
+    composables.defaultFormatUtc = 'YYYY-MM-DDTHH:mm:ss[Z]';
 
     function toString () {
         return this.clone().locale('en').format('ddd MMM DD YYYY HH:mm:ss [GMT]ZZ');
@@ -3370,7 +3370,7 @@
 
     function format (inputString) {
         if (!inputString) {
-            inputString = this.isUtc() ? hooks.defaultFormatUtc : hooks.defaultFormat;
+            inputString = this.isUtc() ? composables.defaultFormatUtc : composables.defaultFormat;
         }
         var output = formatMoment(this, inputString);
         return this.localeData().postformat(output);
@@ -3510,7 +3510,7 @@
         }
 
         this._d.setTime(time);
-        hooks.updateOffset(this, true);
+        composables.updateOffset(this, true);
         return this;
     }
 
@@ -3558,7 +3558,7 @@
         }
 
         this._d.setTime(time);
-        hooks.updateOffset(this, true);
+        composables.updateOffset(this, true);
         return this;
     }
 
@@ -3665,7 +3665,7 @@
     });
 
     addWeekParseToken(['gg', 'GG'], function (input, week, config, token) {
-        week[token] = hooks.parseTwoDigitYear(input);
+        week[token] = composables.parseTwoDigitYear(input);
     });
 
     // MOMENTS
@@ -4147,8 +4147,8 @@
 
     // Side effect imports
 
-    hooks.lang = deprecate('moment.lang is deprecated. Use moment.locale instead.', getSetGlobalLocale);
-    hooks.langData = deprecate('moment.langData is deprecated. Use moment.localeData instead.', getLocale);
+    composables.lang = deprecate('moment.lang is deprecated. Use moment.locale instead.', getSetGlobalLocale);
+    composables.langData = deprecate('moment.langData is deprecated. Use moment.localeData instead.', getLocale);
 
     var mathAbs = Math.abs;
 
@@ -4552,40 +4552,40 @@
     // Side effect imports
 
 
-    hooks.version = '2.24.0';
+    composables.version = '2.24.0';
 
     setHookCallback(createLocal);
 
-    hooks.fn                    = proto;
-    hooks.min                   = min;
-    hooks.max                   = max;
-    hooks.now                   = now;
-    hooks.utc                   = createUTC;
-    hooks.unix                  = createUnix;
-    hooks.months                = listMonths;
-    hooks.isDate                = isDate;
-    hooks.locale                = getSetGlobalLocale;
-    hooks.invalid               = createInvalid;
-    hooks.duration              = createDuration;
-    hooks.isMoment              = isMoment;
-    hooks.weekdays              = listWeekdays;
-    hooks.parseZone             = createInZone;
-    hooks.localeData            = getLocale;
-    hooks.isDuration            = isDuration;
-    hooks.monthsShort           = listMonthsShort;
-    hooks.weekdaysMin           = listWeekdaysMin;
-    hooks.defineLocale          = defineLocale;
-    hooks.updateLocale          = updateLocale;
-    hooks.locales               = listLocales;
-    hooks.weekdaysShort         = listWeekdaysShort;
-    hooks.normalizeUnits        = normalizeUnits;
-    hooks.relativeTimeRounding  = getSetRelativeTimeRounding;
-    hooks.relativeTimeThreshold = getSetRelativeTimeThreshold;
-    hooks.calendarFormat        = getCalendarFormat;
-    hooks.prototype             = proto;
+    composables.fn                    = proto;
+    composables.min                   = min;
+    composables.max                   = max;
+    composables.now                   = now;
+    composables.utc                   = createUTC;
+    composables.unix                  = createUnix;
+    composables.months                = listMonths;
+    composables.isDate                = isDate;
+    composables.locale                = getSetGlobalLocale;
+    composables.invalid               = createInvalid;
+    composables.duration              = createDuration;
+    composables.isMoment              = isMoment;
+    composables.weekdays              = listWeekdays;
+    composables.parseZone             = createInZone;
+    composables.localeData            = getLocale;
+    composables.isDuration            = isDuration;
+    composables.monthsShort           = listMonthsShort;
+    composables.weekdaysMin           = listWeekdaysMin;
+    composables.defineLocale          = defineLocale;
+    composables.updateLocale          = updateLocale;
+    composables.locales               = listLocales;
+    composables.weekdaysShort         = listWeekdaysShort;
+    composables.normalizeUnits        = normalizeUnits;
+    composables.relativeTimeRounding  = getSetRelativeTimeRounding;
+    composables.relativeTimeThreshold = getSetRelativeTimeThreshold;
+    composables.calendarFormat        = getCalendarFormat;
+    composables.prototype             = proto;
 
     // currently HTML5 input type only supports 24-hour formats
-    hooks.HTML5_FMT = {
+    composables.HTML5_FMT = {
         DATETIME_LOCAL: 'YYYY-MM-DDTHH:mm',             // <input type="datetime-local" />
         DATETIME_LOCAL_SECONDS: 'YYYY-MM-DDTHH:mm:ss',  // <input type="datetime-local" step="1" />
         DATETIME_LOCAL_MS: 'YYYY-MM-DDTHH:mm:ss.SSS',   // <input type="datetime-local" step="0.001" />
@@ -4597,6 +4597,6 @@
         MONTH: 'YYYY-MM'                                // <input type="month" />
     };
 
-    return hooks;
+    return composables;
 
 })));
