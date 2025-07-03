@@ -28,7 +28,7 @@
             <div class="col-md-12 col-lg-12">
               <div class="card">
                 <div class="card-body">
-                  <div class="d-flex flex-wrap gap-2">
+                  <div class="d-flex flex-wrap gap-2 align-items-center">
                     <div class="dropdown">
                       <button
                         type="button"
@@ -189,24 +189,16 @@
                         >
                       </div>
                     </div>
-                    <div class="dropdown">
-                      <button
-                        type="button"
-                        class="btn btn-outline-light dropdown-toggle"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                      >
-                        Төрөл <i class="las la-angle-down ms-1"></i>
-                      </button>
-                      <div class="dropdown-menu">
-                        <a class="dropdown-item" href="#"
-                          >e-баримтаар(сүүлийн 72цагт)</a
-                        >
-                        <a class="dropdown-item" href="#"
-                          >Татварын мэдээллээр</a
-                        >
-                      </div>
-                    </div>
+                    <button class="btn btn-outline-info ms-3" @click="showOrganizations">Байгууллагаар</button>
+                    <input
+                      v-model="searchRegno"
+                      @keyup.enter="searchByRegno"
+                      type="text"
+                      class="form-control ms-3"
+                      style="max-width: 180px;"
+                      placeholder="Регистрээр хайх"
+                    />
+                    <button class="btn btn-primary ms-2" @click="searchByRegno">Хайх</button>
                   </div>
                 </div>
               </div>
@@ -221,6 +213,8 @@
                       :district="selectedDistrict"
                       :khoroo="selectedKhoroo"
                       :category="selectedCategory"
+                      :searchLand="searchedLand"
+                      :organizations="organizations"
                     />
                   </client-only>
                 </div>
@@ -245,6 +239,10 @@ const selectedKhorooName = ref("Хороо");
 const selectedCategory = ref("");
 const selectedCategoryName = ref("Ү/а чиглэл");
 
+const searchRegno = ref("");
+const searchedLand = ref<any[] | null>(null);
+const organizations = ref<any[] | null>(null);
+
 function selectDistrict(val: string, name: string) {
   selectedDistrict.value = val;
   selectedDistrictName.value = name;
@@ -256,6 +254,32 @@ function selectKhoroo(val: string, name: string) {
 function selectCategory(val: string, name: string) {
   selectedCategory.value = val;
   selectedCategoryName.value = name;
+}
+
+async function showOrganizations() {
+  // Fetch organizations from API or static file
+  const res = await fetch("http://localhost:8080/api/v1/organizations"); // Change to your actual API if needed
+  const data = await res.json();
+  organizations.value = Array.isArray(data) ? data : [];
+  searchedLand.value = null; // Clear land search
+}
+
+async function searchByRegno() {
+  if (!searchRegno.value) return;
+  try {
+    const res = await fetch(`http://localhost:8080/api/v1/land-views?pin=${searchRegno.value}`);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      searchedLand.value = data;
+      organizations.value = null;
+    } else {
+      searchedLand.value = null;
+      alert("Газрын мэдээлэл олдсонгүй!");
+    }
+  } catch (e) {
+    searchedLand.value = null;
+    alert("Алдаа гарлаа!");
+  }
 }
 
 useHead({

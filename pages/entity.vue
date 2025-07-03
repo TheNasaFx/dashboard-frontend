@@ -145,9 +145,28 @@
                       </li>
                     </ul>
                   </div>
-                  <h5 class="card-title mb-0">
+                  <h5 class="card-title mb-0 me-3">
                     {{ selectedFloor }}-р давхарт байрлах байгууллагууд
                   </h5>
+                  <!-- Search input -->
+                  <div class="ms-auto">
+                    <div class="input-group" style="max-width: 300px;">
+                      <input
+                        type="text"
+                        class="form-control form-control-sm"
+                        placeholder="Регистр дугаараар хайх..."
+                        v-model="searchQuery"
+                        @input="filterOrganizations"
+                      />
+                      <button
+                        class="btn btn-outline-secondary btn-sm"
+                        type="button"
+                        @click="clearSearch"
+                      >
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div class="card-body">
                   <table class="table table-bordered table-hover">
@@ -162,7 +181,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="org in organizations" :key="org.id">
+                      <tr v-for="org in filteredOrganizations" :key="org.id">
                         <td>{{ org.stor_name }}</td>
                         <td>{{ org.mrch_regno }}</td>
                         <td>{{ org.op_type_name }}</td>
@@ -183,8 +202,19 @@
                           </button>
                         </td>
                       </tr>
+                      <tr v-if="filteredOrganizations.length === 0">
+                        <td colspan="6" class="text-center">
+                          {{ searchQuery ? 'Хайлтад тохирох мэдээлэл олдсонгүй' : 'Мэдээлэл олдсонгүй' }}
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
+                  <!-- Search results info -->
+                  <div v-if="searchQuery && filteredOrganizations.length > 0" class="mt-2">
+                    <small class="text-muted">
+                      {{ filteredOrganizations.length }} / {{ organizations.length }} байгууллага олдлоо
+                    </small>
+                  </div>
                 </div>
               </div>
             </div>
@@ -193,8 +223,27 @@
           <div class="row justify-content-center mt-2" v-if="showRentTable">
             <div class="col-12">
               <div class="card mb-3">
-                <div class="card-header">
-                  <h5 class="card-title mb-0">Түрээсийн мэдээлэл</h5>
+                <div class="card-header d-flex align-items-center">
+                  <h5 class="card-title mb-0 me-3">Түрээсийн мэдээлэл</h5>
+                  <!-- Rent Search input -->
+                  <div class="ms-auto">
+                    <div class="input-group" style="max-width: 300px;">
+                      <input
+                        type="text"
+                        class="form-control form-control-sm"
+                        placeholder="Эзэмшигч регистраар хайх..."
+                        v-model="rentSearchQuery"
+                        @input="filterRentProperties"
+                      />
+                      <button
+                        class="btn btn-outline-secondary btn-sm"
+                        type="button"
+                        @click="clearRentSearch"
+                      >
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div class="card-body">
                   <table class="table table-bordered table-hover">
@@ -210,7 +259,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="item in rentProperties" :key="item.id">
+                      <tr v-for="item in filteredRentProperties" :key="item.id">
                         <td>{{ item.id }}</td>
                         <td>{{ item.updated_date || item.created_date || '-' }}</td>
                         <td>{{ item.property_type }}</td>
@@ -225,11 +274,19 @@
                           }}
                         </td>
                       </tr>
-                      <tr v-if="rentProperties.length === 0">
-                        <td colspan="7" class="text-center">Мэдээлэл олдсонгүй</td>
+                      <tr v-if="filteredRentProperties.length === 0">
+                        <td colspan="7" class="text-center">
+                          {{ rentSearchQuery ? 'Хайлтад тохирох мэдээлэл олдсонгүй' : 'Мэдээлэл олдсонгүй' }}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
+                  <!-- Rent Search results info -->
+                  <div v-if="rentSearchQuery && filteredRentProperties.length > 0" class="mt-2">
+                    <small class="text-muted">
+                      {{ filteredRentProperties.length }} / {{ rentProperties.length }} түрээс олдлоо
+                    </small>
+                  </div>
                 </div>
               </div>
             </div>
@@ -374,6 +431,10 @@ const showFloorModal = ref(false);
 const showOrganizationsTable = ref(false);
 const showRentTable = ref(false);
 const rentProperties = ref<any[]>([]);
+const searchQuery = ref('');
+const filteredOrganizations = ref<any[]>([]);
+const rentSearchQuery = ref('');
+const filteredRentProperties = ref<any[]>([]);
 
 async function fetchFloors() {
   const id = route.query.id;
@@ -416,10 +477,12 @@ async function fetchOrganizations() {
     })
   );
   organizations.value = orgs;
+  filteredOrganizations.value = orgs; // Эхлээд бүх байгууллагыг харуулах
 }
 
 function selectFloor(floor: number) {
   selectedFloor.value = floor;
+  searchQuery.value = ''; // Давхар сонгох үед search-г цэвэрлэх
   fetchOrganizations();
 }
 
@@ -436,11 +499,50 @@ async function fetchRentProperties() {
   // Шинэ backend structure: { success, data: [...] }
   const items = data.data || [];
   rentProperties.value = items.filter((item: any) => Number(item.pay_center_id) === Number(entity.value.id));
+  filteredRentProperties.value = rentProperties.value; // Эхлээд бүх түрээсийг харуулах
 }
 
 function formatNumber(num: number | string) {
   if (num === undefined || num === null) return '-';
   return Number(num).toLocaleString('en-US');
+}
+
+// Search functions
+function filterOrganizations() {
+  const query = searchQuery.value.toLowerCase().trim();
+  if (!query) {
+    filteredOrganizations.value = organizations.value;
+    return;
+  }
+  
+  filteredOrganizations.value = organizations.value.filter(org => {
+    if (!org.mrch_regno) return false;
+    return org.mrch_regno.toLowerCase().includes(query);
+  });
+}
+
+function clearSearch() {
+  searchQuery.value = '';
+  filteredOrganizations.value = organizations.value;
+}
+
+// Rent Search functions
+function filterRentProperties() {
+  const query = rentSearchQuery.value.toLowerCase().trim();
+  if (!query) {
+    filteredRentProperties.value = rentProperties.value;
+    return;
+  }
+  
+  filteredRentProperties.value = rentProperties.value.filter(item => {
+    if (!item.owner_regno) return false;
+    return item.owner_regno.toLowerCase().includes(query);
+  });
+}
+
+function clearRentSearch() {
+  rentSearchQuery.value = '';
+  filteredRentProperties.value = rentProperties.value;
 }
 
 onMounted(() => {
