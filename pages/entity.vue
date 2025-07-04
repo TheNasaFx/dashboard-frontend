@@ -117,6 +117,8 @@
               </div>
             </div>
           </div>
+          <!-- baiguullaguudiin medeelliig end husnegt baidlaar haruulna -->
+
           <!-- Байгууллагуудын хүснэгт хэсэг -->
           <div class="row justify-content-center mt-2" v-if="showOrganizationsTable">
             <div class="col-12">

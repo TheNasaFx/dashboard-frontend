@@ -189,7 +189,6 @@
                         >
                       </div>
                     </div>
-                    <button class="btn btn-outline-info ms-3" @click="showOrganizations">Байгууллагаар</button>
                     <input
                       v-model="searchRegno"
                       @keyup.enter="searchByRegno"
@@ -256,13 +255,12 @@ function selectCategory(val: string, name: string) {
   selectedCategoryName.value = name;
 }
 
-async function showOrganizations() {
-  // Fetch organizations from API or static file
-  const res = await fetch("http://localhost:8080/api/v1/organizations"); // Change to your actual API if needed
+// Fetch organizations on page load
+onMounted(async () => {
+  const res = await fetch("http://localhost:8080/api/v1/organizations");
   const data = await res.json();
   organizations.value = Array.isArray(data) ? data : [];
-  searchedLand.value = null; // Clear land search
-}
+});
 
 async function searchByRegno() {
   if (!searchRegno.value) return;

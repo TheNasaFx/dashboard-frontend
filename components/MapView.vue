@@ -59,10 +59,16 @@ async function fetchAndRenderMarkers() {
       if (!isNaN(lat) && !isNaN(lng)) {
         const icon = redIcon;
         const name = org.name || 'Байгууллага';
-        let popupHtml = `<div style='width:240px'><div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${name}</div>`;
-        popupHtml += `<div style='font-size:13px;'>ID: ${org.id || ''}<br/>Регистр: ${org.regno || ''}</div>`;
-        popupHtml += `<div style='margin-top:8px;'><a href='/entity?id=${org.id}' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a></div>`;
-        popupHtml += `</div>`;
+        let popupHtml = `<div style='width:240px'>
+          <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
+          <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${name}</div>
+          <div style='font-size:13px;'>ID: ${org.id || ''}</div>
+          <div style='font-size:13px;'>Эзэмшигч: 14</div>
+          <div style='font-size:13px;'>Үйл ажиллагаа эрхлэгч: 137</div>
+          <div style='font-size:13px;'>Талбай: 5,922.92 мкв</div>
+          <div style='font-size:13px;'>Түрээслэгч: 95ш</div>
+          <div style='margin-top:8px;'><a href='/entity?id=${org.id}' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a></div>
+        </div>`;
         const leafletMarker = L.marker([lat, lng], { icon });
         leafletMarker.bindPopup(popupHtml);
         markersLayer.value.addLayer(leafletMarker);
@@ -92,11 +98,20 @@ async function fetchAndRenderMarkers() {
       if (!isNaN(lat) && !isNaN(lng)) {
         const icon = greenIcon;
         const name = land.NAME?.String || land.NAME || 'Газрын нэр';
-        let popupHtml = `<div style='width:240px'><div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${name}</div>`;
-        popupHtml += `<div style='font-size:13px;'>ID: ${land.ID || ''}<br/>PIN: ${land.PIN?.String || land.PIN || ''}<br/>AREA: ${land.AREA_M2?.Float64 || land.AREA_M2 || ''} м2</div>`;
-        popupHtml += `</div>`;
+        let popupHtml = `<div style='width:240px'>
+          <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
+          <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${name}</div>
+          <div style='font-size:13px;'>ID: ${land.ID || ''}</div>
+          <div style='font-size:13px;'>Эзэмшигч: 14</div>
+          <div style='font-size:13px;'>Үйл ажиллагаа эрхлэгч: 137</div>
+          <div style='font-size:13px;'>Талбай: 5,922.92 мкв</div>
+          <div style='font-size:13px;'>Түрээслэгч: 95ш</div>
+          <div style='margin-top:8px;'><a href='/entity?id=${land.ID}' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a></div>
+        </div>`;
         const leafletMarker = L.marker([lat, lng], { icon });
         leafletMarker.bindPopup(popupHtml);
+        leafletMarker.on('mouseover', function (e) { this.openPopup(); });
+        leafletMarker.on('mouseout', function (e) { this.closePopup(); });
         markersLayer.value.addLayer(leafletMarker);
       }
     }
@@ -165,8 +180,8 @@ async function fetchAndRenderMarkers() {
       const leafletMarker = L.marker([lat, lng], { icon });
       const popupHtml = `
         <div style='width:240px'>
+          <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
           <div style='text-align:center;'>
-            <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
             <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${
               marker.NAME?.String || marker.NAME || 'Газрын нэр'
             }</div>

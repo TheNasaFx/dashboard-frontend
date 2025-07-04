@@ -28,7 +28,7 @@
           <li class="nav-item"><a class="nav-link disabled">Нэхэмжлэх</a></li>
           <li class="nav-item"><a class="nav-link disabled">Тооцоолол</a></li>
           <li class="nav-item"><a class="nav-link" :class="{active: activeTab==='payment'}" @click="activeTab='payment'">Төлөлт</a></li>
-          <li class="nav-item"><a class="nav-link disabled">Үл хөдлөх</a></li>
+          <li class="nav-item"><a class="nav-link" :class="{active: activeTab==='property'}" @click="activeTab='property'">Үл хөдлөх</a></li>
           <li class="nav-item"><a class="nav-link disabled">Газар</a></li>
         </ul>
         <!-- Tab content -->
@@ -82,6 +82,38 @@
             </div>
           </div>
         </div>
+        <div v-else-if="activeTab==='property'">
+          <div class="card my-4">
+            <div class="card-header">Өмчлөгчийн мэдээлэл</div>
+            <div class="card-body">
+              <div>Регистерийн дугаар: {{ taxpayer.REG_NUM?.String || taxpayer.REG_NUM }}</div>
+              <div>Нэр: {{ taxpayer.LAST_NAME?.String || taxpayer.LAST_NAME }} {{ taxpayer.FIRST_NAME?.String || taxpayer.FIRST_NAME }}</div>
+            </div>
+          </div>
+          <div class="card my-4">
+            <div class="card-header">Статистик</div>
+            <div class="card-body">
+              <div>Нийт: {{ propertyStats.total }}</div>
+              <div>Татварт бүртгэлтэй: {{ propertyStats.registered }}</div>
+              <div>Татварын албанд бүртгүүлэх шаардлагатай: {{ propertyStats.needRegister }}</div>
+              <div>Худалдсан: {{ propertyStats.sold }}</div>
+              <div>Өмчилсөн: {{ propertyStats.owned }}</div>
+              <div>Арилжсан: {{ propertyStats.traded }}</div>
+              <div>Жагсаалтаар салсан: {{ propertyStats.splitList }}</div>
+              <div>Бүртгэл салгаснаар хэмжээ өөрчлөгдсөн: {{ propertyStats.changedBySplit }}</div>
+            </div>
+          </div>
+          <div class="my-3">
+            <input v-model="propertySearch" placeholder="Үл хөдлөх хөрөнгийн дугаар" class="form-control" />
+          </div>
+          <div v-for="property in propertyData.filter(p => !propertySearch || (p.PROPERTY_NUMBER?.String || '').includes(propertySearch))" :key="property.ID" class="card my-2">
+            <div class="card-body">
+              <div>Үл хөдлөх хөрөнгийн дугаар: {{ property.PROPERTY_NUMBER?.String }}</div>
+              <div>Хаяг: {{ property.FULL_ADDRESS?.String }}</div>
+              <div>Статус: {{ property.PROPERTY_TYPE?.String }}</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -96,11 +128,23 @@ const taxpayer = ref<any>(null)
 const loading = ref(false)
 const error = ref('')
 const barimtCount = ref(0)
-const activeTab = ref<'info'|'report'|'payment'>('info')
+const activeTab = ref<'info'|'report'|'payment'|'property'>('info')
 const reportData = ref<any[]>([])
 const paymentData = ref<any[]>([])
 const entId = ref(null)
 const branchNames = ref<Record<string, string>>({})
+const propertyData = ref<any[]>([])
+const propertyStats = ref({
+  total: 0,
+  registered: 0,
+  needRegister: 0,
+  sold: 0,
+  owned: 0,
+  traded: 0,
+  splitList: 0,
+  changedBySplit: 0,
+});
+const propertySearch = ref('');
 
 async function fetchTaxpayer() {
   loading.value = true
@@ -154,6 +198,33 @@ async function fetchTaxpayer() {
         branchNames.value = {};
       }
     }
+    // Property tab
+    if (activeTab.value === 'property') {
+      // 1. ENT_ID-г авна
+      const infoRes = await fetch(`http://localhost:8080/api/v1/account-general-years?regno=${regno}&tab=info`)
+      const infoArr = infoRes.ok ? await infoRes.json() : []
+      if (Array.isArray(infoArr) && infoArr.length > 0 && infoArr[0].ENT_ID) {
+        entId.value = infoArr[0].ENT_ID.Int64 || infoArr[0].ENT_ID;
+        // 2. Property API-г дуудаж өгөгдлийг авна
+        const propRes = await fetch(`http://localhost:8080/api/v1/property-owners?ent_id=${entId.value}`)
+        const data = propRes.ok ? await propRes.json() : []
+        propertyData.value = Array.isArray(data) ? data : [];
+        // 3. Статистик тооцоолол
+        propertyStats.value.total = propertyData.value.length;
+        propertyStats.value.registered = propertyData.value.filter(p => p.STATUS?.String === '1').length;
+        propertyStats.value.needRegister = propertyData.value.filter(p => p.STATUS?.String === '2').length;
+        propertyStats.value.sold = propertyData.value.filter(p => p.PROPERTY_TYPE?.String === 'Худалдсан').length;
+        propertyStats.value.owned = propertyData.value.filter(p => p.PROPERTY_TYPE?.String === 'Өмчилсөн').length;
+        propertyStats.value.traded = propertyData.value.filter(p => p.PROPERTY_TYPE?.String === 'Арилжсан').length;
+        propertyStats.value.splitList = propertyData.value.filter(p => p.PROPERTY_TYPE?.String === 'Жагсаалтаар салсан').length;
+        propertyStats.value.changedBySplit = propertyData.value.filter(p => p.PROPERTY_TYPE?.String === 'Бүртгэл салгаснаар хэмжээ өөрчлөгдсөн').length;
+      } else {
+        entId.value = null;
+        propertyData.value = [];
+        propertyStats.value = { total: 0, registered: 0, needRegister: 0, sold: 0, owned: 0, traded: 0, splitList: 0, changedBySplit: 0 };
+      }
+    }
+    console.log(propertyData.value);
   } catch (e: any) {
     error.value = e.message || 'Алдаа гарлаа'
     console.error('Fetch taxpayer error:', e, taxpayer.value)
@@ -163,7 +234,12 @@ async function fetchTaxpayer() {
 }
 
 watchEffect(() => {
-  if (activeTab.value === 'info' || activeTab.value === 'report' || activeTab.value === 'payment') {
+  if (
+    activeTab.value === 'info' ||
+    activeTab.value === 'report' ||
+    activeTab.value === 'payment' ||
+    activeTab.value === 'property'
+  ) {
     fetchTaxpayer();
   }
 });
