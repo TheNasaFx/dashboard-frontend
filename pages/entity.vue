@@ -293,6 +293,78 @@
               </div>
             </div>
           </div>
+          <!-- Байгууллагуудын дэлгэрэнгүй шинэ хүснэгт -->
+          <div class="row justify-content-center mt-2">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header d-flex align-items-center">
+                  <h5 class="card-title mb-0 me-3">Байгууллагуудын дэлгэрэнгүй мэдээлэл</h5>
+                </div>
+                <div class="card-body">
+                  <table class="table table-bordered table-hover">
+                    <thead>
+                      <tr>
+                        <th>Бүртгэл</th>
+                        <th>И-Баримт сүүлийн 72цагт</th>
+                        <th>Зөвшөөрлийн мэдээ</th>
+                        <th>Тайлан</th>
+                        <th>Төлөлт</th>
+                        <th>Өрийн үлдэгдэл</th>
+                        <th>Хөрөнгийн мэдээлэл</th>
+                        <th>Туслан зөвлөх үйлчилгээ</th>
+                        <th>Зөрчлийн мэдээлэл</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="org in organizations" :key="org.id">
+                        <!-- Бүртгэл: mrch_regno -->
+                        <td>{{ org.mrch_regno || '-' }}</td>
+                        <!-- И-Баримт: count_receipt -->
+                        <td>
+                          <span v-if="!org.count_receipt || org.count_receipt === 0">
+                            <i class="fas fa-times-circle text-danger"></i>
+                          </span>
+                          <span v-else>
+                            <i class="fas fa-check-circle text-success"></i>
+                          </span>
+                        </td>
+                        <!-- Зөвшөөрлийн мэдээ -->
+                        <td>0</td>
+                        <!-- Тайлан -->
+                        <td>0</td>
+                        <!-- Төлөлт -->
+                        <td>0</td>
+                        <!-- Өрийн үлдэгдэл -->
+                        <td>0</td>
+                        <!-- Хөрөнгийн мэдээлэл -->
+                        <td>
+                          <template v-if="org.pay_center_property">
+                            <span v-if="org.pay_center_property.owner_regno && org.mrch_regno && org.pay_center_property.owner_regno.trim() === org.mrch_regno.trim()">
+                              Хувийн эзэмшил
+                            </span>
+                            <span v-else>
+                              Түрээсийн газар
+                            </span>
+                            <span class="ms-1">({{ org.pay_center_property.property_size || '-' }} м²)</span>
+                          </template>
+                          <template v-else>
+                            -
+                          </template>
+                        </td>
+                        <!-- Туслан зөвлөх үйлчилгээ -->
+                        <td>0</td>
+                        <!-- Зөрчлийн мэдээлэл -->
+                        <td>0</td>
+                      </tr>
+                      <tr v-if="organizations.length === 0">
+                        <td colspan="9" class="text-center">Мэдээлэл олдсонгүй</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="row justify-content-center">
             <div class="col-md-6 col-lg-8">
               <div class="card">
@@ -474,6 +546,19 @@ async function fetchOrganizations() {
         }
       } else {
         org.count_receipt = 0;
+      }
+      // PAY_CENTER_PROPERTY-г нэгтгэх
+      if (org.pay_center_property_id) {
+        try {
+          const propertyRes = await fetch(`http://localhost:8080/api/pay_center_property`);
+          const propertyJson = await propertyRes.json();
+          const properties = propertyJson.data || [];
+          org.pay_center_property = properties.find((p: any) => Number(p.id) === Number(org.pay_center_property_id));
+        } catch (e) {
+          org.pay_center_property = null;
+        }
+      } else {
+        org.pay_center_property = null;
       }
       return org;
     })
