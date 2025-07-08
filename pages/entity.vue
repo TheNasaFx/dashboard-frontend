@@ -77,16 +77,26 @@
                   <button
                     type="button"
                     class="btn btn-success btn-sm ms-2"
-                    @click="showOrganizationsTable = !showOrganizationsTable"
+                    :class="{ active: activeTab === 'ebarimt' }"
+                    @click="setActiveTab('ebarimt')"
                   >
-                    e-баримт
+                    Е-баримт
                   </button>
                   <button
                     type="button"
                     class="btn btn-info btn-sm ms-2"
-                    @click="toggleRentTable"
+                    :class="{ active: activeTab === 'rent' }"
+                    @click="setActiveTab('rent')"
                   >
-                    түрээс
+                    Түрээс
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-dark btn-sm ms-2"
+                    :class="{ active: activeTab === 'organizations' }"
+                    @click="setActiveTab('organizations')"
+                  >
+                    Байгууллагууд
                   </button>
                 </div>
               </div>
@@ -120,7 +130,7 @@
           <!-- baiguullaguudiin medeelliig end husnegt baidlaar haruulna -->
 
           <!-- Байгууллагуудын хүснэгт хэсэг -->
-          <div class="row justify-content-center mt-2" v-if="showOrganizationsTable">
+          <div class="row justify-content-center mt-2" v-if="activeTab === 'ebarimt'">
             <div class="col-12">
               <div class="card mb-3">
                 <div class="card-header d-flex align-items-center">
@@ -222,7 +232,7 @@
             </div>
           </div>
           <!-- Түрээсийн хүснэгт -->
-          <div class="row justify-content-center mt-2" v-if="showRentTable">
+          <div class="row justify-content-center mt-2" v-if="activeTab === 'rent'">
             <div class="col-12">
               <div class="card mb-3">
                 <div class="card-header d-flex align-items-center">
@@ -294,7 +304,7 @@
             </div>
           </div>
           <!-- Байгууллагуудын дэлгэрэнгүй шинэ хүснэгт -->
-          <div class="row justify-content-center mt-2">
+          <div class="row justify-content-center mt-2" v-if="activeTab === 'organizations'">
             <div class="col-12">
               <div class="card mb-3">
                 <div class="card-header d-flex align-items-center">
@@ -310,7 +320,6 @@
                         <th>Тайлан</th>
                         <th>Төлөлт</th>
                         <th>Өрийн үлдэгдэл</th>
-                        <th>Хөрөнгийн мэдээлэл</th>
                         <th>Туслан зөвлөх үйлчилгээ</th>
                         <th>Зөрчлийн мэдээлэл</th>
                       </tr>
@@ -322,42 +331,28 @@
                         <!-- И-Баримт: count_receipt -->
                         <td>
                           <span v-if="!org.count_receipt || org.count_receipt === 0">
-                            <i class="fas fa-times-circle text-danger"></i>
+                           0
                           </span>
                           <span v-else>
-                            <i class="fas fa-check-circle text-success"></i>
+                            {{ org.count_receipt }}
                           </span>
                         </td>
                         <!-- Зөвшөөрлийн мэдээ -->
                         <td>0</td>
                         <!-- Тайлан -->
-                        <td>0</td>
+                        <td>{{ org.report_submitted_date || '-' }}</td>
                         <!-- Төлөлт -->
-                        <td>0</td>
+                        <td>{{ formatNumber(org.payment_amount) || '0' }}₮</td>
                         <!-- Өрийн үлдэгдэл -->
-                        <td>0</td>
-                        <!-- Хөрөнгийн мэдээлэл -->
-                        <td>
-                          <template v-if="org.pay_center_property">
-                            <span v-if="org.pay_center_property.owner_regno && org.mrch_regno && org.pay_center_property.owner_regno.trim() === org.mrch_regno.trim()">
-                              Хувийн эзэмшил
-                            </span>
-                            <span v-else>
-                              Түрээсийн газар
-                            </span>
-                            <span class="ms-1">({{ org.pay_center_property.property_size || '-' }} м²)</span>
-                          </template>
-                          <template v-else>
-                            -
-                          </template>
-                        </td>
+                        <td>{{ formatNumber(org.debt_amount) || '0' }}₮</td>
+
                         <!-- Туслан зөвлөх үйлчилгээ -->
-                        <td>0</td>
+                        <td>{{ org.advice_count || '0' }}</td>
                         <!-- Зөрчлийн мэдээлэл -->
                         <td>0</td>
                       </tr>
                       <tr v-if="organizations.length === 0">
-                        <td colspan="9" class="text-center">Мэдээлэл олдсонгүй</td>
+                        <td colspan="8" class="text-center">Мэдээлэл олдсонгүй</td>
                       </tr>
                     </tbody>
                   </table>
@@ -502,13 +497,41 @@ const entity = ref<any>({
     "https://www.google.com/maps/dir/?api=1&destination=47.934086900672%2C106.91685211685",
 });
 const showFloorModal = ref(false);
-const showOrganizationsTable = ref(false);
-const showRentTable = ref(false);
+const activeTab = ref<string>('');
 const rentProperties = ref<any[]>([]);
 const searchQuery = ref('');
 const filteredOrganizations = ref<any[]>([]);
 const rentSearchQuery = ref('');
 const filteredRentProperties = ref<any[]>([]);
+
+// Global cache for entity data (survives page navigation)
+const globalEntityCache = new Map<string, { data: any; timestamp: number }>();
+const ENTITY_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+
+// Function to get cache key
+function getEntityCacheKey(id: string, floor: number) {
+  return `entity_${id}_floor_${floor}`;
+}
+
+// Function to check and get cached data
+function getCachedEntityData(cacheKey: string) {
+  if (globalEntityCache.has(cacheKey)) {
+    const cached = globalEntityCache.get(cacheKey)!;
+    if (Date.now() - cached.timestamp < ENTITY_CACHE_DURATION) {
+      return cached.data;
+    }
+    globalEntityCache.delete(cacheKey);
+  }
+  return null;
+}
+
+// Function to set cache data
+function setCachedEntityData(cacheKey: string, data: any) {
+  globalEntityCache.set(cacheKey, {
+    data: data,
+    timestamp: Date.now()
+  });
+}
 
 async function fetchFloors() {
   const id = route.query.id;
@@ -521,50 +544,148 @@ async function fetchFloors() {
     .sort((a: number, b: number) => a - b);
   if (floors.value.length > 0) {
     selectedFloor.value = floors.value[0];
-    fetchOrganizations();
   }
 }
 
 async function fetchOrganizations() {
   const id = route.query.id;
   const floor = selectedFloor.value;
-  if (!id || !floor) return;
-  const res = await fetch(
-    `http://localhost:8080/api/buildings/${id}/floors/${floor}/organizations`
-  );
-  let orgs = await res.json();
-  // Байгууллага бүрийн mrch_regno-оор ebarimt авч нэмэх
-  orgs = await Promise.all(
-    orgs.map(async (org: any) => {
-      if (org.mrch_regno) {
-        try {
-          const ebarimtRes = await fetch(`http://localhost:8080/api/ebarimt/${org.mrch_regno}`);
-          const ebarimtJson = await ebarimtRes.json();
-          org.count_receipt = ebarimtJson?.data?.count_receipt ?? 0;
-        } catch (e) {
-          org.count_receipt = 0;
-        }
-      } else {
-        org.count_receipt = 0;
-      }
-      // PAY_CENTER_PROPERTY-г нэгтгэх
-      if (org.pay_center_property_id) {
-        try {
-          const propertyRes = await fetch(`http://localhost:8080/api/pay_center_property`);
-          const propertyJson = await propertyRes.json();
-          const properties = propertyJson.data || [];
-          org.pay_center_property = properties.find((p: any) => Number(p.id) === Number(org.pay_center_property_id));
-        } catch (e) {
-          org.pay_center_property = null;
-        }
-      } else {
-        org.pay_center_property = null;
-      }
-      return org;
-    })
-  );
-  organizations.value = orgs;
-  filteredOrganizations.value = orgs; // Эхлээд бүх байгууллагыг харуулах
+  if (!id) return;
+  
+  // Check cache first
+  const cacheKey = getEntityCacheKey(id.toString(), floor);
+  const cachedData = getCachedEntityData(cacheKey);
+  
+  if (cachedData) {
+    organizations.value = cachedData;
+    filteredOrganizations.value = organizations.value;
+    return;
+  }
+  
+  try {
+    // Get organizations data
+    const url = floor 
+      ? `http://localhost:8080/api/v1/buildings/${id}/floors/${floor}/organizations`
+      : `http://localhost:8080/api/v1/buildings/${id}/organizations`;
+    
+    const res = await fetch(url);
+    const orgsData = await res.json();
+    
+    if (Array.isArray(orgsData)) {
+      // Get all MRCH_REGNO values for batch processing
+      const mrchRegnos = orgsData.map(org => org.mrch_regno).filter(regno => regno);
+      
+      // Batch fetch all API data at once
+      const [ebarimtBatchData, reportBatchData, paymentBatchData, debtBatchData] = await Promise.all([
+        // Ebarimt batch data (сүүлийн 72цагт)
+        Promise.all(mrchRegnos.map(async (regno: string) => {
+          try {
+            const response = await fetch(`http://localhost:8080/api/ebarimt/${regno}`);
+            if (response.ok) {
+              const data = await response.json();
+              return { regno, data: data.data || {} };
+            }
+          } catch (error) {
+            console.error(`Error fetching ebarimt for ${regno}:`, error);
+          }
+          return { regno, data: {} };
+        })),
+        
+        // Report batch data (V_E_TUB_REPORT_DATA-аас SUBMITTED_DATE)
+        Promise.all(mrchRegnos.map(async (regno: string) => {
+          try {
+            const response = await fetch(`http://localhost:8080/api/v1/tub-report-data?tin=${regno}`);
+            if (response.ok) {
+              const data = await response.json();
+              const reportData = data.data;
+              // Get the latest submitted date from the array
+              if (Array.isArray(reportData) && reportData.length > 0) {
+                const latestReport = reportData.reduce((latest, current) => {
+                  if (!latest.submitted_date) return current;
+                  if (!current.submitted_date) return latest;
+                  return new Date(current.submitted_date) > new Date(latest.submitted_date) ? current : latest;
+                });
+                return { regno, data: latestReport };
+              }
+              return { regno, data: {} };
+            }
+          } catch (error) {
+            console.error(`Error fetching report for ${regno}:`, error);
+          }
+          return { regno, data: {} };
+        })),
+        
+        // Payment batch data (V_E_TUB_PAYMENTS-аас AMOUNT нийлбэр)
+        Promise.all(mrchRegnos.map(async (regno: string) => {
+          try {
+            const response = await fetch(`http://localhost:8080/api/v1/payments/${regno}`);
+            if (response.ok) {
+              const data = await response.json();
+              return { regno, data: data.data || {} };
+            }
+          } catch (error) {
+            console.error(`Error fetching payments for ${regno}:`, error);
+          }
+          return { regno, data: {} };
+        })),
+        
+        // Debt batch data (V_ACCOUNT_GENERAL_YEAR-аас C2_DEBIT нийлбэр)
+        Promise.all(mrchRegnos.map(async (regno: string) => {
+          try {
+            const response = await fetch(`http://localhost:8080/api/v1/account-general-years?regno=${regno}&tab=debt`);
+            if (response.ok) {
+              const data = await response.json();
+              // Calculate total C2_DEBIT for all records
+              if (Array.isArray(data) && data.length > 0) {
+                const totalDebt = data.reduce((total, record) => {
+                  const c2Debit = record.C2_DEBIT || 0;
+                  return total + parseFloat(c2Debit);
+                }, 0);
+                return { regno, data: { total_debt: totalDebt } };
+              }
+              return { regno, data: { total_debt: 0 } };
+            }
+          } catch (error) {
+            console.error(`Error fetching debt for ${regno}:`, error);
+          }
+          return { regno, data: { total_debt: 0 } };
+        }))
+      ]);
+
+      // Create lookup maps for fast access
+      const ebarimtMap = new Map(ebarimtBatchData.map(item => [item.regno, item.data]));
+      const reportMap = new Map(reportBatchData.map(item => [item.regno, item.data]));
+      const paymentMap = new Map(paymentBatchData.map(item => [item.regno, item.data]));
+      const debtMap = new Map(debtBatchData.map(item => [item.regno, item.data]));
+
+      // Combine all data
+      const enrichedOrgs = orgsData.map((org: any) => {
+        const mrchRegno = org.mrch_regno;
+        const ebarimtData = ebarimtMap.get(mrchRegno) || {};
+        const reportData = reportMap.get(mrchRegno) || {};
+        const paymentData = paymentMap.get(mrchRegno) || {};
+        const debtData = debtMap.get(mrchRegno) || {};
+
+        return {
+          ...org,
+          count_receipt: (ebarimtData as any)?.count_receipt || 0,
+          report_submitted_date: (reportData as any)?.submitted_date || '',
+          payment_amount: (paymentData as any)?.total_amount || 0,
+          debt_amount: (debtData as any)?.total_debt || 0,
+          advice_count: 0 // Fixed value as requested
+        };
+      });
+
+      organizations.value = enrichedOrgs;
+      filteredOrganizations.value = organizations.value;
+      
+      // Cache the result
+      setCachedEntityData(cacheKey, enrichedOrgs);
+    }
+  } catch (error) {
+    console.error('Error fetching organizations:', error);
+    filteredOrganizations.value = [];
+  }
 }
 
 function selectFloor(floor: number) {
@@ -573,10 +694,17 @@ function selectFloor(floor: number) {
   fetchOrganizations();
 }
 
-function toggleRentTable() {
-  showRentTable.value = !showRentTable.value;
-  if (showRentTable.value) {
-    fetchRentProperties();
+async function setActiveTab(tab: 'ebarimt' | 'rent' | 'organizations') {
+  if (activeTab.value === tab) {
+    activeTab.value = '';
+    return;
+  }
+  activeTab.value = tab;
+  if (tab === 'ebarimt' || tab === 'organizations') {
+    await fetchOrganizations();
+  }
+  if (tab === 'rent') {
+    await fetchRentProperties();
   }
 }
 
@@ -635,6 +763,8 @@ function clearRentSearch() {
 onMounted(() => {
   fetchFloors();
 });
+
+defineExpose({ activeTab, setActiveTab });
 </script>
 
 <style scoped>

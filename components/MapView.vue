@@ -32,6 +32,64 @@ let redIcon: any = null;
 let greenIcon: any = null;
 let blueIcon: any = null;
 
+// Simple cache for map data
+const mapDataCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 2 * 60 * 1000; // Reduced to 2 minutes for better responsiveness
+
+// Function to clear cache
+function clearMapDataCache() {
+  mapDataCache.clear();
+}
+
+// Function to clear expired cache entries
+function cleanExpiredCache() {
+  const now = Date.now();
+  for (const [key, value] of mapDataCache.entries()) {
+    if (now - value.timestamp > CACHE_DURATION) {
+      mapDataCache.delete(key);
+    }
+  }
+}
+
+async function fetchMapDataCached(payCenterId: string) {
+  const cacheKey = `map_data_${payCenterId}`;
+  const now = Date.now();
+  
+  // Clean expired cache periodically
+  if (Math.random() < 0.1) { // 10% chance to clean
+    cleanExpiredCache();
+  }
+  
+  // Check cache first
+  if (mapDataCache.has(cacheKey)) {
+    const cached = mapDataCache.get(cacheKey)!;
+    if (now - cached.timestamp < CACHE_DURATION) {
+      return cached.data;
+    }
+    // Remove expired cache
+    mapDataCache.delete(cacheKey);
+  }
+  
+  try {
+    const response = await fetch(`http://localhost:8080/api/v1/map-data?pay_center_id=${payCenterId}`);
+    const result = await response.json();
+    
+    // Cache the result
+    mapDataCache.set(cacheKey, {
+      data: result,
+      timestamp: now
+    });
+    
+    return result;
+  } catch (error) {
+    console.error('Error fetching map data:', error);
+    return {
+      success: false,
+      data: { owner_count: 0, activity_operators: 0, area: 0, tenants: 0 }
+    };
+  }
+}
+
 async function fetchPayCenterLocationsByRegno(regno: string) {
   if (!regno) return [];
   try {
@@ -47,29 +105,72 @@ async function fetchPayCenterLocationsByRegno(regno: string) {
 async function fetchAndRenderMarkers() {
   if (!L) return;
 
+  console.log('organizations:', props.organizations);
+
   // 1. Байгууллагаар хайсан бол organizations pin-үүдийг харуулна
   if (props.organizations && Array.isArray(props.organizations) && props.organizations.length > 0) {
     if (markersLayer.value) {
       try { markersLayer.value.clearLayers(); } catch (e) {}
     }
     markersLayer.value = markerClusterGroup();
+    
+    // Бүх байгууллагын ID-уудыг цуглуулаад batch API дуудах
+    const orgIds = props.organizations.map(org => org.id).filter(id => id);
+    let mapDataResults: any = {};
+    
+    if (orgIds.length > 0) {
+      // Check global cache first
+      const batchCacheKey = `batch_${orgIds.sort().join(',')}`;
+      const cachedBatchData = getGlobalCachedData(batchCacheKey, globalMapDataCache);
+      
+      if (cachedBatchData) {
+        mapDataResults = cachedBatchData;
+      } else {
+        try {
+          const batchResponse = await fetch(`http://localhost:8080/api/v1/map-data-batch?pay_center_ids=${orgIds.join(',')}`);
+          const batchData = await batchResponse.json();
+          if (batchData.success && batchData.data) {
+            mapDataResults = batchData.data;
+            // Cache the batch result globally
+            setGlobalCacheData(batchCacheKey, mapDataResults, globalMapDataCache);
+          }
+        } catch (error) {
+          console.error('Error fetching batch map data:', error);
+        }
+      }
+    }
+
+    // Popup бүрт динамик мэдээлэл ашиглах
     for (const org of props.organizations) {
       const lat = parseFloat(org.lat);
       const lng = parseFloat(org.lng);
       if (!isNaN(lat) && !isNaN(lng)) {
-        const icon = redIcon;
-        const name = org.name || 'Байгууллага';
+        let ownerCount = 0;
+        let activityOperators = 0;
+        let area = 0;
+        let tenants = 0;
+
+        // Batch result-аас мэдээлэл авах
+        const orgMapData = mapDataResults[org.id?.toString()];
+        if (orgMapData && orgMapData.success && orgMapData.data) {
+          ownerCount = orgMapData.data.owner_count || 0;
+          activityOperators = orgMapData.data.activity_operators || 0;
+          area = orgMapData.data.area || 0;
+          tenants = orgMapData.data.tenants || 0;
+        }
+
+        // Popup-д харуулах
         let popupHtml = `<div style='width:240px'>
           <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
-          <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${name}</div>
+          <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${org.name || org.stor_name || 'Байгууллага'}</div>
           <div style='font-size:13px;'>ID: ${org.id || ''}</div>
-          <div style='font-size:13px;'>Эзэмшигч: 14</div>
-          <div style='font-size:13px;'>Үйл ажиллагаа эрхлэгч: 137</div>
-          <div style='font-size:13px;'>Талбай: 5,922.92 мкв</div>
-          <div style='font-size:13px;'>Түрээслэгч: 95ш</div>
+          <div style='font-size:13px;'>Эзэмшигч: ${ownerCount}</div>
+          <div style='font-size:13px;'>Үйл ажиллагаа эрхлэгч: ${activityOperators}</div>
+          <div style='font-size:13px;'>Талбай: ${area.toLocaleString()} мкв</div>
+          <div style='font-size:13px;'>Түрээслэгч: ${tenants}ш</div>
           <div style='margin-top:8px;'><a href='/entity?id=${org.id}' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a></div>
         </div>`;
-        const leafletMarker = L.marker([lat, lng], { icon });
+        const leafletMarker = L.marker([lat, lng], { icon: redIcon });
         leafletMarker.bindPopup(popupHtml);
         markersLayer.value.addLayer(leafletMarker);
       }
@@ -204,6 +305,36 @@ async function fetchAndRenderMarkers() {
   if (map.value) {
     map.value.addLayer(markersLayer.value);
   }
+}
+
+// Global cache for organization and map data (survives page navigation)
+const globalOrgCache = new Map<string, { data: any; timestamp: number }>();
+const globalMapDataCache = new Map<string, { data: any; timestamp: number }>();
+const GLOBAL_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes for global cache
+
+// Function to check if cached data is still valid
+function isGlobalCacheValid(cacheKey: string, cacheMap: Map<string, { data: any; timestamp: number }>) {
+  if (cacheMap.has(cacheKey)) {
+    const cached = cacheMap.get(cacheKey)!;
+    return Date.now() - cached.timestamp < GLOBAL_CACHE_DURATION;
+  }
+  return false;
+}
+
+// Function to get cached data
+function getGlobalCachedData(cacheKey: string, cacheMap: Map<string, { data: any; timestamp: number }>) {
+  if (isGlobalCacheValid(cacheKey, cacheMap)) {
+    return cacheMap.get(cacheKey)!.data;
+  }
+  return null;
+}
+
+// Function to set cache data
+function setGlobalCacheData(cacheKey: string, data: any, cacheMap: Map<string, { data: any; timestamp: number }>) {
+  cacheMap.set(cacheKey, {
+    data: data,
+    timestamp: Date.now()
+  });
 }
 
 onMounted(async () => {
