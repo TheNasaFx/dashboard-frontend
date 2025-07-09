@@ -52,12 +52,16 @@ onMounted(async () => {
     orgs.map(async (org) => {
       if (org.mrch_regno) {
         try {
-          // И-баримтын мэдээлэл (PAY_MARKET_BARIMT-аас PIN-ээр COUNT_RECEIPT)
+          // И-баримтын мэдээлэл (V_E_TUB_PAY_MARKET_EBARIMT-аас MRCH_REGNO-ээр CNT_3, CNT_30)
           const ebarimtRes = await fetch(`http://localhost:8080/api/ebarimt/${org.mrch_regno}`);
           const ebarimtJson = await ebarimtRes.json();
           org.count_receipt = ebarimtJson?.data?.count_receipt ?? 0;
+          org.cnt_3 = ebarimtJson?.data?.cnt_3 ?? 0;
+          org.cnt_30 = ebarimtJson?.data?.cnt_30 ?? 0;
         } catch (e) {
           org.count_receipt = 0;
+          org.cnt_3 = 0;
+          org.cnt_30 = 0;
         }
 
         try {
@@ -110,6 +114,8 @@ onMounted(async () => {
         }
       } else {
         org.count_receipt = 0;
+        org.cnt_3 = 0;
+        org.cnt_30 = 0;
         org.report_submitted_date = '-';
         org.payment_amount = 0;
         org.debt_amount = 0;
@@ -160,10 +166,17 @@ onMounted(async () => {
             
             <div style='margin-bottom:6px;'><b>Бүртгэл:</b> <span style='color:#0066cc;'>${org.mrch_regno || '-'}</span></div>
             
-            <div style='margin-bottom:6px;'><b>И-Баримт сүүлийн 72цагт:</b> 
+            <div style='margin-bottom:6px;'><b>И-Баримт сүүлийн 3 хоногт:</b> 
               ${!org.count_receipt || org.count_receipt === 0 ? 
-                '<span style="color:#dc3545;">И-баримт гаргадаггүй</span>' : 
+                '<span style="color:#dc3545;">0</span>' : 
                 `<span style="color:#28a745;">${org.count_receipt}</span>`
+              }
+            </div>
+            
+            <div style='margin-bottom:6px;'><b>И-Баримт сүүлийн 30 хоногт:</b> 
+              ${!org.cnt_30 || org.cnt_30 === 0 ? 
+                '<span style="color:#dc3545;">0</span>' : 
+                `<span style="color:#28a745;">${org.cnt_30}</span>`
               }
             </div>
             

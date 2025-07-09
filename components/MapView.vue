@@ -106,6 +106,7 @@ async function fetchAndRenderMarkers() {
   if (!L) return;
 
   console.log('organizations:', props.organizations);
+  console.log('searchLand:', props.searchLand);
 
   // 1. Байгууллагаар хайсан бол organizations pin-үүдийг харуулна
   if (props.organizations && Array.isArray(props.organizations) && props.organizations.length > 0) {
@@ -256,12 +257,16 @@ async function fetchAndRenderMarkers() {
 
   let markersData: LandData[] = [];
   try {
+    console.log('Fetching centers from URL:', url);
     const res = await fetch(url);
     const data = await res.json();
+    console.log('Centers API response:', data);
     if (Array.isArray(data.data)) {
       markersData = data.data as LandData[];
     }
+    console.log('markersData length:', markersData.length);
   } catch (e) {
+    console.error('Error fetching centers:', e);
     markersData = [];
   }
 

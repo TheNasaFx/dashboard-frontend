@@ -39,12 +39,12 @@
                       <span
                         class="position-absolute top-0 start-100 translate-middle bg-danger border border-light rounded-circle"
                       >
-                        <small class="thumb-xs">{{ entity.taxPayers }}</small>
+                        <small class="thumb-xs">{{ entity.tax_payers || 0 }}</small>
                       </span>
                     </button>
                   </h5>
-                  <p class="fs-12 text-muted">{{ entity.type }}</p>
-                  <p class="card-text">{{ entity.address }}</p>
+                  <p class="fs-12 text-muted">{{ entity.address || "Үйлчилгээний төв" }}</p>
+                  <p class="card-text"></p>
                   <small class="text-muted">Бүртгэл</small>
                   <div class="progress">
                     <div
@@ -80,7 +80,7 @@
                     :class="{ active: activeTab === 'ebarimt' }"
                     @click="setActiveTab('ebarimt')"
                   >
-                    Е-баримт
+                    Байгууллагууд
                   </button>
                   <button
                     type="button"
@@ -89,14 +89,6 @@
                     @click="setActiveTab('rent')"
                   >
                     Түрээс
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-dark btn-sm ms-2"
-                    :class="{ active: activeTab === 'organizations' }"
-                    @click="setActiveTab('organizations')"
-                  >
-                    Байгууллагууд
                   </button>
                 </div>
               </div>
@@ -127,7 +119,6 @@
               </div>
             </div>
           </div>
-          <!-- baiguullaguudiin medeelliig end husnegt baidlaar haruulna -->
 
           <!-- Байгууллагуудын хүснэгт хэсэг -->
           <div class="row justify-content-center mt-2" v-if="activeTab === 'ebarimt'">
@@ -187,7 +178,8 @@
                         <th>Тасгийн нэр (stor_name)</th>
                         <th>Регистр (mrch_regno)</th>
                         <th>Үйл ажиллагааны чиглэл (op_type_name)</th>
-                        <th>Баримтын тоо</th>
+                        <th>Баримтын тоо (3)</th>
+                        <th>Баримтын тоо (30)</th>
                         <th>Төлөв</th>
                         <th>Дэлгэрэнгүй</th>
                       </tr>
@@ -198,6 +190,7 @@
                         <td>{{ org.mrch_regno }}</td>
                         <td>{{ org.op_type_name }}</td>
                         <td>{{ org.count_receipt ?? 0 }}</td>
+                        <td>{{ org.cnt_30 ?? 0 }}</td>
                         <td>
                           <span
                             v-if="!org.count_receipt || org.count_receipt === 0"
@@ -215,7 +208,7 @@
                         </td>
                       </tr>
                       <tr v-if="filteredOrganizations.length === 0">
-                        <td colspan="6" class="text-center">
+                        <td colspan="7" class="text-center">
                           {{ searchQuery ? 'Хайлтад тохирох мэдээлэл олдсонгүй' : 'Мэдээлэл олдсонгүй' }}
                         </td>
                       </tr>
@@ -303,63 +296,7 @@
               </div>
             </div>
           </div>
-          <!-- Байгууллагуудын дэлгэрэнгүй шинэ хүснэгт -->
-          <div class="row justify-content-center mt-2" v-if="activeTab === 'organizations'">
-            <div class="col-12">
-              <div class="card mb-3">
-                <div class="card-header d-flex align-items-center">
-                  <h5 class="card-title mb-0 me-3">Байгууллагуудын дэлгэрэнгүй мэдээлэл</h5>
-                </div>
-                <div class="card-body">
-                  <table class="table table-bordered table-hover">
-                    <thead>
-                      <tr>
-                        <th>Бүртгэл</th>
-                        <th>И-Баримт сүүлийн 72цагт</th>
-                        <th>Зөвшөөрлийн мэдээ</th>
-                        <th>Тайлан</th>
-                        <th>Төлөлт</th>
-                        <th>Өрийн үлдэгдэл</th>
-                        <th>Туслан зөвлөх үйлчилгээ</th>
-                        <th>Зөрчлийн мэдээлэл</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="org in organizations" :key="org.id">
-                        <!-- Бүртгэл: mrch_regno -->
-                        <td>{{ org.mrch_regno || '-' }}</td>
-                        <!-- И-Баримт: count_receipt -->
-                        <td>
-                          <span v-if="!org.count_receipt || org.count_receipt === 0">
-                           0
-                          </span>
-                          <span v-else>
-                            {{ org.count_receipt }}
-                          </span>
-                        </td>
-                        <!-- Зөвшөөрлийн мэдээ -->
-                        <td>0</td>
-                        <!-- Тайлан -->
-                        <td>{{ org.report_submitted_date || '-' }}</td>
-                        <!-- Төлөлт -->
-                        <td>{{ formatNumber(org.payment_amount) || '0' }}₮</td>
-                        <!-- Өрийн үлдэгдэл -->
-                        <td>{{ formatNumber(org.debt_amount) || '0' }}₮</td>
-
-                        <!-- Туслан зөвлөх үйлчилгээ -->
-                        <td>{{ org.advice_count || '0' }}</td>
-                        <!-- Зөрчлийн мэдээлэл -->
-                        <td>0</td>
-                      </tr>
-                      <tr v-if="organizations.length === 0">
-                        <td colspan="8" class="text-center">Мэдээлэл олдсонгүй</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
+          
           <div class="row justify-content-center">
             <div class="col-md-6 col-lg-8">
               <div class="card">
@@ -460,6 +397,7 @@
 <script setup lang="ts">
 import { ref, defineAsyncComponent, onMounted } from "vue";
 import { useRoute } from "vue-router";
+import { useApi } from '../composables/useApi';
 
 const EntityLineChart = defineAsyncComponent(
   () => import("../components/EntityLineChart.vue")
@@ -486,15 +424,12 @@ const floors = ref<number[]>([]);
 const selectedFloor = ref<number>(1);
 const entity = ref<any>({
   id: route.query.id ? Number(route.query.id) : undefined,
-  name: "Go.to market",
-  taxPayers: 128,
-  type: "Үйлчилгээний төв",
-  address:
-    "СБД, 11-р хороо, 7-р хороолол /Хангай хотхоны баруун талд/ 14180 Ulaanbaatar, Mongolia",
+  name: "",
+  tax_payers: 0,
+  address: "",
   registration: 90,
   report: 75,
-  mapUrl:
-    "https://www.google.com/maps/dir/?api=1&destination=47.934086900672%2C106.91685211685",
+  mapUrl: "https://www.google.com/maps/dir/?api=1&destination=47.934086900672%2C106.91685211685",
 });
 const showFloorModal = ref(false);
 const activeTab = ref<string>('');
@@ -531,6 +466,30 @@ function setCachedEntityData(cacheKey: string, data: any) {
     data: data,
     timestamp: Date.now()
   });
+}
+
+async function fetchEntity() {
+  const id = route.query.id;
+  if (!id) return;
+  
+  try {
+    const res = await useApi(`/buildings/${id}`);
+    if (res.success && res.data) {
+      const data: any = res.data;
+      entity.value = {
+        ...entity.value,
+        id: data.id,
+        name: data.name || "",
+        tax_payers: data.tax_payers || 0,
+        address: data.address || "",
+        registration: data.registration || 90,
+        report: data.report || 75,
+        mapUrl: entity.value.mapUrl, // Keep existing mapUrl
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching entity:', error);
+  }
 }
 
 async function fetchFloors() {
@@ -577,7 +536,7 @@ async function fetchOrganizations() {
       
       // Batch fetch all API data at once
       const [ebarimtBatchData, reportBatchData, paymentBatchData, debtBatchData] = await Promise.all([
-        // Ebarimt batch data (сүүлийн 72цагт)
+        // Ebarimt batch data (сүүлийн 3 болон 30 хоног)
         Promise.all(mrchRegnos.map(async (regno: string) => {
           try {
             const response = await fetch(`http://localhost:8080/api/ebarimt/${regno}`);
@@ -669,6 +628,8 @@ async function fetchOrganizations() {
         return {
           ...org,
           count_receipt: (ebarimtData as any)?.count_receipt || 0,
+          cnt_3: (ebarimtData as any)?.cnt_3 || 0,
+          cnt_30: (ebarimtData as any)?.cnt_30 || 0,
           report_submitted_date: (reportData as any)?.submitted_date || '',
           payment_amount: (paymentData as any)?.total_amount || 0,
           debt_amount: (debtData as any)?.total_debt || 0,
@@ -694,13 +655,13 @@ function selectFloor(floor: number) {
   fetchOrganizations();
 }
 
-async function setActiveTab(tab: 'ebarimt' | 'rent' | 'organizations') {
+async function setActiveTab(tab: 'ebarimt' | 'rent') {
   if (activeTab.value === tab) {
     activeTab.value = '';
     return;
   }
   activeTab.value = tab;
-  if (tab === 'ebarimt' || tab === 'organizations') {
+  if (tab === 'ebarimt') {
     await fetchOrganizations();
   }
   if (tab === 'rent') {
@@ -761,6 +722,7 @@ function clearRentSearch() {
 }
 
 onMounted(() => {
+  fetchEntity();
   fetchFloors();
 });
 

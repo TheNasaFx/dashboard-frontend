@@ -44,6 +44,54 @@
                           @click.prevent="selectDistrict('25', 'Сүхбаатар')"
                           >Сүхбаатар</a
                         >
+                        <a
+                          class="dropdown-item"
+                          href="#"
+                          @click.prevent="selectDistrict('26', 'Сүхбаатар')"
+                          >Сүхбаатар</a
+                        >
+                        <a
+                          class="dropdown-item"
+                          href="#"
+                          @click.prevent="selectDistrict('27', 'Багануур')"
+                          >Багануур</a
+                        >
+                        <a
+                          class="dropdown-item"
+                          href="#"
+                          @click.prevent="selectDistrict('28', 'Багахангай')"
+                          >Багахангай</a
+                        >
+                        <a
+                          class="dropdown-item"
+                          href="#"
+                          @click.prevent="selectDistrict('29', 'Налайх')"
+                          >Налайх</a
+                        >
+                        <a
+                          class="dropdown-item"
+                          href="#"
+                          @click.prevent="selectDistrict('23', 'Хан-Уул')"
+                          >Хан-Уул</a
+                        >
+                        <a
+                          class="dropdown-item"
+                          href="#"
+                          @click.prevent="selectDistrict('24', 'Баянзүрх')"
+                          >Баянзүрх</a
+                        >
+                        <a
+                          class="dropdown-item"
+                          href="#"
+                          @click.prevent="selectDistrict('34', 'Сүхбаатар')"
+                          >Сүхбаатар</a
+                        >
+                        <a
+                          class="dropdown-item"
+                          href="#"
+                          @click.prevent="selectDistrict('35', 'Сүхбаатар')"
+                          >Сүхбаатар</a
+                        >
                         <div class="dropdown-divider"></div>
                         <a
                           class="dropdown-item"
@@ -65,14 +113,14 @@
                       </button>
                       <div class="dropdown-menu">
                         <a
-                          v-for="n in 20"
+                          v-for="n in 42"
                           :key="n"
                           class="dropdown-item"
                           href="#"
                           @click.prevent="
-                            selectKhoroo(n.toString(), `${n}-р хороо`)
+                            selectKhoroo(formatKhorooCode(n), `${formatKhorooCode(n)}-р хороо`)
                           "
-                          >{{ n }}-р хороо</a
+                          >{{ formatKhorooCode(n) }}-р хороо</a
                         >
                         <div class="dropdown-divider"></div>
                         <a
@@ -152,13 +200,13 @@
                             class="position-absolute top-0 start-100 translate-middle bg-danger border border-light rounded-circle"
                           >
                             <small class="thumb-xs">{{
-                              entity.taxPayers || 0
+                              entity.tax_payers || 0
                             }}</small>
                           </span>
                         </button>
                       </h5>
-                      <p class="fs-12 text-muted">Үйлчилгээний төв</p>
-                      <p class="card-text">{{ entity.address || "" }}</p>
+                      <p class="fs-12 text-muted">{{ entity.address || "Үйлчилгээний төв" }}</p>
+                      <p class="card-text"></p>
                       <small class="text-muted">Бүртгэл</small>
                       <div class="progress">
                         <div
@@ -188,7 +236,7 @@
                         :href="entity.mapUrl || '#'"
                         ><i class="fa fa-map-pin"></i
                       ></a>
-                      <div v-if="entity.build_floor" class="btn-group">
+                      <div class="btn-group">
                         <button
                           type="button"
                           class="btn btn-icon btn-dark btn-sm"
@@ -225,7 +273,7 @@ interface Building {
   registration?: number;
   report?: number;
   mapUrl?: string;
-  taxPayers?: number;
+  tax_payers?: number;
   // add other fields if needed
 }
 
@@ -244,6 +292,10 @@ const districtMap: Record<string, string> = {
   // Add more mappings as you get them
 };
 
+function formatKhorooCode(n: number): string {
+  return n.toString().padStart(2, '0');
+}
+
 function selectDistrict(code: string, name: string) {
   selectedDistrict.value = code;
   selectedDistrictName.value = name;
@@ -257,8 +309,11 @@ const filteredBuildings = computed(() => {
   return buildings.value.filter((b) => {
     const districtMatch =
       !selectedDistrict.value || b.office_code === selectedDistrict.value;
-    const khorooMatch =
-      !selectedKhoroo.value || b.kho_code === selectedKhoroo.value;
+    
+    // PAY_CENTER-аас ирэх KHO_CODE-той харьцуулах: "01" == "1" гэх мэт
+    const khorooMatch = !selectedKhoroo.value || 
+      parseInt(b.kho_code || '0') === parseInt(selectedKhoroo.value);
+    
     return districtMatch && khorooMatch;
   });
 });
@@ -266,20 +321,18 @@ const filteredBuildings = computed(() => {
 onMounted(async () => {
   const resCenters = await useApi('/centers');
   if (resCenters.success) {
-    centers.value = resCenters.data || [];
+    centers.value = Array.isArray(resCenters.data) ? resCenters.data : [];
   } else {
     error.value = resCenters.error?.message || 'Алдаа';
   }
   const resBuildings = await useApi('/buildings');
   if (resBuildings.success) {
-    buildings.value = (resBuildings.data || []).map((b: any) => ({
+    const buildingsData = Array.isArray(resBuildings.data) ? resBuildings.data : [];
+    buildings.value = buildingsData.map((b: any) => ({
       ...b,
-      address:
-        b.address ||
-        "СБД, 11-р хороо, 7-р хороолол /Хангай хотхоны баруун талд/ 14180 Ulaanbaatar, Mongolia",
       registration: b.registration || 90,
       report: b.report || 75,
-      taxPayers: b.taxPayers || 137,
+      tax_payers: b.tax_payers || 0,
       mapUrl:
         b.mapUrl ||
         "https://www.google.com/maps/dir/?api=1&destination=47.934086900672%2C106.91685211685",

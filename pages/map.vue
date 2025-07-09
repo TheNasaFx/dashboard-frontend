@@ -220,6 +220,13 @@
               </div>
             </div>
           </div>
+          
+          <!-- Statistics Cards -->
+          <div class="row">
+            <div class="col-12">
+              <StatisticsCards />
+            </div>
+          </div>
           <FooterComponent />
         </div>
       </div>
@@ -230,6 +237,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useHead } from "@unhead/vue";
+import StatisticsCards from "../components/StatisticsCards.vue";
 
 const selectedDistrict = ref("");
 const selectedDistrictName = ref("Дүүрэг");
@@ -259,7 +267,7 @@ function selectCategory(val: string, name: string) {
 onMounted(async () => {
   const res = await fetch("http://localhost:8080/api/v1/organizations");
   const data = await res.json();
-  organizations.value = Array.isArray(data) ? data : [];
+  organizations.value = Array.isArray(data.data) ? data.data : [];
 });
 
 async function searchByRegno() {
