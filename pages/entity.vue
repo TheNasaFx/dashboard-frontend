@@ -12,7 +12,13 @@
                 class="page-title-box d-md-flex justify-content-md-between align-items-center"
               >
                 <h4 class="page-title">{{ entity.name }}</h4>
-                <div class="">
+                <div class="d-flex align-items-center">
+                  <!-- Cache Statistics (Debug) -->
+                  <div class="me-3">
+                    <small class="text-muted">
+                      Cache: {{ getStats().totalItems }} items
+                    </small>
+                  </div>
                   <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="#">МТА - НТГ</a></li>
                     <li class="breadcrumb-item">
@@ -202,7 +208,7 @@
                           >
                         </td>
                         <td>
-                          <button class="btn btn-sm btn-info">
+                          <button class="btn btn-sm btn-info" @click="openDetailModal(org.mrch_regno)">
                             Дэлгэрэнгүй
                           </button>
                         </td>
@@ -391,6 +397,13 @@
         </div>
       </div>
     </div>
+    
+    <!-- Organization Detail Modal -->
+    <OrganizationDetailModal 
+      :is-open="detailModalOpen" 
+      :mrch-regno="selectedMrchRegno"
+      @close="closeDetailModal"
+    />
   </NuxtLayout>
 </template>
 
@@ -417,6 +430,9 @@ const EntityPieTypeChart = defineAsyncComponent(
 const EntityRadarChart = defineAsyncComponent(
   () => import("../components/EntityRadarChart.vue")
 );
+const OrganizationDetailModal = defineAsyncComponent(
+  () => import("../components/OrganizationDetailModal.vue")
+);
 
 const route = useRoute();
 const organizations = ref<any[]>([]);
@@ -439,33 +455,17 @@ const filteredOrganizations = ref<any[]>([]);
 const rentSearchQuery = ref('');
 const filteredRentProperties = ref<any[]>([]);
 
-// Global cache for entity data (survives page navigation)
-const globalEntityCache = new Map<string, { data: any; timestamp: number }>();
-const ENTITY_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+// Modal state
+const detailModalOpen = ref(false);
+const selectedMrchRegno = ref('');
+
+// Import cache composable
+import { useCache } from '../composables/useCache';
+const { get, set, has, getStats } = useCache();
 
 // Function to get cache key
 function getEntityCacheKey(id: string, floor: number) {
   return `entity_${id}_floor_${floor}`;
-}
-
-// Function to check and get cached data
-function getCachedEntityData(cacheKey: string) {
-  if (globalEntityCache.has(cacheKey)) {
-    const cached = globalEntityCache.get(cacheKey)!;
-    if (Date.now() - cached.timestamp < ENTITY_CACHE_DURATION) {
-      return cached.data;
-    }
-    globalEntityCache.delete(cacheKey);
-  }
-  return null;
-}
-
-// Function to set cache data
-function setCachedEntityData(cacheKey: string, data: any) {
-  globalEntityCache.set(cacheKey, {
-    data: data,
-    timestamp: Date.now()
-  });
 }
 
 async function fetchEntity() {
@@ -495,14 +495,39 @@ async function fetchEntity() {
 async function fetchFloors() {
   const id = route.query.id;
   if (!id) return;
-  const res = await fetch(`http://localhost:8080/api/buildings/${id}/floors`);
-  const data = await res.json();
-  // floors backend-ээс string хэлбэрээр ирдэг тул number болгоно
-  floors.value = data
-    .map((f: string) => Number(f))
-    .sort((a: number, b: number) => a - b);
-  if (floors.value.length > 0) {
-    selectedFloor.value = floors.value[0];
+  
+  // Check cache first
+  const cacheKey = `floors_${id}`;
+  const cachedData = get(cacheKey);
+  
+  if (cachedData) {
+    console.log('Using cached floors data');
+    floors.value = cachedData;
+    if (floors.value.length > 0) {
+      selectedFloor.value = floors.value[0];
+    }
+    return;
+  }
+  
+  try {
+    const res = await useApi(`/buildings/${id}/floors`);
+    if (res.success && res.data) {
+      // floors backend-ээс string хэлбэрээр ирдэг тул number болгоно
+      const data = Array.isArray(res.data) ? res.data
+        .map((f: string) => Number(f))
+        .sort((a: number, b: number) => a - b) : [];
+      
+      floors.value = data;
+      if (floors.value.length > 0) {
+        selectedFloor.value = floors.value[0];
+      }
+      
+      // Cache the result
+      set(cacheKey, data);
+      console.log('Cached floors data');
+    }
+  } catch (error) {
+    console.error('Error fetching floors:', error);
   }
 }
 
@@ -513,9 +538,10 @@ async function fetchOrganizations() {
   
   // Check cache first
   const cacheKey = getEntityCacheKey(id.toString(), floor);
-  const cachedData = getCachedEntityData(cacheKey);
+  const cachedData = get(cacheKey);
   
   if (cachedData) {
+    console.log('Using cached organizations data');
     organizations.value = cachedData;
     filteredOrganizations.value = organizations.value;
     return;
@@ -641,7 +667,8 @@ async function fetchOrganizations() {
       filteredOrganizations.value = organizations.value;
       
       // Cache the result
-      setCachedEntityData(cacheKey, enrichedOrgs);
+      set(cacheKey, enrichedOrgs);
+      console.log('Cached organizations data');
     }
   } catch (error) {
     console.error('Error fetching organizations:', error);
@@ -670,12 +697,36 @@ async function setActiveTab(tab: 'ebarimt' | 'rent') {
 }
 
 async function fetchRentProperties() {
-  const res = await fetch("http://localhost:8080/api/pay_center_property");
-  const data = await res.json();
-  // Шинэ backend structure: { success, data: [...] }
-  const items = data.data || [];
-  rentProperties.value = items.filter((item: any) => Number(item.pay_center_id) === Number(entity.value.id));
-  filteredRentProperties.value = rentProperties.value; // Эхлээд бүх түрээсийг харуулах
+  // Check cache first
+  const cacheKey = `rent_properties_${entity.value.id}`;
+  const cachedData = get(cacheKey);
+  
+  if (cachedData) {
+    console.log('Using cached rent properties data');
+    rentProperties.value = cachedData;
+    filteredRentProperties.value = rentProperties.value;
+    return;
+  }
+  
+  try {
+    const res = await useApi("/pay-center-properties");
+    if (res.success && res.data) {
+      // Шинэ backend structure: { success, data: [...] }
+      const items = Array.isArray(res.data) ? res.data : [];
+      const filteredItems = items.filter((item: any) => Number(item.pay_center_id) === Number(entity.value.id));
+      
+      rentProperties.value = filteredItems;
+      filteredRentProperties.value = rentProperties.value; // Эхлээд бүх түрээсийг харуулах
+      
+      // Cache the result
+      set(cacheKey, filteredItems);
+      console.log('Cached rent properties data');
+    }
+  } catch (error) {
+    console.error('Error fetching rent properties:', error);
+    rentProperties.value = [];
+    filteredRentProperties.value = [];
+  }
 }
 
 function formatNumber(num: number | string) {
@@ -719,6 +770,17 @@ function filterRentProperties() {
 function clearRentSearch() {
   rentSearchQuery.value = '';
   filteredRentProperties.value = rentProperties.value;
+}
+
+// Modal functions
+function openDetailModal(mrchRegno: string) {
+  selectedMrchRegno.value = mrchRegno;
+  detailModalOpen.value = true;
+}
+
+function closeDetailModal() {
+  detailModalOpen.value = false;
+  selectedMrchRegno.value = '';
 }
 
 onMounted(() => {

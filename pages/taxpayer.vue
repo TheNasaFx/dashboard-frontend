@@ -258,8 +258,11 @@
 <script setup lang="ts">
 import { ref, onMounted, watchEffect, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useCache } from '../composables/useCache'
+import { useApi } from '../composables/useApi'
 
 const route = useRoute()
+const { get, set } = useCache()
 const taxpayer = ref<any>(null)
 const loading = ref(false)
 const error = ref('')
@@ -366,20 +369,54 @@ async function fetchTaxpayer() {
     }
     // Info tab
     if (activeTab.value === 'info') {
-      const infoRes = await fetch(`http://localhost:8080/api/v1/account-general-years?regno=${regno}&tab=info`)
-      const infoArr = infoRes.ok ? await infoRes.json() : []
-      taxpayer.value = Array.isArray(infoArr) && infoArr.length > 0 ? infoArr[0] : null
-      // Barimt count (last 72h)
-      const barimtRes =  await fetch(`http://localhost:8080/api/ebarimt/${regno}`);
-      if (barimtRes.ok) {
-        const barimtData = await barimtRes.json()
-        barimtCount.value = barimtData.count || 0
+      // Check cache first
+      const infoCacheKey = `taxpayer_info_${regno}`;
+      const barimtCacheKey = `barimt_${regno}`;
+      
+      const cachedInfo = get(infoCacheKey);
+      const cachedBarimt = get(barimtCacheKey);
+      
+      if (cachedInfo) {
+        console.log('Using cached taxpayer info');
+        taxpayer.value = cachedInfo;
+      } else {
+        const infoRes = await useApi(`/account-general-years?regno=${regno}&tab=info`);
+        if (infoRes.success && infoRes.data) {
+          const infoArr = Array.isArray(infoRes.data) ? infoRes.data : [];
+          taxpayer.value = infoArr.length > 0 ? infoArr[0] : null;
+          set(infoCacheKey, taxpayer.value);
+          console.log('Cached taxpayer info');
+        }
+      }
+      
+      if (cachedBarimt) {
+        console.log('Using cached barimt data');
+        barimtCount.value = cachedBarimt;
+      } else {
+        const barimtRes = await useApi(`/ebarimt/${regno}`);
+        if (barimtRes.success && barimtRes.data) {
+          barimtCount.value = (barimtRes.data as any)?.count || 0;
+          set(barimtCacheKey, barimtCount.value);
+          console.log('Cached barimt data');
+        }
       }
     }
     // Report tab
     if (activeTab.value === 'report') {
-      const reportRes = await fetch(`http://localhost:8080/api/v1/account-general-years?regno=${regno}&tab=report`)
-      reportData.value = reportRes.ok ? await reportRes.json() : []
+      const reportCacheKey = `taxpayer_report_${regno}`;
+      const cachedReport = get(reportCacheKey);
+      
+      if (cachedReport) {
+        console.log('Using cached report data');
+        reportData.value = cachedReport;
+      } else {
+        const reportRes = await useApi(`/account-general-years?regno=${regno}&tab=report`);
+        if (reportRes.success && reportRes.data) {
+          reportData.value = Array.isArray(reportRes.data) ? reportRes.data : [];
+          set(reportCacheKey, reportData.value);
+          console.log('Cached report data');
+        }
+      }
     }
     // Payment tab
     if (activeTab.value === 'payment') {
@@ -387,33 +424,48 @@ async function fetchTaxpayer() {
       paymentsError.value = '';
       paymentsSummary.value = null;
       
-      try {
-        const payRes = await fetch(`http://localhost:8080/api/v1/payments/${regno}`);
-        if (payRes.ok) {
-          const data = await payRes.json();
-          if (data.success && data.data) {
-            paymentsSummary.value = data.data;
+      const paymentCacheKey = `taxpayer_payment_${regno}`;
+      const cachedPayment = get(paymentCacheKey);
+      
+      if (cachedPayment) {
+        console.log('Using cached payment data');
+        paymentsSummary.value = cachedPayment;
+        paymentsLoading.value = false;
+      } else {
+        try {
+          const payRes = await useApi(`/payments/${regno}`);
+          if (payRes.success && payRes.data) {
+            paymentsSummary.value = payRes.data;
+            set(paymentCacheKey, payRes.data);
+            console.log('Cached payment data');
           } else {
             paymentsError.value = 'Төлөлтийн мэдээлэл олдсонгүй';
           }
-        } else {
-          paymentsError.value = 'Төлөлтийн мэдээлэл авахад алдаа гарлаа';
+        } catch (e: any) {
+          paymentsError.value = e.message || 'Төлөлтийн мэдээлэл авахад алдаа гарлаа';
+        } finally {
+          paymentsLoading.value = false;
         }
-      } catch (e: any) {
-        paymentsError.value = e.message || 'Төлөлтийн мэдээлэл авахад алдаа гарлаа';
-      } finally {
-        paymentsLoading.value = false;
       }
     }
     // Property tab
     if (activeTab.value === 'property') {
-      // REG_NUM-ээр шууд property-уудыг авна
-      const propRes = await fetch(`http://localhost:8080/api/v1/property-owners?reg_num=${regno}`)
-      if (propRes.ok) {
-        const data = await propRes.json()
-        propertyData.value = data.success && Array.isArray(data.data) ? data.data : [];
+      const propertyCacheKey = `taxpayer_property_${regno}`;
+      const cachedProperty = get(propertyCacheKey);
+      
+      if (cachedProperty) {
+        console.log('Using cached property data');
+        propertyData.value = cachedProperty;
       } else {
-        propertyData.value = [];
+        // REG_NUM-ээр шууд property-уудыг авна
+        const propRes = await useApi(`/property-owners?reg_num=${regno}`);
+        if (propRes.success && propRes.data) {
+          propertyData.value = Array.isArray(propRes.data) ? propRes.data : [];
+          set(propertyCacheKey, propertyData.value);
+          console.log('Cached property data');
+        } else {
+          propertyData.value = [];
+        }
       }
       
       // Статистик тооцоолол (шинэ өгөгдлийн бүтцэд тохируулан)
@@ -428,13 +480,22 @@ async function fetchTaxpayer() {
     }
     // Land tab
     if (activeTab.value === 'land') {
-      // PIN-ээр шууд land-уудыг авна
-      const landRes = await fetch(`http://localhost:8080/api/v1/land-views?pin=${regno}`)
-      if (landRes.ok) {
-        const data = await landRes.json()
-        landData.value = data.success && Array.isArray(data.data) ? data.data : [];
+      const landCacheKey = `taxpayer_land_${regno}`;
+      const cachedLand = get(landCacheKey);
+      
+      if (cachedLand) {
+        console.log('Using cached land data');
+        landData.value = cachedLand;
       } else {
-        landData.value = [];
+        // PIN-ээр шууд land-уудыг авна
+        const landRes = await useApi(`/land-views?pin=${regno}`);
+        if (landRes.success && landRes.data) {
+          landData.value = Array.isArray(landRes.data) ? landRes.data : [];
+          set(landCacheKey, landData.value);
+          console.log('Cached land data');
+        } else {
+          landData.value = [];
+        }
       }
     }
     console.log(propertyData.value, landData.value);

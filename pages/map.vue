@@ -238,7 +238,10 @@
 import { ref, onMounted } from "vue";
 import { useHead } from "@unhead/vue";
 import StatisticsCards from "../components/StatisticsCards.vue";
+import { useCache } from "../composables/useCache";
+import { useApi } from "../composables/useApi";
 
+const { get, set } = useCache();
 const selectedDistrict = ref("");
 const selectedDistrictName = ref("Дүүрэг");
 const selectedKhoroo = ref("");
@@ -265,19 +268,54 @@ function selectCategory(val: string, name: string) {
 
 // Fetch organizations on page load
 onMounted(async () => {
-  const res = await fetch("http://localhost:8080/api/v1/organizations");
-  const data = await res.json();
-  organizations.value = Array.isArray(data.data) ? data.data : [];
+  const cacheKey = 'organizations_list';
+  const cachedData = get(cacheKey);
+  
+  if (cachedData) {
+    console.log('Using cached organizations data');
+    organizations.value = cachedData;
+  } else {
+    const res = await useApi("/organizations");
+    if (res.success && res.data) {
+      organizations.value = Array.isArray(res.data) ? res.data : [];
+      set(cacheKey, organizations.value);
+      console.log('Cached organizations data');
+    }
+  }
 });
 
 async function searchByRegno() {
   if (!searchRegno.value) return;
-  try {
-    const res = await fetch(`http://localhost:8080/api/v1/land-views?pin=${searchRegno.value}`);
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      searchedLand.value = data;
+  
+  const cacheKey = `land_search_${searchRegno.value}`;
+  const cachedData = get(cacheKey);
+  
+  if (cachedData) {
+    console.log('Using cached land search data');
+    if (Array.isArray(cachedData) && cachedData.length > 0) {
+      searchedLand.value = cachedData;
       organizations.value = null;
+    } else {
+      searchedLand.value = null;
+      alert("Газрын мэдээлэл олдсонгүй!");
+    }
+    return;
+  }
+  
+  try {
+    const res = await useApi(`/land-views?pin=${searchRegno.value}`);
+    if (res.success && res.data) {
+      const data = Array.isArray(res.data) ? res.data : [];
+      set(cacheKey, data);
+      console.log('Cached land search data');
+      
+      if (data.length > 0) {
+        searchedLand.value = data;
+        organizations.value = null;
+      } else {
+        searchedLand.value = null;
+        alert("Газрын мэдээлэл олдсонгүй!");
+      }
     } else {
       searchedLand.value = null;
       alert("Газрын мэдээлэл олдсонгүй!");

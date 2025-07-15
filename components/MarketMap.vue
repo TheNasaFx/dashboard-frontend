@@ -7,8 +7,12 @@
 
 <script setup>
 import { onMounted, ref } from "vue";
+import { useCache } from "../composables/useCache";
+import { useApi } from "../composables/useApi";
 // import L from "leaflet";
 // import "leaflet/dist/leaflet.css";
+
+const { get, set } = useCache();
 
 const props = defineProps({
   centerId: Number,
@@ -17,7 +21,13 @@ const props = defineProps({
 const map = ref(null);
 
 onMounted(async () => {
+  console.log("MarketMap mounted with centerId:", props.centerId);
   if (typeof window === "undefined") return;
+  
+  if (!props.centerId) {
+    console.error("centerId is not provided to MarketMap component");
+    return;
+  }
   const [{ default: L }, _] = await Promise.all([
     import("leaflet"),
     import("leaflet/dist/leaflet.css"),
@@ -40,10 +50,27 @@ onMounted(async () => {
     shadowSize: [41, 41]
   });
   // Backend-ээс тухайн төвийн бүх байгууллагыг авна
-  const res = await fetch(
-    `http://localhost:8080/api/buildings/${props.centerId}/organizations`
-  );
-  let orgs = await res.json();
+  console.log("Fetching organizations for centerId:", props.centerId);
+  const res = await useApi(`/buildings/${props.centerId}/organizations`);
+  console.log("API response:", res);
+  
+  let orgs = [];
+  if (res.success && res.data) {
+    // API response-ийн бүтцийг шалгах
+    if (Array.isArray(res.data)) {
+      orgs = res.data;
+      console.log("Using res.data directly (array)");
+    } else if (res.data.data && Array.isArray(res.data.data)) {
+      orgs = res.data.data;
+      console.log("Using res.data.data (nested array)");
+    } else {
+      orgs = [];
+      console.log("No valid data structure found");
+    }
+  } else {
+    orgs = [];
+    console.log("API call failed or no data");
+  }
 
 
 
@@ -53,11 +80,27 @@ onMounted(async () => {
       if (org.mrch_regno) {
         try {
           // И-баримтын мэдээлэл (V_E_TUB_PAY_MARKET_EBARIMT-аас MRCH_REGNO-ээр CNT_3, CNT_30)
-          const ebarimtRes = await fetch(`http://localhost:8080/api/ebarimt/${org.mrch_regno}`);
-          const ebarimtJson = await ebarimtRes.json();
-          org.count_receipt = ebarimtJson?.data?.count_receipt ?? 0;
-          org.cnt_3 = ebarimtJson?.data?.cnt_3 ?? 0;
-          org.cnt_30 = ebarimtJson?.data?.cnt_30 ?? 0;
+          const ebarimtCacheKey = `ebarimt_${org.mrch_regno}`;
+          let ebarimtData = get(ebarimtCacheKey);
+          
+          if (ebarimtData) {
+            org.count_receipt = ebarimtData.count_receipt ?? 0;
+            org.cnt_3 = ebarimtData.cnt_3 ?? 0;
+            org.cnt_30 = ebarimtData.cnt_30 ?? 0;
+          } else {
+            const ebarimtRes = await useApi(`/ebarimt/${org.mrch_regno}`);
+            if (ebarimtRes.success && ebarimtRes.data) {
+              ebarimtData = ebarimtRes.data;
+              org.count_receipt = ebarimtData.count_receipt ?? 0;
+              org.cnt_3 = ebarimtData.cnt_3 ?? 0;
+              org.cnt_30 = ebarimtData.cnt_30 ?? 0;
+              set(ebarimtCacheKey, ebarimtData);
+            } else {
+              org.count_receipt = 0;
+              org.cnt_3 = 0;
+              org.cnt_30 = 0;
+            }
+          }
         } catch (e) {
           org.count_receipt = 0;
           org.cnt_3 = 0;
@@ -66,18 +109,39 @@ onMounted(async () => {
 
         try {
           // Тайлангийн мэдээлэл (V_E_TUB_REPORT_DATA-аас TIN-ээр SUBMITTED_DATE)
-          const reportRes = await fetch(`http://localhost:8080/api/v1/tub-report-data?tin=${org.mrch_regno}`);
-          const reportJson = await reportRes.json();
-          const reportData = reportJson.data;
-          if (Array.isArray(reportData) && reportData.length > 0) {
-            const latestReport = reportData.reduce((latest, current) => {
-              if (!latest.submitted_date) return current;
-              if (!current.submitted_date) return latest;
-              return new Date(current.submitted_date) > new Date(latest.submitted_date) ? current : latest;
-            });
-            org.report_submitted_date = latestReport.submitted_date || '-';
+          const reportCacheKey = `report_${org.mrch_regno}`;
+          let reportData = get(reportCacheKey);
+          
+          if (reportData) {
+            if (Array.isArray(reportData) && reportData.length > 0) {
+              const latestReport = reportData.reduce((latest, current) => {
+                if (!latest.submitted_date) return current;
+                if (!current.submitted_date) return latest;
+                return new Date(current.submitted_date) > new Date(latest.submitted_date) ? current : latest;
+              });
+              org.report_submitted_date = latestReport.submitted_date || '-';
+            } else {
+              org.report_submitted_date = '-';
+            }
           } else {
-            org.report_submitted_date = '-';
+            const reportRes = await useApi(`/tub-report-data?tin=${org.mrch_regno}`);
+            if (reportRes.success && reportRes.data) {
+              reportData = reportRes.data;
+              set(reportCacheKey, reportData);
+              
+              if (Array.isArray(reportData) && reportData.length > 0) {
+                const latestReport = reportData.reduce((latest, current) => {
+                  if (!latest.submitted_date) return current;
+                  if (!current.submitted_date) return latest;
+                  return new Date(current.submitted_date) > new Date(latest.submitted_date) ? current : latest;
+                });
+                org.report_submitted_date = latestReport.submitted_date || '-';
+              } else {
+                org.report_submitted_date = '-';
+              }
+            } else {
+              org.report_submitted_date = '-';
+            }
           }
         } catch (e) {
           org.report_submitted_date = '-';
@@ -85,12 +149,20 @@ onMounted(async () => {
 
         try {
           // Төлөлтийн мэдээлэл (V_E_TUB_PAYMENTS-аас PIN-ээр AMOUNT нийлбэр)
-          const paymentRes = await fetch(`http://localhost:8080/api/v1/payments/${org.mrch_regno}`);
-          const paymentJson = await paymentRes.json();
-          if (paymentJson.success && paymentJson.data && paymentJson.data.total_amount) {
-            org.payment_amount = paymentJson.data.total_amount;
+          const paymentCacheKey = `payment_${org.mrch_regno}`;
+          let paymentData = get(paymentCacheKey);
+          
+          if (paymentData) {
+            org.payment_amount = paymentData.total_amount || 0;
           } else {
-            org.payment_amount = 0;
+            const paymentRes = await useApi(`/payments/${org.mrch_regno}`);
+            if (paymentRes.success && paymentRes.data) {
+              paymentData = paymentRes.data;
+              org.payment_amount = paymentData.total_amount || 0;
+              set(paymentCacheKey, paymentData);
+            } else {
+              org.payment_amount = 0;
+            }
           }
         } catch (e) {
           org.payment_amount = 0;
@@ -98,16 +170,37 @@ onMounted(async () => {
 
         try {
           // Өрийн үлдэгдэл (V_ACCOUNT_GENERAL_YEAR-аас PIN-ээр C2_DEBIT нийлбэр)
-          const debtRes = await fetch(`http://localhost:8080/api/v1/account-general-years?regno=${org.mrch_regno}&tab=debt`);
-          const debtJson = await debtRes.json();
-          if (Array.isArray(debtJson) && debtJson.length > 0) {
-            const totalDebt = debtJson.reduce((total, record) => {
-              const c2Debit = record.C2_DEBIT || 0;
-              return total + parseFloat(c2Debit);
-            }, 0);
-            org.debt_amount = totalDebt;
+          const debtCacheKey = `debt_${org.mrch_regno}`;
+          let debtData = get(debtCacheKey);
+          
+          if (debtData) {
+            if (Array.isArray(debtData) && debtData.length > 0) {
+              const totalDebt = debtData.reduce((total, record) => {
+                const c2Debit = record.C2_DEBIT || 0;
+                return total + parseFloat(c2Debit);
+              }, 0);
+              org.debt_amount = totalDebt;
+            } else {
+              org.debt_amount = 0;
+            }
           } else {
-            org.debt_amount = 0;
+            const debtRes = await useApi(`/account-general-years?regno=${org.mrch_regno}&tab=debt`);
+            if (debtRes.success && debtRes.data) {
+              debtData = debtRes.data;
+              set(debtCacheKey, debtData);
+              
+              if (Array.isArray(debtData) && debtData.length > 0) {
+                const totalDebt = debtData.reduce((total, record) => {
+                  const c2Debit = record.C2_DEBIT || 0;
+                  return total + parseFloat(c2Debit);
+                }, 0);
+                org.debt_amount = totalDebt;
+              } else {
+                org.debt_amount = 0;
+              }
+            } else {
+              org.debt_amount = 0;
+            }
           }
         } catch (e) {
           org.debt_amount = 0;
@@ -126,9 +219,16 @@ onMounted(async () => {
   );
 
   console.log("orgs:", orgs); // debug
+  console.log("orgs length:", orgs ? orgs.length : 0);
+  console.log("orgs is array:", Array.isArray(orgs));
 
   if (!Array.isArray(orgs)) {
     console.error("API array буцаагаагүй:", orgs);
+    return;
+  }
+  
+  if (orgs.length === 0) {
+    console.warn("Байгууллагын жагсаалт хоосон байна");
     return;
   }
   const first = orgs.find((o) => o.lat && o.lng);
@@ -146,7 +246,11 @@ onMounted(async () => {
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map.value);
 
+  console.log("Adding markers to map...");
+  let markerCount = 0;
+  
   orgs.forEach((org) => {
+    console.log("Processing org:", org.stor_name, "lat:", org.lat, "lng:", org.lng);
     if (org.lat && org.lng) {
       const lat = parseFloat(org.lat);
       const lng = parseFloat(org.lng);
@@ -202,8 +306,12 @@ onMounted(async () => {
         L.marker([lat, lng], { icon: markerIcon })
           .addTo(map.value)
           .bindPopup(popupHtml);
+        markerCount++;
+        console.log(`Added marker ${markerCount} for ${org.stor_name} at [${lat}, ${lng}]`);
       }
     }
   });
+  
+  console.log(`Total markers added: ${markerCount}`);
 });
 </script>

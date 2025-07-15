@@ -6,12 +6,15 @@
 import VueApexCharts from "vue3-apexcharts";
 import { ref, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
+import { useCache } from "../composables/useCache";
+import { useApi } from "../composables/useApi";
 
 interface ActivityTypeData {
   op_type_name: string;
   count: number;
 }
 
+const { get, set } = useCache();
 const route = useRoute();
 const series = ref<number[]>([]);
 const chartKey = ref<number>(0);
@@ -30,16 +33,26 @@ const chartOptions = ref({
 // Backend-аас үйл ажиллагааны төрлүүдийн өгөгдөл авах функц
 async function fetchActivityTypes(payCenterId: string) {
   try {
-    const response = await fetch(`http://localhost:8080/api/v1/markets?pay_center_id=${payCenterId}`);
-    const data = await response.json();
-    
-    console.log('Raw API response:', data);
+    const cacheKey = `activity_types_${payCenterId}`;
+    const cachedData = get(cacheKey);
     
     let organizations: any[] = [];
-    if (Array.isArray(data)) {
-      organizations = data;
-    } else if (data.data && Array.isArray(data.data)) {
-      organizations = data.data;
+    
+    if (cachedData) {
+      console.log('Using cached activity types data');
+      organizations = cachedData;
+    } else {
+      const response = await useApi(`/markets?pay_center_id=${payCenterId}`);
+      if (response.success && response.data) {
+        const data = response.data as any;
+        if (Array.isArray(data)) {
+          organizations = data;
+        } else if (data.data && Array.isArray(data.data)) {
+          organizations = data.data;
+        }
+        set(cacheKey, organizations);
+        console.log('Cached activity types data');
+      }
     }
 
     console.log('Parsed organizations:', organizations);
