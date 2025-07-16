@@ -129,15 +129,15 @@ onMounted(async () => {
               reportData = reportRes.data;
               set(reportCacheKey, reportData);
               
-              if (Array.isArray(reportData) && reportData.length > 0) {
-                const latestReport = reportData.reduce((latest, current) => {
-                  if (!latest.submitted_date) return current;
-                  if (!current.submitted_date) return latest;
-                  return new Date(current.submitted_date) > new Date(latest.submitted_date) ? current : latest;
-                });
-                org.report_submitted_date = latestReport.submitted_date || '-';
-              } else {
-                org.report_submitted_date = '-';
+          if (Array.isArray(reportData) && reportData.length > 0) {
+            const latestReport = reportData.reduce((latest, current) => {
+              if (!latest.submitted_date) return current;
+              if (!current.submitted_date) return latest;
+              return new Date(current.submitted_date) > new Date(latest.submitted_date) ? current : latest;
+            });
+            org.report_submitted_date = latestReport.submitted_date || '-';
+          } else {
+            org.report_submitted_date = '-';
               }
             } else {
               org.report_submitted_date = '-';
@@ -160,8 +160,8 @@ onMounted(async () => {
               paymentData = paymentRes.data;
               org.payment_amount = paymentData.total_amount || 0;
               set(paymentCacheKey, paymentData);
-            } else {
-              org.payment_amount = 0;
+          } else {
+            org.payment_amount = 0;
             }
           }
         } catch (e) {
@@ -191,12 +191,12 @@ onMounted(async () => {
               
               if (Array.isArray(debtData) && debtData.length > 0) {
                 const totalDebt = debtData.reduce((total, record) => {
-                  const c2Debit = record.C2_DEBIT || 0;
-                  return total + parseFloat(c2Debit);
-                }, 0);
-                org.debt_amount = totalDebt;
-              } else {
-                org.debt_amount = 0;
+              const c2Debit = record.C2_DEBIT || 0;
+              return total + parseFloat(c2Debit);
+            }, 0);
+            org.debt_amount = totalDebt;
+          } else {
+            org.debt_amount = 0;
               }
             } else {
               org.debt_amount = 0;
@@ -248,7 +248,7 @@ onMounted(async () => {
 
   console.log("Adding markers to map...");
   let markerCount = 0;
-  
+
   orgs.forEach((org) => {
     console.log("Processing org:", org.stor_name, "lat:", org.lat, "lng:", org.lng);
     if (org.lat && org.lng) {

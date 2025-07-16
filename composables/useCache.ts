@@ -13,8 +13,8 @@ interface CacheStore {
 // Global cache store
 const cacheStore = reactive<CacheStore>({})
 
-// Default TTL: 3 minutes (reduced for better responsiveness)
-const DEFAULT_TTL = 3 * 60 * 1000
+// Default TTL: 5 minutes (increased for better caching)
+const DEFAULT_TTL = 5 * 60 * 1000
 
 export function useCache() {
   // Get item from cache
@@ -75,10 +75,10 @@ export function useCache() {
       return now - item.timestamp <= item.ttl
     })
     
-    // Log cache statistics every 30 seconds
-    if (Math.random() < 0.1) { // 10% chance to log
+    // Log cache statistics less frequently
+    if (Math.random() < 0.05) { // 5% chance to log
       console.log(`Cache Stats: ${validKeys.length} items cached`);
-      console.log('Cache Keys:', validKeys.slice(0, 10)); // Show first 10 keys
+      console.log('Cache Keys:', validKeys.slice(0, 5)); // Show first 5 keys
     }
     
     return {

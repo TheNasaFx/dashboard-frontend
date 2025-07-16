@@ -309,7 +309,7 @@
                 <div class="card-header">
                   <div class="row align-items-center">
                     <div class="col">
-                      <h4 class="card-title">Татвар бүрдүүлэлт</h4>
+                      <h4 class="card-title">Бүртгэлийн статистик</h4>
                     </div>
                   </div>
                 </div>
@@ -512,14 +512,14 @@ async function fetchFloors() {
   try {
     const res = await useApi(`/buildings/${id}/floors`);
     if (res.success && res.data) {
-      // floors backend-ээс string хэлбэрээр ирдэг тул number болгоно
+  // floors backend-ээс string хэлбэрээр ирдэг тул number болгоно
       const data = Array.isArray(res.data) ? res.data
-        .map((f: string) => Number(f))
+    .map((f: string) => Number(f))
         .sort((a: number, b: number) => a - b) : [];
       
       floors.value = data;
-      if (floors.value.length > 0) {
-        selectedFloor.value = floors.value[0];
+  if (floors.value.length > 0) {
+    selectedFloor.value = floors.value[0];
       }
       
       // Cache the result
@@ -711,12 +711,12 @@ async function fetchRentProperties() {
   try {
     const res = await useApi("/pay-center-properties");
     if (res.success && res.data) {
-      // Шинэ backend structure: { success, data: [...] }
+  // Шинэ backend structure: { success, data: [...] }
       const items = Array.isArray(res.data) ? res.data : [];
       const filteredItems = items.filter((item: any) => Number(item.pay_center_id) === Number(entity.value.id));
       
       rentProperties.value = filteredItems;
-      filteredRentProperties.value = rentProperties.value; // Эхлээд бүх түрээсийг харуулах
+  filteredRentProperties.value = rentProperties.value; // Эхлээд бүх түрээсийг харуулах
       
       // Cache the result
       set(cacheKey, filteredItems);
