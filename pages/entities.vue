@@ -206,6 +206,7 @@
                         </button>
                       </h5>
                       <p class="fs-12 text-muted">{{ entity.address || "Үйлчилгээний төв" }}</p>
+                      <p class="fs-12 text-muted">Давхарын тоо: {{ entity.build_floor || 0 }}</p>
                       <p class="card-text"></p>
                       <small class="text-muted">Бүртгэл</small>
                       <div class="progress">

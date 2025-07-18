@@ -50,6 +50,7 @@
                     </button>
                   </h5>
                   <p class="fs-12 text-muted">{{ entity.address || "Үйлчилгээний төв" }}</p>
+                  <p class="fs-12 text-muted">Давхарын тоо: {{ entity.build_floor || 0 }}</p>
                   <p class="card-text"></p>
                   <small class="text-muted">Бүртгэл</small>
                   <div class="progress">
@@ -136,12 +137,12 @@
                     <button
                       type="button"
                       class="btn btn-icon btn-dark btn-sm dropdown-toggle floor-dropdown-btn"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
+                      :class="{ 'show': showDropdown }"
+                      @click="toggleDropdown"
                     >
-                      Давхар <i class="las la-angle-down ms-1"></i>
+                      Давхар <i class="las la-angle-down ms-1" :class="{ 'rotate': showDropdown }"></i>
                     </button>
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu" :class="{ 'show': showDropdown }">
                       <li v-for="floor in floors" :key="floor">
                         <a
                           class="dropdown-item"
@@ -408,7 +409,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineAsyncComponent, onMounted } from "vue";
+import { ref, defineAsyncComponent, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import { useApi } from '../composables/useApi';
 
@@ -458,6 +459,7 @@ const filteredRentProperties = ref<any[]>([]);
 // Modal state
 const detailModalOpen = ref(false);
 const selectedMrchRegno = ref('');
+const showDropdown = ref(false);
 
 // Import cache composable
 import { useCache } from '../composables/useCache';
@@ -482,6 +484,7 @@ async function fetchEntity() {
         name: data.name || "",
         tax_payers: data.tax_payers || 0,
         address: data.address || "",
+        build_floor: data.build_floor || 0,
         registration: data.registration || 90,
         report: data.report || 75,
         mapUrl: entity.value.mapUrl, // Keep existing mapUrl
@@ -550,13 +553,12 @@ async function fetchOrganizations() {
   try {
     // Get organizations data
     const url = floor 
-      ? `http://localhost:8080/api/v1/buildings/${id}/floors/${floor}/organizations`
-      : `http://localhost:8080/api/v1/buildings/${id}/organizations`;
+      ? `/buildings/${id}/floors/${floor}/organizations`
+      : `/buildings/${id}/organizations`;
     
-    const res = await fetch(url);
-    const orgsData = await res.json();
-    
-    if (Array.isArray(orgsData)) {
+    const res = await useApi(url);
+    if (res.success && res.data) {
+      const orgsData = Array.isArray(res.data) ? res.data : [];
       // Get all MRCH_REGNO values for batch processing
       const mrchRegnos = orgsData.map(org => org.mrch_regno).filter(regno => regno);
       
@@ -669,16 +671,28 @@ async function fetchOrganizations() {
       // Cache the result
       set(cacheKey, enrichedOrgs);
       console.log('Cached organizations data');
+    } else {
+      console.error('Invalid response format from organizations API');
+      organizations.value = [];
+      filteredOrganizations.value = [];
     }
   } catch (error) {
     console.error('Error fetching organizations:', error);
+    organizations.value = [];
     filteredOrganizations.value = [];
   }
+}
+
+function toggleDropdown() {
+  console.log('Toggle dropdown clicked, current state:', showDropdown.value);
+  showDropdown.value = !showDropdown.value;
+  console.log('New dropdown state:', showDropdown.value);
 }
 
 function selectFloor(floor: number) {
   selectedFloor.value = floor;
   searchQuery.value = ''; // Давхар сонгох үед search-г цэвэрлэх
+  showDropdown.value = false; // Dropdown-г хаах
   fetchOrganizations();
 }
 
@@ -783,9 +797,35 @@ function closeDetailModal() {
   selectedMrchRegno.value = '';
 }
 
+// Event listener functions
+function handleClickOutside(e: Event) {
+  const target = e.target as HTMLElement;
+  if (!target.closest('.floor-dropdown-group')) {
+    showDropdown.value = false;
+  }
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    showDropdown.value = false;
+  }
+}
+
 onMounted(() => {
   fetchEntity();
   fetchFloors();
+  
+  // Dropdown-г гаднаас дарж хаах
+  document.addEventListener('click', handleClickOutside);
+  
+  // ESC товчлуураар dropdown хаах
+  document.addEventListener('keydown', handleKeydown);
+});
+
+onUnmounted(() => {
+  // Cleanup event listeners
+  document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener('keydown', handleKeydown);
 });
 
 defineExpose({ activeTab, setActiveTab });
@@ -844,6 +884,10 @@ defineExpose({ activeTab, setActiveTab });
   background: #f7b731;
   color: #fff;
 }
+.floor-dropdown-group {
+  position: relative;
+}
+
 .floor-dropdown-group .floor-dropdown-btn {
   background: #222 !important;
   color: #fff !important;
@@ -864,5 +908,50 @@ defineExpose({ activeTab, setActiveTab });
   background: #19b86b !important;
   color: #fff !important;
   font-weight: 500;
+}
+
+/* Custom dropdown styles */
+.floor-dropdown-group .dropdown-menu.show {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+}
+
+.floor-dropdown-group .dropdown-menu {
+  min-width: 150px;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  display: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  background: white;
+  border-radius: 4px;
+}
+
+.floor-dropdown-group .dropdown-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.floor-dropdown-group .dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+/* Rotate animation for dropdown arrow */
+.floor-dropdown-group .las.rotate {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+
+.floor-dropdown-group .las {
+  transition: transform 0.3s ease;
 }
 </style>

@@ -165,6 +165,7 @@ async function fetchAndRenderMarkers() {
           <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
           <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${org.name || org.stor_name || 'Байгууллага'}</div>
           <div style='font-size:13px;'>ID: ${org.id || ''}</div>
+          <div style='font-size:13px;'>Давхар: ${org.build_floor || '-'}</div>
           <div style='font-size:13px;'>Эзэмшигч: ${ownerCount}</div>
           <div style='font-size:13px;'>Үйл ажиллагаа эрхлэгч: ${activityOperators}</div>
           <div style='font-size:13px;'>Талбай: ${area.toLocaleString()} мкв</div>
