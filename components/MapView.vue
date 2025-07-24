@@ -423,96 +423,185 @@ onMounted(async () => {
     return;
   }
   
-  console.log('Importing Leaflet...');
-  const leaflet = await import("leaflet");
-  L = leaflet.default;
-  console.log('Leaflet imported successfully:', !!L);
-  
-  console.log('Importing markerClusterGroup...');
-  await import("leaflet.markercluster");
-  markerClusterGroup = () => L.markerClusterGroup();
-  console.log('markerClusterGroup initialized');
+  try {
+    console.log('Importing Leaflet...');
+    const leaflet = await import("leaflet");
+    L = leaflet.default;
+    console.log('Leaflet imported successfully:', !!L);
+    
+    console.log('Importing markerClusterGroup...');
+    await import("leaflet.markercluster");
+    markerClusterGroup = () => L.markerClusterGroup();
+    console.log('markerClusterGroup initialized');
 
-  console.log('Creating custom icons...');
-  redIcon = new L.Icon({
-    iconUrl:
-      "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-  });
-  greenIcon = new L.Icon({
-    iconUrl:
-      "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-  });
-  blueIcon = new L.Icon({
-    iconUrl:
-      "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png",
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-  });
-  console.log('Icons created successfully');
+    console.log('Creating custom icons...');
+    redIcon = new L.Icon({
+      iconUrl:
+        "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+      shadowUrl:
+        "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+    });
+    greenIcon = new L.Icon({
+      iconUrl:
+        "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
+      shadowUrl:
+        "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+    });
+    blueIcon = new L.Icon({
+      iconUrl:
+        "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png",
+      shadowUrl:
+        "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+    });
+    console.log('Icons created successfully');
 
-  // map дахин үүсгэгдэхэд хуучин map-ийг устгана
-  if (map.value && map.value._leaflet_id) {
-    console.log('Removing existing map');
-    map.value.remove();
+    // map дахин үүсгэгдэхэд хуучин map-ийг устгана
+    if (map.value && map.value._leaflet_id) {
+      console.log('Removing existing map');
+      map.value.remove();
+    }
+
+    console.log('Creating new map...');
+    map.value = L.map("map").setView([47.9188691, 106.9175785], 12);
+    console.log('Map created successfully');
+    
+    console.log('Adding tile layer...');
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(map.value);
+    console.log('Tile layer added');
+    
+    markersLayer.value = L.layerGroup(); // Use simple LayerGroup instead of markerClusterGroup
+    map.value.addLayer(markersLayer.value);
+    console.log('Markers layer added to map');
+    
+    // Wait for the next tick to ensure map is fully initialized
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    console.log('Calling fetchAndRenderMarkers...');
+    await fetchAndRenderMarkers();
+    console.log('fetchAndRenderMarkers completed');
+    
+         // Force a second render after a short delay to catch any late-loading data
+     setTimeout(async () => {
+       console.log('Secondary marker render check...');
+       if ((props.organizations?.length ?? 0) > 0 || (props.searchLand?.length ?? 0) > 0) {
+         console.log('Re-rendering markers for late-loaded data');
+         await fetchAndRenderMarkers();
+       }
+     }, 500);
+  } catch (error) {
+    console.error('Error in map initialization:', error);
   }
-
-  console.log('Creating new map...');
-  map.value = L.map("map").setView([47.9188691, 106.9175785], 12);
-  console.log('Map created successfully');
-  
-  console.log('Adding tile layer...');
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors",
-  }).addTo(map.value);
-  console.log('Tile layer added');
-  
-  markersLayer.value = L.layerGroup(); // Use simple LayerGroup instead of markerClusterGroup
-  map.value.addLayer(markersLayer.value);
-  console.log('Markers layer added to map');
-  
-  console.log('Calling fetchAndRenderMarkers...');
-  await fetchAndRenderMarkers();
-  console.log('fetchAndRenderMarkers completed');
 
   // KML layer loading using dynamic import
   try {
     console.log('Loading KML layer...');
+    console.log('Checking KML file path: /duureg.kml');
+    
     const omnivoreImport = await import("@mapbox/leaflet-omnivore");
+    console.log('Omnivore import:', omnivoreImport);
+    
     const omnivore = omnivoreImport.default || omnivoreImport;
+    console.log('Omnivore object:', omnivore);
+    
+    if (!omnivore || !omnivore.kml) {
+      throw new Error('Omnivore KML function not available');
+    }
+    
+         // Define colors for each district
+     const districtColors: { [key: string]: string } = {
+       'Багануур': '#FF6B6B',      // Red
+       'Багахангай': '#4ECDC4',    // Teal
+       'Баянгол': '#45B7D1',       // Blue
+       'Баянзүрх': '#ffa500',      // Green
+       'Налайх': '#0000ff',        // Yellow
+       'Сонгинохайрхан': '#00ff00', // Plum
+       'Сүхбаатар': '#98D8C8',     // Mint
+       'Хан Уул': '#ff0000',       // Light Yellow (note the space)
+       'Чингэлтэй': '#BB8FCE'      // Light Purple
+     };
+    
     const kmlLayer = omnivore
-      //.kml("/duureg.kml")
-      // .on("ready", function () {
-      //   map.value.fitBounds(kmlLayer.getBounds());
-      // })
+      .kml("/duureg.kml")
+      .on("ready", function () {
+        console.log('KML layer ready, bounds:', kmlLayer.getBounds());
+        
+                 // Style each district with different colors
+         kmlLayer.eachLayer(function(layer: any) {
+           if (layer.feature && layer.feature.properties) {
+             // Get district name from KML properties
+             let districtName = null;
+             
+             // Try different property names that might contain the district name
+             if (layer.feature.properties.name) {
+               districtName = layer.feature.properties.name;
+             } else if (layer.feature.properties.n) {
+               districtName = layer.feature.properties.n;
+             } else if (layer.feature.properties.soum_name) {
+               districtName = layer.feature.properties.soum_name;
+             }
+             
+                           console.log('Processing district:', districtName);
+              console.log('Layer properties:', layer.feature.properties);
+              
+              const color = districtColors[districtName || ''] || '#808080'; // Default gray
+             
+             // Apply style to the layer
+             if (layer.setStyle) {
+               layer.setStyle({
+                 color: color,
+                 weight: 3,
+                 opacity: 0.8,
+                 fillColor: color,
+                 fillOpacity: 0.3
+               });
+             }
+             
+             // Enhanced popup with district info
+             const popupContent = `
+               <div style="text-align: center;">
+                 <h4 style="margin: 5px 0; color: ${color};">${districtName || 'Тодорхойгүй'}</h4>
+                 <div style="font-size: 12px; color: #666;">
+                   Улаанбаатар хотын дүүрэг
+                 </div>
+               </div>
+             `;
+             
+             layer.bindPopup(popupContent);
+           }
+         });
+        
+        // Fit bounds after styling
+        map.value.fitBounds(kmlLayer.getBounds());
+        console.log('District styling completed');
+      })
+      .on("error", function(e: any) {
+        console.error('KML layer error:', e);
+      })
       .on("click", function (e: any) {
-        const layer = e.layer;
-        const name = layer.feature?.properties?.name;
-        const description = layer.feature?.properties?.description;
-        let content = "";
-        if (name) content += `<strong>${name}</strong><br/>`;
-        if (description) content += `${description}`;
-        layer.bindPopup(content).openPopup();
+        // Click handler is now managed by individual layer popups
+        e.layer.openPopup();
       });
+      
+    console.log('Adding KML layer to map...');
     kmlLayer.addTo(map.value);
-    console.log('KML layer loaded successfully');
+    console.log('KML layer added successfully');
   } catch (e) {
     console.error("KML layer load error", e);
+    console.error("Error details:", e.message, e.stack);
   }
   
   console.log('=== MapView onMounted END ===');
@@ -520,12 +609,19 @@ onMounted(async () => {
 
 watch(
   () => [props.district, props.khoroo, props.category, props.searchLand, props.organizations],
-  (newValues, oldValues) => {
+  async (newValues, oldValues) => {
     console.log('=== MapView watch triggered ===');
     console.log('New values:', newValues);
     console.log('Organizations changed:', newValues[4] !== oldValues?.[4]);
     console.log('Organizations length:', newValues[4]?.length);
-    fetchAndRenderMarkers();
-  }
+    
+    // Ensure map is ready before rendering markers
+    if (map.value && L) {
+      await fetchAndRenderMarkers();
+    } else {
+      console.log('Map or Leaflet not ready yet, skipping markers render');
+    }
+  },
+  { deep: true }
 );
 </script>

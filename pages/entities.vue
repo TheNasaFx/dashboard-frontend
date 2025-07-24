@@ -47,8 +47,8 @@
                         <a
                           class="dropdown-item"
                           href="#"
-                          @click.prevent="selectDistrict('26', 'Сүхбаатар')"
-                          >Сүхбаатар</a
+                          @click.prevent="selectDistrict('26', 'Баянгол')"
+                          >Баянгол</a
                         >
                         <a
                           class="dropdown-item"
@@ -83,14 +83,14 @@
                         <a
                           class="dropdown-item"
                           href="#"
-                          @click.prevent="selectDistrict('34', 'Сүхбаатар')"
-                          >Сүхбаатар</a
+                          @click.prevent="selectDistrict('34', 'Сонгинохайрхан')"
+                          >Сонгинохайрхан</a
                         >
                         <a
                           class="dropdown-item"
                           href="#"
-                          @click.prevent="selectDistrict('35', 'Сүхбаатар')"
-                          >Сүхбаатар</a
+                          @click.prevent="selectDistrict('35', 'Чингэлтэй')"
+                          >Чингэлтэй</a
                         >
                         <div class="dropdown-divider"></div>
                         <a
@@ -111,16 +111,14 @@
                         {{ selectedKhorooName }}
                         <i class="las la-angle-down ms-1"></i>
                       </button>
-                      <div class="dropdown-menu">
+                      <div class="dropdown-menu" style="max-height: 300px; overflow-y: auto;">
                         <a
-                          v-for="n in 42"
-                          :key="n"
+                          v-for="khoroo in khorooList"
+                          :key="khoroo.code"
                           class="dropdown-item"
                           href="#"
-                          @click.prevent="
-                            selectKhoroo(formatKhorooCode(n), `${formatKhorooCode(n)}-р хороо`)
-                          "
-                          >{{ formatKhorooCode(n) }}-р хороо</a
+                          @click.prevent="selectKhoroo(khoroo.code, khoroo.name)"
+                          >{{ khoroo.name }}</a
                         >
                         <div class="dropdown-divider"></div>
                         <a
@@ -280,14 +278,44 @@ const selectedDistrictName = ref("Дүүрэг");
 const selectedKhoroo = ref("");
 const selectedKhorooName = ref("Хороо");
 
+// Khoroo list with proper formatting
+const khorooList = ref([
+  { code: "01", name: "01-р хороо" },
+  { code: "02", name: "02-р хороо" },
+  { code: "03", name: "03-р хороо" },
+  { code: "04", name: "04-р хороо" },
+  { code: "05", name: "05-р хороо" },
+  { code: "06", name: "06-р хороо" },
+  { code: "07", name: "07-р хороо" },
+  { code: "08", name: "08-р хороо" },
+  { code: "09", name: "09-р хороо" },
+  { code: "10", name: "10-р хороо" },
+  { code: "11", name: "11-р хороо" },
+  { code: "12", name: "12-р хороо" },
+  { code: "13", name: "13-р хороо" },
+  { code: "14", name: "14-р хороо" },
+  { code: "15", name: "15-р хороо" },
+  { code: "16", name: "16-р хороо" },
+  { code: "17", name: "17-р хороо" },
+  { code: "18", name: "18-р хороо" },
+  { code: "19", name: "19-р хороо" },
+  { code: "20", name: "20-р хороо" },
+  { code: "21", name: "21-р хороо" },
+  { code: "22", name: "22-р хороо" },
+  { code: "24", name: "24-р хороо" },
+  { code: "25", name: "25-р хороо" },
+  { code: "26", name: "26-р хороо" },
+  { code: "27", name: "27-р хороо" },
+  { code: "28", name: "28-р хороо" },
+  { code: "29", name: "29-р хороо" },
+  { code: "32", name: "32-р хороо" },
+  { code: "42", name: "42-р хороо" }
+]);
+
 const districtMap: Record<string, string> = {
   "25": "Сүхбаатар",
   // Add more mappings as you get them
 };
-
-function formatKhorooCode(n: number): string {
-  return n.toString().padStart(2, '0');
-}
 
 function selectDistrict(code: string, name: string) {
   selectedDistrict.value = code;

@@ -127,6 +127,18 @@
                 </NuxtLink>
               </li>
               <li class="nav-item">
+                <NuxtLink class="nav-link" to="/land-info">
+                  <i class="iconoir-globe menu-icon"></i>
+                  <span>Газрын мэдээлэл</span>
+                </NuxtLink>
+              </li>
+              <li class="nav-item">
+                <NuxtLink class="nav-link" to="/real-estate-info">
+                  <i class="iconoir-building menu-icon"></i>
+                  <span>Үл хөдлөхийн мэдээлэл</span>
+                </NuxtLink>
+              </li>
+              <li class="nav-item">
                 <NuxtLink class="nav-link" to="/users">
                   <i class="iconoir-user menu-icon"></i>
                   <span>Байцаагчид</span>
