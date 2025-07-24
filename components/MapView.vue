@@ -1,5 +1,5 @@
 <template>
-  <div id="map" style="height: 700px; width: 100%; border-radius: 10px"></div>
+  <div id="map" style="height: 700px; width: 100%; border-radius: 10px; position: relative; z-index: 1;"></div>
 </template>
 
 <script setup lang="ts">
@@ -17,11 +17,11 @@ interface LandData {
 }
 
 const props = defineProps<{
-  district: string;
-  khoroo: string;
-  category: string;
-  searchLand?: LandData[];
+  district?: string;
+  khoroo?: string;
+  category?: string;
   organizations?: any[] | null;
+  searchLand?: LandData[];
 }>();
 
 const map = ref<any>(null);
@@ -103,88 +103,158 @@ async function fetchPayCenterLocationsByRegno(regno: string) {
 }
 
 async function fetchAndRenderMarkers() {
-  if (!L) return;
+  console.log('=== fetchAndRenderMarkers START ===');
+  if (!L) {
+    console.error('Leaflet (L) is not loaded!');
+    return;
+  }
+  console.log('Leaflet is loaded, proceeding...');
 
+  console.log('=== MAP DEBUG START ===');
   console.log('organizations:', props.organizations);
+  console.log('organizations length:', props.organizations?.length);
   console.log('searchLand:', props.searchLand);
+  
+  // Sample first organization
+  if (props.organizations && props.organizations.length > 0) {
+    console.log('First organization sample:', props.organizations[0]);
+    console.log('First org lat:', props.organizations[0].lat);
+    console.log('First org lng:', props.organizations[0].lng);
+  }
+  console.log('=== MAP DEBUG END ===');
 
   // 1. Байгууллагаар хайсан бол organizations pin-үүдийг харуулна
   if (props.organizations && Array.isArray(props.organizations) && props.organizations.length > 0) {
+    console.log('Processing organizations section...');
+    console.log('Organizations count:', props.organizations.length);
+    
     if (markersLayer.value) {
-      try { markersLayer.value.clearLayers(); } catch (e) {}
-    }
-    markersLayer.value = markerClusterGroup();
-    
-    // Бүх байгууллагын ID-уудыг цуглуулаад batch API дуудах
-    const orgIds = props.organizations.map(org => org.id).filter(id => id);
-    let mapDataResults: any = {};
-    
-    if (orgIds.length > 0) {
-      // Check global cache first
-      const batchCacheKey = `batch_${orgIds.sort().join(',')}`;
-      const cachedBatchData = getGlobalCachedData(batchCacheKey, globalMapDataCache);
-      
-      if (cachedBatchData) {
-        mapDataResults = cachedBatchData;
-      } else {
-        try {
-          const batchResponse = await fetch(`http://localhost:8080/api/v1/map-data-batch?pay_center_ids=${orgIds.join(',')}`);
-          const batchData = await batchResponse.json();
-          if (batchData.success && batchData.data) {
-            mapDataResults = batchData.data;
-            // Cache the batch result globally
-            setGlobalCacheData(batchCacheKey, mapDataResults, globalMapDataCache);
-          }
-        } catch (error) {
-          console.error('Error fetching batch map data:', error);
-        }
+      console.log('Clearing existing markers...');
+      try { markersLayer.value.clearLayers(); } catch (e) {
+        console.error('Error clearing markers:', e);
       }
     }
-
-    // Popup бүрт динамик мэдээлэл ашиглах
+    
+    console.log('Creating new marker cluster group...');
+    markersLayer.value = L.markerClusterGroup();
+    
+    console.log('Starting marker creation loop...');
+    let markersCreated = 0;
+    
+    // Create all markers simultaneously without individual API calls
     for (const org of props.organizations) {
-      const lat = parseFloat(org.lat);
-      const lng = parseFloat(org.lng);
-      if (!isNaN(lat) && !isNaN(lng)) {
-        let ownerCount = 0;
-        let activityOperators = 0;
-        let area = 0;
-        let tenants = 0;
-
-        // Batch result-аас мэдээлэл авах
-        const orgMapData = mapDataResults[org.id?.toString()];
-        if (orgMapData && orgMapData.success && orgMapData.data) {
-          ownerCount = orgMapData.data.owner_count || 0;
-          activityOperators = orgMapData.data.activity_operators || 0;
-          area = orgMapData.data.area || 0;
-          tenants = orgMapData.data.tenants || 0;
-        }
-
-        // Popup-д харуулах
-        let popupHtml = `<div style='width:240px'>
+      // Lat/lng parsing
+      let lat, lng;
+      
+      if (typeof org.lat === 'string') {
+        lat = parseFloat(org.lat);
+      } else if (typeof org.lat === 'number') {
+        lat = org.lat;
+      } else {
+        continue;
+      }
+      
+      if (typeof org.lng === 'string') {
+        lng = parseFloat(org.lng);
+      } else if (typeof org.lng === 'number') {
+        lng = org.lng;
+      } else {
+        continue;
+      }
+      
+      // Only create marker if coordinates are valid
+      if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+        // Initial popup-д ачаалж байна гэсэн мэдээлэл харуулах
+        let initialPopupHtml = `<div style='width:240px'>
           <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
-          <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${org.name || org.stor_name || 'Байгууллага'}</div>
+          <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${org.name || 'Байгууллага'}</div>
           <div style='font-size:13px;'>ID: ${org.id || ''}</div>
+          <div style='font-size:13px;'>Нэгж талбарын дугаар: ${org.parcel_id || '-'}</div>
           <div style='font-size:13px;'>Давхар: ${org.build_floor || '-'}</div>
-          <div style='font-size:13px;'>Эзэмшигч: ${ownerCount}</div>
-          <div style='font-size:13px;'>Үйл ажиллагаа эрхлэгч: ${activityOperators}</div>
-          <div style='font-size:13px;'>Талбай: ${area.toLocaleString()} мкв</div>
-          <div style='font-size:13px;'>Түрээслэгч: ${tenants}ш</div>
+          <div style='font-size:13px; text-center; color: #666;'><i>Мэдээлэл ачаалж байна...</i></div>
           <div style='margin-top:8px;'><a href='/entity?id=${org.id}' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a></div>
         </div>`;
+        
         const leafletMarker = L.marker([lat, lng], { icon: redIcon });
-        leafletMarker.bindPopup(popupHtml);
+        leafletMarker.bindPopup(initialPopupHtml);
+        
+        // Popup ээр дарах үед map data ачаалах
+        leafletMarker.on('click', async function() {
+          try {
+            const response = await fetch(`http://localhost:8080/api/v1/map-data?pay_center_id=${org.id}`);
+            const result = await response.json();
+            
+            let mapData = {
+              owner_count: 0,
+              activity_operators: 0,
+              area: 0,
+              tenants: 0
+            };
+            
+            if (result.success && result.data) {
+              mapData = result.data;
+            }
+            
+            // Updated popup контент
+            const updatedPopupHtml = `<div style='width:240px'>
+              <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
+              <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${org.name || 'Байгууллага'}</div>
+              <div style='font-size:13px;'>ID: ${org.id || ''}</div>
+              <div style='font-size:13px;'>Нэгж талбарын дугаар: ${org.parcel_id || '-'}</div>
+              <div style='font-size:13px;'>Давхар: ${org.build_floor || '-'}</div>
+              <div style='font-size:13px;'>Түрээслэгч: ${mapData.tenants || 0} ш</div>
+              <div style='font-size:13px;'>Эзэмшигч: ${mapData.owner_count || 0}</div>
+              <div style='font-size:13px;'>Талбай: ${(mapData.area || 0).toLocaleString()} мкв</div>
+              <div style='font-size:13px;'>Үйл ажиллагаа эрхлэгч: ${mapData.activity_operators || 0}</div>
+              <div style='margin-top:8px;'><a href='/entity?id=${org.id}' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a></div>
+            </div>`;
+            
+            // Popup контентийг шинэчлэх
+            this.setPopupContent(updatedPopupHtml);
+          } catch (error) {
+            console.error('Error loading map data:', error);
+            const errorPopupHtml = `<div style='width:240px'>
+              <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
+              <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${org.name || 'Байгууллага'}</div>
+              <div style='font-size:13px;'>ID: ${org.id || ''}</div>
+              <div style='font-size:13px;'>Нэгж талбарын дугаар: ${org.parcel_id || '-'}</div>
+              <div style='font-size:13px;'>Давхар: ${org.build_floor || '-'}</div>
+              <div style='font-size:13px; color: red;'>Мэдээлэл ачаалахад алдаа гарлаа</div>
+              <div style='margin-top:8px;'><a href='/entity?id=${org.id}' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a></div>
+            </div>`;
+            this.setPopupContent(errorPopupHtml);
+          }
+        });
+        
         markersLayer.value.addLayer(leafletMarker);
+        markersCreated++;
       }
     }
-    if (map.value && props.organizations[0]) {
-      const lat = parseFloat(props.organizations[0].lat);
-      const lng = parseFloat(props.organizations[0].lng);
-      if (!isNaN(lat) && !isNaN(lng)) {
-        map.value.setView([lat, lng], 15);
-      }
+    
+    console.log(`Total markers created: ${markersCreated}`);
+    
+    // Add markers to map
+    if (map.value && markersCreated > 0) {
+      console.log('Adding markers layer to map...');
       map.value.addLayer(markersLayer.value);
+      console.log('Markers layer added to map successfully');
+      
+      // Center on first valid organization
+      const validOrg = props.organizations.find(org => {
+        const lat = parseFloat(org.lat);
+        const lng = parseFloat(org.lng);
+        return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+      });
+      
+      if (validOrg) {
+        const centerLat = parseFloat(validOrg.lat);
+        const centerLng = parseFloat(validOrg.lng);
+        console.log(`Setting map view to [${centerLat}, ${centerLng}]`);
+        map.value.setView([centerLat, centerLng], 15);
+      }
     }
+    
+    console.log('Organizations processing completed, returning...');
     return;
   }
 
@@ -193,7 +263,7 @@ async function fetchAndRenderMarkers() {
     if (markersLayer.value) {
       try { markersLayer.value.clearLayers(); } catch (e) {}
     }
-    markersLayer.value = markerClusterGroup();
+    markersLayer.value = L.layerGroup(); // Use simple LayerGroup instead of markerClusterGroup
     // 1. Газрын pin-үүд
     for (const land of props.searchLand) {
       const lat = parseFloat(land.COORD_Y?.String || land.COORD_Y);
@@ -205,6 +275,7 @@ async function fetchAndRenderMarkers() {
           <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
           <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${name}</div>
           <div style='font-size:13px;'>ID: ${land.ID || ''}</div>
+          <div style='font-size:13px;'>Нэгж талбарын дугаар: ${land.PARCEL_ID || '-'}</div>
           <div style='font-size:13px;'>Эзэмшигч: 14</div>
           <div style='font-size:13px;'>Үйл ажиллагаа эрхлэгч: 137</div>
           <div style='font-size:13px;'>Талбай: 5,922.92 мкв</div>
@@ -277,7 +348,7 @@ async function fetchAndRenderMarkers() {
       markersLayer.value.clearLayers();
     } catch (e) {}
   }
-  markersLayer.value = markerClusterGroup();
+  markersLayer.value = L.layerGroup(); // Use simple LayerGroup instead of markerClusterGroup
   markersData.forEach((marker: LandData) => {
     const lat = parseFloat(marker.COORD_Y?.String || marker.COORD_Y);
     const lng = parseFloat(marker.COORD_X?.String || marker.COORD_X);
@@ -293,6 +364,8 @@ async function fetchAndRenderMarkers() {
               marker.NAME?.String || marker.NAME || 'Газрын нэр'
             }</div>
           </div>
+          <div style='font-size:13px;'>ID: ${marker.ID || ''}</div>
+          <div style='font-size:13px;'>Нэгж талбарын дугаар: ${marker.PARCEL_ID || '-'}</div>
           <div style='font-size:13px;margin-bottom:8px;'>${
             marker.COORD_Y?.String || marker.COORD_Y || ""
           }</div>
@@ -344,12 +417,23 @@ function setGlobalCacheData(cacheKey: string, data: any, cacheMap: Map<string, {
 }
 
 onMounted(async () => {
-  if (typeof window === "undefined") return;
+  console.log('=== MapView onMounted START ===');
+  if (typeof window === "undefined") {
+    console.log('Window is undefined, skipping map initialization');
+    return;
+  }
+  
+  console.log('Importing Leaflet...');
   const leaflet = await import("leaflet");
   L = leaflet.default;
+  console.log('Leaflet imported successfully:', !!L);
+  
+  console.log('Importing markerClusterGroup...');
   await import("leaflet.markercluster");
   markerClusterGroup = () => L.markerClusterGroup();
+  console.log('markerClusterGroup initialized');
 
+  console.log('Creating custom icons...');
   redIcon = new L.Icon({
     iconUrl:
       "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
@@ -380,22 +464,35 @@ onMounted(async () => {
     popupAnchor: [1, -34],
     shadowSize: [41, 41],
   });
+  console.log('Icons created successfully');
 
   // map дахин үүсгэгдэхэд хуучин map-ийг устгана
   if (map.value && map.value._leaflet_id) {
+    console.log('Removing existing map');
     map.value.remove();
   }
 
+  console.log('Creating new map...');
   map.value = L.map("map").setView([47.9188691, 106.9175785], 12);
+  console.log('Map created successfully');
+  
+  console.log('Adding tile layer...');
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map.value);
-  markersLayer.value = markerClusterGroup();
+  console.log('Tile layer added');
+  
+  markersLayer.value = L.layerGroup(); // Use simple LayerGroup instead of markerClusterGroup
   map.value.addLayer(markersLayer.value);
+  console.log('Markers layer added to map');
+  
+  console.log('Calling fetchAndRenderMarkers...');
   await fetchAndRenderMarkers();
+  console.log('fetchAndRenderMarkers completed');
 
   // KML layer loading using dynamic import
   try {
+    console.log('Loading KML layer...');
     const omnivoreImport = await import("@mapbox/leaflet-omnivore");
     const omnivore = omnivoreImport.default || omnivoreImport;
     const kmlLayer = omnivore
@@ -413,14 +510,21 @@ onMounted(async () => {
         layer.bindPopup(content).openPopup();
       });
     kmlLayer.addTo(map.value);
+    console.log('KML layer loaded successfully');
   } catch (e) {
     console.error("KML layer load error", e);
   }
+  
+  console.log('=== MapView onMounted END ===');
 });
 
 watch(
   () => [props.district, props.khoroo, props.category, props.searchLand, props.organizations],
-  () => {
+  (newValues, oldValues) => {
+    console.log('=== MapView watch triggered ===');
+    console.log('New values:', newValues);
+    console.log('Organizations changed:', newValues[4] !== oldValues?.[4]);
+    console.log('Organizations length:', newValues[4]?.length);
     fetchAndRenderMarkers();
   }
 );

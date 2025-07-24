@@ -1,31 +1,8 @@
 <template>
   <div class="chart-container">
     <div class="chart-header">
-      <h5 class="chart-title">Татварын алба болон дүүргийн тархалт</h5>
-      <div class="chart-subtitle">Түрээслэгчдийн бүртгэлийн байршлын мэдээлэл</div>
-    </div>
-    
-    <div class="chart-tabs">
-      <button 
-        class="tab-button" 
-        :class="{ active: activeTab === 'tax_offices' }"
-        @click="switchTab('tax_offices')"
-      >
-        <div class="tab-content">
-          <div class="tab-title">Татварын алба</div>
-          <div class="tab-subtitle">Дүүргүүд харьяалагдах алба</div>
-        </div>
-      </button>
-      <button 
-        class="tab-button" 
-        :class="{ active: activeTab === 'districts' }"
-        @click="switchTab('districts')"
-      >
-        <div class="tab-content">
-          <div class="tab-title">Дүүрэг</div>
-          <div class="tab-subtitle">Хороонууд харьяалагдах дүүрэг</div>
-        </div>
-      </button>
+      <h5 class="chart-title">Дүүргийн тархалт</h5>
+      <div class="chart-subtitle">Түрээслэгчдийн дүүргийн хуваарилалт</div>
     </div>
 
     <div class="chart-wrapper">
@@ -35,6 +12,39 @@
     <div class="loading-overlay" v-if="loading">
       <div class="spinner"></div>
       <div>Өгөгдөл уншиж байна...</div>
+    </div>
+
+    <!-- Хороонуудын мэдээлэл харуулах Modal -->
+    <div v-if="showModal" class="modal-overlay" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>{{ selectedDistrictData?.name }} - Хороонуудын мэдээлэл</h3>
+          <button class="close-button" @click="closeModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="selectedDistrictData?.khoroos && selectedDistrictData.khoroos.length > 0" class="khoroo-list">
+            <div class="total-info">
+              <strong>Нийт түрээслэгч: {{ selectedDistrictData.count }}</strong>
+            </div>
+            <div class="khoroo-grid">
+              <div 
+                v-for="(khoroo, index) in selectedDistrictData.khoroos" 
+                :key="index"
+                class="khoroo-item"
+              >
+                <div class="khoroo-name">{{ khoroo.name }}</div>
+                <div class="khoroo-count">{{ khoroo.count }} түрээслэгч</div>
+                <div class="khoroo-percentage">
+                  {{ Math.round((khoroo.count / selectedDistrictData.count) * 100) }}%
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="no-data">
+            Хороонуудын мэдээлэл байхгүй
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -46,25 +56,18 @@ import { useCache } from "../composables/useCache";
 import { useApi } from "../composables/useApi";
 import Chart from 'chart.js/auto';
 
-interface TaxOfficeData {
-  name: string;
-  count: number;
-  districts?: DistrictData[];
-}
-
-interface DistrictData {
-  name: string;
-  count: number;
-  khoroos?: KhorooData[];
-}
-
 interface KhorooData {
   name: string;
   count: number;
 }
 
-interface ChartData {
-  tax_offices: TaxOfficeData[];
+interface DistrictData {
+  name: string;
+  count: number;
+  khoroos: KhorooData[];
+}
+
+interface ApiResponse {
   districts: DistrictData[];
 }
 
@@ -73,20 +76,14 @@ const { get, set } = useCache();
 const chartCanvas = ref<HTMLCanvasElement>();
 const chartId = ref(`entity-bar-chart-${Date.now()}`);
 const chartInstance = ref<Chart | null>(null);
-const chartData = ref<ChartData | null>(null);
 const loading = ref(false);
-const activeTab = ref<'tax_offices' | 'districts'>('tax_offices');
-const selectedItem = ref<string | null>(null);
 
-function switchTab(tab: 'tax_offices' | 'districts') {
-  console.log('Switching to tab:', tab);
-  activeTab.value = tab;
-  
-  // Add a small delay to ensure the tab change is processed
-  setTimeout(() => {
-    createChart();
-  }, 100);
-}
+// Modal-ийн төлөв
+const showModal = ref(false);
+const selectedDistrictData = ref<DistrictData | null>(null);
+
+// Store the full API response
+const apiData = ref<ApiResponse | null>(null);
 
 // Modern color palette
 const colors = {
@@ -100,6 +97,16 @@ const colors = {
   border: 'rgba(255, 255, 255, 0.2)'
 };
 
+function closeModal() {
+  showModal.value = false;
+  selectedDistrictData.value = null;
+}
+
+function showDistrictDetails(district: DistrictData) {
+  selectedDistrictData.value = district;
+  showModal.value = true;
+}
+
 async function fetchTaxOfficeData(buildingId: string) {
   loading.value = true;
   try {
@@ -107,163 +114,36 @@ async function fetchTaxOfficeData(buildingId: string) {
     const cachedData = get(cacheKey);
     
     if (cachedData) {
-      chartData.value = cachedData;
+      apiData.value = cachedData;
+      console.log('Cache-аас өгөгдөл ашиглаж байна:', apiData.value);
     } else {
       const response = await useApi(`/tax-office-stats/${buildingId}`);
       if (response.success && response.data) {
-        chartData.value = response.data as ChartData;
+        apiData.value = response.data as ApiResponse;
         set(cacheKey, response.data);
+        console.log('Шинэ өгөгдөл татаж авлаа:', apiData.value);
       } else {
-        // Fallback data if API fails
-        chartData.value = {
-          tax_offices: [
-            {
-              name: 'Төв татварын алба',
-              count: 150,
-              districts: [
-                { name: 'Баянзүрх дүүрэг', count: 45, khoroos: [
-                  { name: '1-р хороо', count: 15 },
-                  { name: '2-р хороо', count: 18 },
-                  { name: '3-р хороо', count: 12 }
-                ]},
-                { name: 'Сүхбаатар дүүрэг', count: 38, khoroos: [
-                  { name: '1-р хороо', count: 12 },
-                  { name: '2-р хороо', count: 14 },
-                  { name: '3-р хороо', count: 12 }
-                ]},
-                { name: 'Хан-Уул дүүрэг', count: 32, khoroos: [
-                  { name: '1-р хороо', count: 10 },
-                  { name: '2-р хороо', count: 11 },
-                  { name: '3-р хороо', count: 11 }
-                ]}
-              ]
-            },
-            {
-              name: 'Баянхошуу татварын алба',
-              count: 120,
-              districts: [
-                { name: 'Баянхошуу дүүрэг', count: 35, khoroos: [
-                  { name: '1-р хороо', count: 12 },
-                  { name: '2-р хороо', count: 13 },
-                  { name: '3-р хороо', count: 10 }
-                ]},
-                { name: 'Налайх дүүрэг', count: 28, khoroos: [
-                  { name: '1-р хороо', count: 9 },
-                  { name: '2-р хороо', count: 10 },
-                  { name: '3-р хороо', count: 9 }
-                ]}
-              ]
-            }
-          ],
-          districts: [
-            {
-              name: 'Баянзүрх дүүрэг',
-              count: 45,
-              khoroos: [
-                { name: '1-р хороо', count: 15 },
-                { name: '2-р хороо', count: 18 },
-                { name: '3-р хороо', count: 12 }
-              ]
-            },
-            {
-              name: 'Сүхбаатар дүүрэг',
-              count: 38,
-              khoroos: [
-                { name: '1-р хороо', count: 12 },
-                { name: '2-р хороо', count: 14 },
-                { name: '3-р хороо', count: 12 }
-              ]
-            },
-            {
-              name: 'Хан-Уул дүүрэг',
-              count: 32,
-              khoroos: [
-                { name: '1-р хороо', count: 10 },
-                { name: '2-р хороо', count: 11 },
-                { name: '3-р хороо', count: 11 }
-              ]
-            },
-            {
-              name: 'Баянхошуу дүүрэг',
-              count: 35,
-              khoroos: [
-                { name: '1-р хороо', count: 12 },
-                { name: '2-р хороо', count: 13 },
-                { name: '3-р хороо', count: 10 }
-              ]
-            },
-            {
-              name: 'Налайх дүүрэг',
-              count: 28,
-              khoroos: [
-                { name: '1-р хороо', count: 9 },
-                { name: '2-р хороо', count: 10 },
-                { name: '3-р хороо', count: 9 }
-              ]
-            }
-          ]
-        };
+        console.error('API алдаа:', response);
+        apiData.value = { districts: [] };
       }
     }
     
     createChart();
   } catch (error) {
-    console.error('Error fetching tax office data:', error);
-    // Use the same fallback data as above
-    chartData.value = {
-      tax_offices: [
-        {
-          name: 'Төв татварын алба',
-          count: 150,
-          districts: [
-            { name: 'Баянзүрх дүүрэг', count: 45, khoroos: [
-              { name: '1-р хороо', count: 15 },
-              { name: '2-р хороо', count: 18 },
-              { name: '3-р хороо', count: 12 }
-            ]},
-            { name: 'Сүхбаатар дүүрэг', count: 38, khoroos: [
-              { name: '1-р хороо', count: 12 },
-              { name: '2-р хороо', count: 14 },
-              { name: '3-р хороо', count: 12 }
-            ]}
-          ]
-        }
-      ],
-      districts: [
-        {
-          name: 'Баянзүрх дүүрэг',
-          count: 45,
-          khoroos: [
-            { name: '1-р хороо', count: 15 },
-            { name: '2-р хороо', count: 18 },
-            { name: '3-р хороо', count: 12 }
-          ]
-        },
-        {
-          name: 'Сүхбаатар дүүрэг',
-          count: 38,
-          khoroos: [
-            { name: '1-р хороо', count: 12 },
-            { name: '2-р хороо', count: 14 },
-            { name: '3-р хороо', count: 12 }
-          ]
-        }
-      ]
-    };
+    console.error('Өгөгдөл татахад алдаа гарлаа:', error);
+    apiData.value = { districts: [] };
+    createChart();
   } finally {
     loading.value = false;
   }
 }
 
 function createChart() {
-  console.log('Creating chart for tab:', activeTab.value);
-  
-  if (!chartCanvas.value || !chartData.value) {
-    console.log('Missing chart canvas or data');
+  if (!chartCanvas.value || !apiData.value) {
     return;
   }
 
-  // Destroy existing chart
+  // Өмнөх chart-ийг устгах
   if (chartInstance.value) {
     chartInstance.value.destroy();
     chartInstance.value = null;
@@ -271,18 +151,13 @@ function createChart() {
 
   const ctx = chartCanvas.value.getContext('2d');
   if (!ctx) {
-    console.log('Could not get canvas context');
     return;
   }
 
-  // Get data based on active tab
-  const data = activeTab.value === 'tax_offices' ? (chartData.value?.tax_offices || []) : (chartData.value?.districts || []);
-  console.log('Data for current tab:', data);
+  const data = apiData.value.districts || [];
   
-  // Check if data exists and has length
   if (!data || data.length === 0) {
-    console.log('No data available for current tab');
-    // Show empty state
+    // Хоосон төлөв харуулах
     ctx.font = '16px Arial';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.textAlign = 'center';
@@ -290,41 +165,37 @@ function createChart() {
     return;
   }
 
-  // Sort data by count in descending order
-  const sortedData = data
-    .sort((a, b) => b.count - a.count);
+  // Тоогоор эрэмбэлэх
+  const sortedData = [...data].sort((a, b) => b.count - a.count);
 
-  // Calculate dynamic height based on number of items for horizontal bars
+  // Chart-ийн өндрийг тооцох
   const minHeight = 250;
-  const heightPerItem = 25; // Slightly larger for better visibility
-  const maxItems = 15; // Show max 15 items
+  const heightPerItem = 35;
+  const maxItems = 15;
   const itemsToShow = Math.min(sortedData.length, maxItems);
   const dynamicHeight = Math.max(minHeight, itemsToShow * heightPerItem);
   
-  // Update chart wrapper height
+  // Chart wrapper-ийн өндрийг шинэчлэх
   if (chartCanvas.value?.parentElement) {
     chartCanvas.value.parentElement.style.height = `${dynamicHeight}px`;
   }
   
-  // Take only top items to avoid overcrowding
+  // Дээд талын өгөгдлүүдийг авах
   const displayData = sortedData.slice(0, maxItems);
   const labels = displayData.map(item => item.name);
   const values = displayData.map(item => item.count);
 
-  // Create gradient for horizontal bars
+  // Gradient үүсгэх
   const gradient = ctx.createLinearGradient(0, 0, 400, 0);
   gradient.addColorStop(0, colors.primary);
   gradient.addColorStop(1, colors.secondary);
-
-  // Store current tab for tooltip access
-  const currentTab = activeTab.value;
 
   chartInstance.value = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: labels,
       datasets: [{
-        label: activeTab.value === 'tax_offices' ? 'Татварын алба' : 'Дүүрэг',
+        label: 'Дүүрэг',
         data: values,
         backgroundColor: gradient,
         borderColor: colors.border,
@@ -332,13 +203,13 @@ function createChart() {
         borderRadius: 6,
         borderSkipped: false,
         barThickness: 'flex',
-        maxBarThickness: 20,
+        maxBarThickness: 25,
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      indexAxis: 'y', // Make it horizontal bar chart
+      indexAxis: 'y',
       layout: {
         padding: {
           top: 20,
@@ -363,30 +234,28 @@ function createChart() {
           callbacks: {
             title: function(context) {
               const label = context[0].label || '';
-              return currentTab === 'tax_offices' ? `Татварын алба: ${label}` : `Дүүрэг: ${label}`;
+              return `Дүүрэг: ${label}`;
             },
             label: function(context) {
               const value = context.parsed.x;
               const total = context.dataset.data.reduce((a: any, b: any) => (a || 0) + (b || 0), 0);
               const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
               
-              // Get detailed information for tooltip
-              const itemName = context[0].label;
-              const currentData = currentTab === 'tax_offices' ? (chartData.value?.tax_offices || []) : (chartData.value?.districts || []);
-              const itemData = currentData.find(item => item.name === itemName);
-              
               let tooltipText = `${value} түрээслэгч (${percentage}%)`;
               
-              if (currentTab === 'tax_offices' && itemData && 'districts' in itemData && itemData.districts) {
-                tooltipText += '\n\nДүүргүүд:';
-                itemData.districts.forEach(district => {
-                  tooltipText += `\n• ${district.name}: ${district.count} түрээслэгч`;
-                });
-              } else if (currentTab === 'districts' && itemData && 'khoroos' in itemData && itemData.khoroos) {
+              // Хороонуудын мэдээлэл харуулах
+              const itemName = context[0].label;
+              const districtData = displayData.find(item => item.name === itemName) as DistrictData;
+              
+              if (districtData && districtData.khoroos && districtData.khoroos.length > 0) {
                 tooltipText += '\n\nХороонууд:';
-                itemData.khoroos.forEach(khoroo => {
+                districtData.khoroos.slice(0, 3).forEach((khoroo: KhorooData) => {
                   tooltipText += `\n• ${khoroo.name}: ${khoroo.count} түрээслэгч`;
                 });
+                if (districtData.khoroos.length > 3) {
+                  tooltipText += `\n• ... болон ${districtData.khoroos.length - 3} хороо`;
+                }
+                tooltipText += '\n\nДэлгэрэнгүй харахын тулд дарна уу';
               }
               
               return tooltipText;
@@ -420,8 +289,7 @@ function createChart() {
             padding: 8,
             callback: function(value, index, values) {
               const label = this.getLabelForValue(Number(value));
-              // Truncate long labels for horizontal bars
-              return label.length > 20 ? label.substring(0, 20) + '...' : label;
+              return label.length > 25 ? label.substring(0, 25) + '...' : label;
             }
           },
           grid: {
@@ -437,13 +305,50 @@ function createChart() {
       interaction: {
         intersect: false,
         mode: 'nearest'
+      },
+      onClick: (event, elements) => {
+        if (elements.length > 0) {
+          const index = elements[0].index;
+          const clickedItem = displayData[index] as DistrictData;
+          
+          if (clickedItem && clickedItem.khoroos && clickedItem.khoroos.length > 0) {
+            showDistrictDetails(clickedItem);
+          }
+        }
       }
-    }
+    },
+    plugins: [{
+      id: 'datalabels',
+      afterDatasetsDraw(chart: any) {
+        const { ctx, data } = chart;
+        const dataset = data.datasets[0];
+        const meta = chart.getDatasetMeta(0);
+        
+        meta.data.forEach((element: any, index: number) => {
+          if (element.hidden) return;
+          
+          const value = dataset.data[index];
+          const { x, y } = element;
+          
+          // Bar-ийн дотор тоог харуулах
+          ctx.save();
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 12px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+          ctx.shadowBlur = 3;
+          ctx.shadowOffsetX = 1;
+          ctx.shadowOffsetY = 1;
+          
+          // Тоог харуулах
+          ctx.fillText(value.toString(), x - 20, y);
+          ctx.restore();
+        });
+      }
+    }]
   });
 }
-
-// Watch for tab changes - removed to prevent double chart creation
-// Chart creation is now handled in switchTab function
 
 onMounted(async () => {
   await nextTick();
@@ -501,56 +406,7 @@ watch(() => route.query.id, (newId) => {
   font-size: 0.85rem;
   opacity: 0.9;
   font-weight: 300;
-}
-
-.chart-tabs {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  position: relative;
-  z-index: 1;
-}
-
-.tab-button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  padding: 10px 20px;
-  color: white;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  font-size: 0.9rem;
-}
-
-.tab-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-}
-
-.tab-button.active {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.tab-content {
-  text-align: center;
-}
-
-.tab-title {
-  font-weight: 600;
-  font-size: 0.9rem;
-  margin-bottom: 2px;
-}
-
-.tab-subtitle {
-  font-size: 0.7rem;
-  opacity: 0.8;
-  font-weight: 300;
+  margin-bottom: 10px;
 }
 
 .chart-wrapper {
@@ -560,6 +416,7 @@ watch(() => route.query.id, (newId) => {
   z-index: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  cursor: pointer;
 }
 
 .loading-overlay {
@@ -592,6 +449,133 @@ watch(() => route.query.id, (newId) => {
   100% { transform: rotate(360deg); }
 }
 
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 0;
+  max-width: 600px;
+  max-height: 80vh;
+  width: 90%;
+  color: white;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.3s ease;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.modal-body {
+  padding: 24px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.total-info {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.khoroo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.khoroo-item {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.khoroo-item:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.khoroo-name {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 8px;
+  color: #ffecd2;
+}
+
+.khoroo-count {
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+  opacity: 0.9;
+}
+
+.khoroo-percentage {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  font-weight: 500;
+  color: #a8edea;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px;
+  opacity: 0.7;
+  font-style: italic;
+}
+
 @media (max-width: 768px) {
   .chart-container {
     padding: 16px;
@@ -601,25 +585,34 @@ watch(() => route.query.id, (newId) => {
     font-size: 1.2rem;
   }
   
-  .chart-tabs {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .tab-button {
-    padding: 10px 16px;
-  }
-  
-  .tab-title {
-    font-size: 0.8rem;
-  }
-  
-  .tab-subtitle {
-    font-size: 0.65rem;
-  }
-  
   .chart-wrapper {
     height: 300px;
+  }
+  
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+  
+  .modal-header {
+    padding: 16px 20px;
+  }
+  
+  .modal-header h3 {
+    font-size: 1.2rem;
+  }
+  
+  .modal-body {
+    padding: 20px;
+  }
+  
+  .khoroo-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .khoroo-item {
+    padding: 12px;
   }
 }
 </style>

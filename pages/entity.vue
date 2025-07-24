@@ -50,30 +50,52 @@
                     </button>
                   </h5>
                   <p class="fs-12 text-muted">{{ entity.address || "Үйлчилгээний төв" }}</p>
+                  <p class="fs-12 text-muted">Нэгж талбарын дугаар: {{ entity.parcel_id || '-' }}</p>
                   <p class="fs-12 text-muted">Давхарын тоо: {{ entity.build_floor || 0 }}</p>
+                  
+                  <!-- Map мэдээлэл -->
+                  <div v-if="mapData" class="mt-3">
+                    <div class="row text-center">
+                      <div class="col-4 mb-2">
+                        <div class="border rounded p-2">
+                          <div class="fs-14 fw-bold text-primary">{{ mapData.owner_count || 0 }}</div>
+                          <div class="fs-11 text-muted">Эзэмшигч</div>
+                        </div>
+                      </div>
+                      <div class="col-4 mb-2">
+                        <div class="border rounded p-2">
+                          <div class="fs-14 fw-bold text-success">{{ mapData.activity_operators || 0 }}</div>
+                          <div class="fs-11 text-muted">Үйл ажиллагаа эрхлэгч</div>
+                        </div>
+                      </div>
+                      <div class="col-4 mb-2">
+                        <div class="border rounded p-2">
+                          <div class="fs-14 fw-bold text-warning">{{ mapData.tenants || 0 }}</div>
+                          <div class="fs-11 text-muted">Түрээслэгч</div>
+                        </div>
+                      </div>
+                      <div class="col-4">
+                        <div class="border rounded p-2">
+                          <div class="fs-14 fw-bold text-info">{{ formatNumber(mapData.area || 0) }}</div>
+                          <div class="fs-11 text-muted">Ашиглагдаж байгаа талбай (мкв)</div>
+                        </div>
+                      </div>
+                      <div class="col-4">
+                        <div class="border rounded p-2">
+                          <div class="fs-14 fw-bold text-secondary">{{ formatNumber(mapData.land_area || 0) }}</div>
+                          <div class="fs-11 text-muted">Газрын талбай (мкв)</div>
+                        </div>
+                      </div>
+                      <div class="col-4">
+                        <div class="border rounded p-2">
+                          <div class="fs-14 fw-bold text-dark">{{ formatNumber(mapData.unused_area || 0) }}</div>
+                          <div class="fs-11 text-muted">Ашиглагдаагүй талбай (мкв)</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <p class="card-text"></p>
-                  <small class="text-muted">Бүртгэл</small>
-                  <div class="progress">
-                    <div
-                      class="progress-bar bg-gray progress-bar-striped progress-bar-animated"
-                      role="progressbar"
-                      :style="`width:${entity.registration}%`"
-                      :aria-valuenow="entity.registration"
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                    ></div>
-                  </div>
-                  <small class="text-muted">Тайлан</small>
-                  <div class="progress">
-                    <div
-                      class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
-                      role="progressbar"
-                      :style="`width:${entity.report}%`"
-                      :aria-valuenow="entity.report"
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                    ></div>
-                  </div>
                 </div>
                 <div class="card-footer">
                   <a
@@ -96,6 +118,14 @@
                     @click="setActiveTab('rent')"
                   >
                     Түрээс
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-primary btn-sm ms-2"
+                    :class="{ active: activeTab === 'reports' }"
+                    @click="setActiveTab('reports')"
+                  >
+                    Чиглэлийн бүртгэл
                   </button>
                 </div>
               </div>
@@ -121,6 +151,86 @@
                 >
                   <div class="modal-content-custom">
                     <img src="/uploads/floor1.jpg" alt="" class="modal-img" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Татвар төлөгчдийн ангилал - доод талд хэвтээ байдлаар -->
+          <div class="row mb-4">
+            <!-- Сайн татвар төлөгч -->
+            <div class="col-lg-4 col-md-4 mb-3">
+              <div class="card bg-success text-white h-100">
+                <div class="card-body p-3">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-smile fa-2x me-2"></i>
+                    <div>
+                      <h6 class="card-title mb-0">Сайн татвар төлөгч</h6>
+                      <small class="opacity-75">TTToo-10</small>
+                    </div>
+                  </div>
+                  <div class="small">
+                    <div>1.Бүртгэл</div>
+                    <div>2.И-Баримт</div>
+                    <div>3.Зөвшөөрлийн мэдээ (НӨАТ, НХАТ,ОАТ)</div>
+                    <div>4.Тайлан</div>
+                    <div>5.Төлөлт</div>
+                    <div>6.Өрийн үлдэгдэл</div>
+                    <div>7.Хөрөнгийн мэдээлэл</div>
+                    <div>8.Туслан зөвлөх үйлчилгээ</div>
+                    <div>9.Зөрчийн мэдээлэл</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Туслага хэрэгтэй -->
+            <div class="col-lg-4 col-md-4 mb-3">
+              <div class="card bg-warning text-dark h-100">
+                <div class="card-body p-3">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-meh fa-2x me-2"></i>
+                    <div>
+                      <h6 class="card-title mb-0">Тусламж хэрэгтэй татвар төлөгч</h6>
+                      <small class="opacity-75">TTToo-10</small>
+                    </div>
+                  </div>
+                  <div class="small">
+                    <div>1.Бүртгэл</div>
+                    <div>2.И-Баримт -5</div>
+                    <div>3.Зөвшөөрлийн мэдээ (НӨАТ, НХАТ,ОАТ)</div>
+                    <div>4.Тайлан -2</div>
+                    <div>5.Төлөлт</div>
+                    <div>6.Өрийн үлдэгдэл-3</div>
+                    <div>7.Хөрөнгийн мэдээлэл</div>
+                    <div>8.Туслан зөвлөх үйлчилгээ</div>
+                    <div>9.Зөрчийн мэдээлэл</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Асуудалтай -->
+            <div class="col-lg-4 col-md-4 mb-3">
+              <div class="card bg-danger text-white h-100">
+                <div class="card-body p-3">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-frown fa-2x me-2"></i>
+                    <div>
+                      <h6 class="card-title mb-0">Асуудалтай татвар төлөгч</h6>
+                      <small class="opacity-75">TTToo-10</small>
+                    </div>
+                    <i class="fas fa-question-circle fa-lg ms-2"></i>
+                  </div>
+                  <div class="small">
+                    <div>1.Бүртгэл</div>
+                    <div>2.И-Баримт</div>
+                    <div>3.Зөвшөөрлийн мэдээ (НӨАТ, НХАТ,ОАТ) -5</div>
+                    <div>4.Тайлан -2</div>
+                    <div>5.Төлөлт</div>
+                    <div>6.Өрийн</div>
+                    <div>7.Хөрөнгийн мэдээлэл -3</div>
+                    <div>8.Туслан зөвлөх үйлчилгээ</div>
+                    <div>9.Зөрчийн мэдээлэл</div>
                   </div>
                 </div>
               </div>
@@ -304,6 +414,74 @@
             </div>
           </div>
           
+          <!-- Чиглэлийн бүртгэлийн хүснэгт -->
+          <div class="row justify-content-center mt-2" v-if="activeTab === 'reports'">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header d-flex align-items-center">
+                  <h5 class="card-title mb-0 me-3">📊 Үйл ажиллагааны чиглэлийн бүртгэл</h5>
+                  <div class="ms-auto">
+                    <span class="badge bg-primary px-3 py-2">
+                      Нийт: {{ entityReportsTotal }}
+                    </span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div v-if="entityReports.length === 0" class="text-center py-4 text-muted">
+                    <i class="fas fa-chart-bar fs-1 mb-3 text-muted"></i>
+                    <p>Энэ барилганд үйл ажиллагааны мэдээлэл олдсонгүй</p>
+                  </div>
+                  <div v-else>
+                    <div class="table-responsive">
+                      <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                          <tr>
+                            <th class="text-center" style="width: 5%;">#</th>
+                            <th style="width: 70%;">🏢 Үйл ажиллагааны чиглэл</th>
+                            <th class="text-center" style="width: 15%;">👥 Тоо</th>
+                            <th class="text-center" style="width: 10%;">📊 Хувь</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="(report, index) in entityReports" :key="index">
+                            <td class="text-center">{{ index + 1 }}</td>
+                            <td class="fw-semibold">{{ report.op_type_name }}</td>
+                            <td class="text-center">
+                              <span class="badge bg-success px-3 py-1">{{ report.count }}</span>
+                            </td>
+                            <td class="text-center">
+                              <span class="text-muted small">
+                                {{ entityReportsTotal > 0 ? Math.round((report.count / entityReportsTotal) * 100) : 0 }}%
+                              </span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <!-- Summary info -->
+                    <div class="mt-3 p-3 bg-light rounded">
+                      <div class="row text-center">
+                        <div class="col-md-6">
+                          <div class="border-end">
+                            <h5 class="text-primary mb-1">{{ entityReports.length }}</h5>
+                            <small class="text-muted">Төрлийн тоо</small>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div>
+                            <h5 class="text-success mb-1">{{ entityReportsTotal }}</h5>
+                            <small class="text-muted">Нийт татвар төлөгч</small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div class="row justify-content-center">
             <div class="col-md-6 col-lg-8">
               <div class="card">
@@ -340,7 +518,7 @@
                 <div class="card-header">
                   <div class="row align-items-center">
                     <div class="col">
-                      <h4 class="card-title">Татварын орлого</h4>
+                      <h4 class="card-title">Татварын алба</h4>
                     </div>
                   </div>
                 </div>
@@ -359,7 +537,7 @@
                   </div>
                 </div>
                 <div class="card-body pt-0">
-                  <client-only><EntityPolarAreaChart /></client-only>
+                  <client-only><EntityPolarAreaChart :centerId="entity.id" /></client-only>
                 </div>
               </div>
             </div>
@@ -444,11 +622,8 @@ const entity = ref<any>({
   name: "",
   tax_payers: 0,
   address: "",
-  registration: 90,
-  report: 75,
   mapUrl: "https://www.google.com/maps/dir/?api=1&destination=47.934086900672%2C106.91685211685",
 });
-const showFloorModal = ref(false);
 const activeTab = ref<string>('');
 const rentProperties = ref<any[]>([]);
 const searchQuery = ref('');
@@ -456,10 +631,18 @@ const filteredOrganizations = ref<any[]>([]);
 const rentSearchQuery = ref('');
 const filteredRentProperties = ref<any[]>([]);
 
+// Reports functionality
+const entityReports = ref<any[]>([]);
+const entityReportsTotal = ref(0);
+
 // Modal state
 const detailModalOpen = ref(false);
 const selectedMrchRegno = ref('');
 const showDropdown = ref(false);
+const showFloorModal = ref(false); // New state for floor modal
+
+// Map data state
+const mapData = ref<any>(null);
 
 // Import cache composable
 import { useCache } from '../composables/useCache';
@@ -485,13 +668,41 @@ async function fetchEntity() {
         tax_payers: data.tax_payers || 0,
         address: data.address || "",
         build_floor: data.build_floor || 0,
-        registration: data.registration || 90,
-        report: data.report || 75,
+        parcel_id: data.parcel_id || "",
         mapUrl: entity.value.mapUrl, // Keep existing mapUrl
       };
     }
   } catch (error) {
     console.error('Error fetching entity:', error);
+  }
+}
+
+async function fetchMapData() {
+  const id = route.query.id;
+  if (!id) return;
+  
+  try {
+    const response = await fetch(`http://localhost:8080/api/v1/map-data?pay_center_id=${id}`);
+    const result = await response.json();
+    
+    if (result.success && result.data) {
+      mapData.value = result.data;
+    } else {
+      mapData.value = {
+        owner_count: 0,
+        activity_operators: 0,
+        area: 0,
+        tenants: 0
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching map data:', error);
+    mapData.value = {
+      owner_count: 0,
+      activity_operators: 0,
+      area: 0,
+      tenants: 0
+    };
   }
 }
 
@@ -683,6 +894,29 @@ async function fetchOrganizations() {
   }
 }
 
+async function fetchEntityReports() {
+  const id = route.query.id;
+  if (!id) return;
+
+  try {
+    const response = await fetch(`http://localhost:8080/api/v1/reports/activity-by-pay-center/${id}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      entityReports.value = Array.isArray(result.data) ? result.data : [];
+      entityReportsTotal.value = result.total_count || 0;
+    } else {
+      console.error('Error fetching entity reports:', result.error);
+      entityReports.value = [];
+      entityReportsTotal.value = 0;
+    }
+  } catch (error) {
+    console.error('Error fetching entity reports:', error);
+    entityReports.value = [];
+    entityReportsTotal.value = 0;
+  }
+}
+
 function toggleDropdown() {
   console.log('Toggle dropdown clicked, current state:', showDropdown.value);
   showDropdown.value = !showDropdown.value;
@@ -696,7 +930,7 @@ function selectFloor(floor: number) {
   fetchOrganizations();
 }
 
-async function setActiveTab(tab: 'ebarimt' | 'rent') {
+async function setActiveTab(tab: 'ebarimt' | 'rent' | 'reports') {
   if (activeTab.value === tab) {
     activeTab.value = '';
     return;
@@ -707,6 +941,9 @@ async function setActiveTab(tab: 'ebarimt' | 'rent') {
   }
   if (tab === 'rent') {
     await fetchRentProperties();
+  }
+  if (tab === 'reports') {
+    await fetchEntityReports();
   }
 }
 
@@ -814,6 +1051,7 @@ function handleKeydown(e: KeyboardEvent) {
 onMounted(() => {
   fetchEntity();
   fetchFloors();
+  fetchMapData(); // Call fetchMapData here
   
   // Dropdown-г гаднаас дарж хаах
   document.addEventListener('click', handleClickOutside);

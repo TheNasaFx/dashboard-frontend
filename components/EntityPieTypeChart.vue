@@ -209,7 +209,41 @@ function createChart() {
         intersect: false,
         mode: 'nearest'
       }
-    }
+    },
+    plugins: [{
+      id: 'datalabels',
+      afterDatasetsDraw(chart: any) {
+        const { ctx, data } = chart;
+        const dataset = data.datasets[0];
+        const meta = chart.getDatasetMeta(0);
+        
+        meta.data.forEach((element: any, index: number) => {
+          if (element.hidden) return;
+          
+          const { x, y } = element.tooltipPosition();
+          const value = dataset.data[index];
+          const total = dataset.data.reduce((a: number, b: number) => a + b, 0);
+          const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+          
+          // Only show label if percentage is greater than 5% to avoid clutter
+          if (percentage >= 5) {
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            ctx.shadowBlur = 3;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+            
+            // Draw the value
+            ctx.fillText(value.toString(), x, y);
+            ctx.restore();
+          }
+        });
+      }
+    }]
   });
 }
 

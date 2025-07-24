@@ -28,11 +28,15 @@
                   <table class="table table-sm">
                     <tbody>
                       <tr>
-                        <td><strong>Регистер:</strong></td>
+                        <td><strong>Татвар төлөгчийн регистер:</strong></td>
                         <td>{{ data.branch?.register || '-' }}</td>
                       </tr>
                       <tr>
-                        <td><strong>Овог нэр:</strong></td>
+                        <td><strong>Этгээдийн төрөл:</strong></td>
+                        <td>{{ getEntityType(data.branch?.register) }}</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Татвар төлөгчийн нэр:</strong></td>
                         <td>{{ data.branch?.ovog_ner || '-' }}</td>
                       </tr>
                       <tr>
@@ -53,10 +57,30 @@
               </div>
             </div>
             
+            <!-- Газрын мэдээлэл хэсэг -->
+            <div class="col-md-6 mb-4">
+              <div class="card">
+                <div class="card-header bg-info text-white">
+                  <h6 class="mb-0">Бүх газрын мэдээлэл</h6>
+                </div>
+                <div class="card-body">
+                  <div v-if="data.properties && data.properties.length > 0" class="property-list-container">
+                    <div v-for="(property, index) in data.properties" :key="index" class="property-item">
+                      <div class="property-number">{{ index + 1 }}.</div>
+                      <div class="property-address">{{ property.full_address }}</div>
+                    </div>
+                  </div>
+                  <div v-else class="text-muted">
+                    Газрын мэдээлэл олдсонгүй
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             <!-- Сегмент болон е-баримт хэсэг -->
             <div class="col-md-6 mb-4">
-              <div class="card mb-3">
-                <div class="card-header bg-info text-white">
+              <div class="card">
+                <div class="card-header bg-warning text-dark">
                   <h6 class="mb-0">Сегмент</h6>
                 </div>
                 <div class="card-body">
@@ -73,8 +97,10 @@
                     </tbody>
                   </table>
                 </div>
+                </div>
               </div>
               
+            <div class="col-md-6 mb-4">
               <div class="card">
                 <div class="card-header bg-success text-white">
                   <h6 class="mb-0">Е-баримт</h6>
@@ -115,9 +141,9 @@
                         </tr>
                       </thead>
                       <tbody>
-                        <tr v-for="(report, idx) in data.reports" :key="idx">
+                        <tr v-for="(report, idx) in sortedReports" :key="idx">
                           <td>{{ report.tax_report_code || '-' }}</td>
-                          <td>{{ report.frequency || '-' }}</td>
+                          <td>{{ getFrequencyDisplay(report.frequency) }}</td>
                           <td>{{ report.tax_year || '-' }}</td>
                           <td>{{ report.tax_period || '-' }}</td>
                           <td>{{ report.submitted_date || '-' }}</td>
@@ -239,6 +265,43 @@
               </div>
             </div>
             
+            <!-- НӨАТ болон НХАТ мэдээлэл -->
+            <div class="col-12 mb-4">
+              <div class="card">
+                <div class="card-header bg-info text-white">
+                  <h6 class="mb-0">НӨАТ болон НХАТ мэдээлэл</h6>
+                </div>
+                <div class="card-body">
+                  <div v-if="nuatNhatLoading" class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="ms-2">Мэдээлэл татаж байна...</span>
+                  </div>
+                  <div v-else class="row">
+                    <div class="col-md-6">
+                      <div class="text-center p-3 border rounded bg-light">
+                        <h4 class="text-primary mb-2">{{ formatNumber(nuatNhatData.nuat_count) }}</h4>
+                        <div class="text-muted">НӨАТ суутган төлөгч</div>
+                        <small class="text-secondary">Нөхцөлт атавартай татварын тоо</small>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="text-center p-3 border rounded bg-light">
+                        <h4 class="text-success mb-2">{{ formatNumber(nuatNhatData.nhat_count) }}</h4>
+                        <div class="text-muted">НХАТ төлөгч</div>
+                        <small class="text-secondary">Нэмэгдсэн ханшийн албан татварын тоо</small>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-if="nuatNhatError" class="alert alert-warning mt-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {{ nuatNhatError }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             <!-- Бусад мэдээлэл -->
             <div class="col-12">
               <div class="card">
@@ -291,6 +354,11 @@ const loading = ref(false);
 const error = ref('');
 const data = ref<any>(null);
 
+// НӨАТ/НХАТ мэдээллийн variables
+const nuatNhatLoading = ref(false);
+const nuatNhatError = ref('');
+const nuatNhatData = ref({ nuat_count: 0, nhat_count: 0 });
+
 // Computed properties for totals
 const totalDebt = computed(() => {
   if (!data.value?.debts || !Array.isArray(data.value.debts)) return 0;
@@ -309,6 +377,63 @@ const totalPayment = computed(() => {
 const remainingDebt = computed(() => {
   return totalDebt.value - totalPayment.value;
 });
+
+// Sorted reports computed property
+const sortedReports = computed(() => {
+  if (!data.value?.reports || !Array.isArray(data.value.reports)) return [];
+  
+  return [...data.value.reports].sort((a, b) => {
+    // Эхлээд жилээр sort хийх (дээрээс доош)
+    const yearA = parseInt(a.tax_year) || 0;
+    const yearB = parseInt(b.tax_year) || 0;
+    if (yearA !== yearB) {
+      return yearB - yearA; // Шинэ жил дээр
+    }
+    
+    // Дараа нь period-оор sort хийх (тоогоор)
+    const periodA = parseFloat(a.tax_period) || 0;
+    const periodB = parseFloat(b.tax_period) || 0;
+    if (periodA !== periodB) {
+      return periodB - periodA; // Их хугацаа дээр
+    }
+    
+    // Эцэст submitted_date-ээр sort хийх
+    const dateA = new Date(a.submitted_date || '1970-01-01').getTime();
+    const dateB = new Date(b.submitted_date || '1970-01-01').getTime();
+    return dateB - dateA; // Шинэ огноо дээр
+  });
+});
+
+// REGISTER утгаас этгээдийн төрөл тодорхойлох функц
+function getEntityType(register: string | undefined) {
+  if (!register) return '-';
+  
+  // Зөвхөн тоо болон үсгийг авах
+  const cleanRegister = register.trim();
+  
+  if (cleanRegister.length === 7) {
+    return 'Хуулийн этгээд';
+  } else if (cleanRegister.length === 10) {
+    return 'Иргэн';
+  } else {
+    return 'Тодорхойгүй';
+  }
+}
+
+// Давтамжийг зөв харуулах функц
+function getFrequencyDisplay(frequency: string | undefined) {
+  if (!frequency) return '-';
+  
+  const freq = frequency.trim().toUpperCase();
+  
+  if (freq === 'Q') {
+    return 'Q (Улирлаар)';
+  } else if (freq === 'M') {
+    return 'M (Сараар)';
+  } else {
+    return 'Жилээр';
+  }
+}
 
 // Number format function
 function formatNumber(num: number | string | undefined) {
@@ -345,6 +470,8 @@ async function fetchDetails() {
     
     if (response.success) {
       data.value = response.data;
+      // Fetch NUAT/NHAT data after main data is loaded
+      await fetchNuatNhatData();
     } else {
       error.value = response.error?.message || 'Мэдээлэл авахад алдаа гарлаа';
     }
@@ -352,6 +479,34 @@ async function fetchDetails() {
     error.value = e.message || 'Алдаа гарлаа';
   } finally {
     loading.value = false;
+  }
+}
+
+// Fetch NUAT/NHAT data
+async function fetchNuatNhatData() {
+  if (!props.mrchRegno) return;
+  
+  nuatNhatLoading.value = true;
+  nuatNhatError.value = '';
+  
+  try {
+    const response = await useApi(`/nuat-nhat/${props.mrchRegno}`);
+    
+    if (response.success && response.data) {
+      const responseData = response.data as { nuat_count: number; nhat_count: number };
+      nuatNhatData.value = {
+        nuat_count: responseData.nuat_count || 0,
+        nhat_count: responseData.nhat_count || 0
+      };
+    } else {
+      nuatNhatError.value = 'НӨАТ/НХАТ мэдээлэл авахад алдаа гарлаа';
+      nuatNhatData.value = { nuat_count: 0, nhat_count: 0 };
+    }
+  } catch (e: any) {
+    nuatNhatError.value = e.message || 'НӨАТ/НХАТ мэдээлэл авахад алдаа гарлаа';
+    nuatNhatData.value = { nuat_count: 0, nhat_count: 0 };
+  } finally {
+    nuatNhatLoading.value = false;
   }
 }
 
@@ -430,5 +585,37 @@ function close() {
   font-weight: 600;
 }
 
+.property-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  padding: 8px 0;
+  border-bottom: 1px dashed #dee2e6;
+}
+
+.property-item:last-child {
+  border-bottom: none;
+}
+
+.property-number {
+  font-weight: bold;
+  margin-right: 12px;
+  color: #007bff;
+  min-width: 20px;
+  font-size: 0.9rem;
+}
+
+.property-address {
+  flex-grow: 1;
+  word-break: break-word;
+  line-height: 1.4;
+  font-size: 0.9rem;
+}
+
+.property-list-container {
+  max-height: 300px; /* Adjust as needed */
+  overflow-y: auto;
+  padding-right: 10px; /* Add some padding for scrollbar */
+}
 
 </style> 

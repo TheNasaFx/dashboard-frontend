@@ -114,6 +114,8 @@ onMounted(async () => {
           
           if (reportData) {
             if (Array.isArray(reportData) && reportData.length > 0) {
+              // Тайлангийн тоог тоолох
+              org.report_count = reportData.length;
               const latestReport = reportData.reduce((latest, current) => {
                 if (!latest.submitted_date) return current;
                 if (!current.submitted_date) return latest;
@@ -121,6 +123,7 @@ onMounted(async () => {
               });
               org.report_submitted_date = latestReport.submitted_date || '-';
             } else {
+              org.report_count = 0;
               org.report_submitted_date = '-';
             }
           } else {
@@ -129,21 +132,26 @@ onMounted(async () => {
               reportData = reportRes.data;
               set(reportCacheKey, reportData);
               
-          if (Array.isArray(reportData) && reportData.length > 0) {
-            const latestReport = reportData.reduce((latest, current) => {
-              if (!latest.submitted_date) return current;
-              if (!current.submitted_date) return latest;
-              return new Date(current.submitted_date) > new Date(latest.submitted_date) ? current : latest;
-            });
-            org.report_submitted_date = latestReport.submitted_date || '-';
-          } else {
-            org.report_submitted_date = '-';
+              if (Array.isArray(reportData) && reportData.length > 0) {
+                // Тайлангийн тоог тоолох
+                org.report_count = reportData.length;
+                const latestReport = reportData.reduce((latest, current) => {
+                  if (!latest.submitted_date) return current;
+                  if (!current.submitted_date) return latest;
+                  return new Date(current.submitted_date) > new Date(latest.submitted_date) ? current : latest;
+                });
+                org.report_submitted_date = latestReport.submitted_date || '-';
+              } else {
+                org.report_count = 0;
+                org.report_submitted_date = '-';
               }
             } else {
+              org.report_count = 0;
               org.report_submitted_date = '-';
             }
           }
         } catch (e) {
+          org.report_count = 0;
           org.report_submitted_date = '-';
         }
 
@@ -153,15 +161,34 @@ onMounted(async () => {
           let paymentData = get(paymentCacheKey);
           
           if (paymentData) {
-            org.payment_amount = paymentData.total_amount || 0;
+            if (Array.isArray(paymentData) && paymentData.length > 0) {
+              // Нийт төлөлтийн дүнг тооцоолох
+              const totalPayment = paymentData.reduce((total, payment) => {
+                const amount = payment.amount || 0;
+                return total + parseFloat(amount);
+              }, 0);
+              org.payment_amount = totalPayment;
+            } else {
+              org.payment_amount = 0;
+            }
           } else {
             const paymentRes = await useApi(`/payments/${org.mrch_regno}`);
             if (paymentRes.success && paymentRes.data) {
               paymentData = paymentRes.data;
-              org.payment_amount = paymentData.total_amount || 0;
               set(paymentCacheKey, paymentData);
-          } else {
-            org.payment_amount = 0;
+              
+              if (Array.isArray(paymentData) && paymentData.length > 0) {
+                // Нийт төлөлтийн дүнг тооцоолох
+                const totalPayment = paymentData.reduce((total, payment) => {
+                  const amount = payment.amount || 0;
+                  return total + parseFloat(amount);
+                }, 0);
+                org.payment_amount = totalPayment;
+              } else {
+                org.payment_amount = 0;
+              }
+            } else {
+              org.payment_amount = 0;
             }
           }
         } catch (e) {
@@ -175,6 +202,7 @@ onMounted(async () => {
           
           if (debtData) {
             if (Array.isArray(debtData) && debtData.length > 0) {
+              // Нийт өрийн дүнг тооцоолох
               const totalDebt = debtData.reduce((total, record) => {
                 const c2Debit = record.C2_DEBIT || 0;
                 return total + parseFloat(c2Debit);
@@ -190,13 +218,14 @@ onMounted(async () => {
               set(debtCacheKey, debtData);
               
               if (Array.isArray(debtData) && debtData.length > 0) {
+                // Нийт өрийн дүнг тооцоолох
                 const totalDebt = debtData.reduce((total, record) => {
-              const c2Debit = record.C2_DEBIT || 0;
-              return total + parseFloat(c2Debit);
-            }, 0);
-            org.debt_amount = totalDebt;
-          } else {
-            org.debt_amount = 0;
+                  const c2Debit = record.C2_DEBIT || 0;
+                  return total + parseFloat(c2Debit);
+                }, 0);
+                org.debt_amount = totalDebt;
+              } else {
+                org.debt_amount = 0;
               }
             } else {
               org.debt_amount = 0;
@@ -209,6 +238,7 @@ onMounted(async () => {
         org.count_receipt = 0;
         org.cnt_3 = 0;
         org.cnt_30 = 0;
+        org.report_count = 0;
         org.report_submitted_date = '-';
         org.payment_amount = 0;
         org.debt_amount = 0;
@@ -270,6 +300,8 @@ onMounted(async () => {
             
             <div style='margin-bottom:6px;'><b>Бүртгэл:</b> <span style='color:#0066cc;'>${org.mrch_regno || '-'}</span></div>
             
+            <div style='margin-bottom:6px;'><b>Нэгж талбарын дугаар:</b> <span style='color:#6c757d;'>${org.parcel_id || '-'}</span></div>
+            
             <div style='margin-bottom:6px;'><b>И-Баримт сүүлийн 3 хоногт:</b> 
               ${!org.count_receipt || org.count_receipt === 0 ? 
                 '<span style="color:#dc3545;">0</span>' : 
@@ -286,7 +318,7 @@ onMounted(async () => {
             
             <div style='margin-bottom:6px;'><b>Зөвшөөрлийн мэдээ:</b> <span style='color:#6c757d;'>0</span></div>
             
-            <div style='margin-bottom:6px;'><b>Тайлан:</b> <span style='color:#17a2b8;'>${org.report_submitted_date || '-'}</span></div>
+            <div style='margin-bottom:6px;'><b>Тайлан:</b> <span style='color:#17a2b8;'>${org.report_count || 0}</span></div>
             
             <div style='margin-bottom:6px;'><b>Төлөлт:</b> <span style='color:#28a745; font-weight:bold;'>${formatNumber(org.payment_amount)}₮</span></div>
             

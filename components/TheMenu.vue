@@ -121,10 +121,10 @@
                 </NuxtLink>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="#">
+                <NuxtLink class="nav-link" to="/reports">
                   <i class="fa fa-pie-chart menu-icon"></i>
                   <span>Тайлан</span>
-                </a>
+                </NuxtLink>
               </li>
               <li class="nav-item">
                 <NuxtLink class="nav-link" to="/users">

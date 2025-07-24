@@ -206,30 +206,22 @@
                         </button>
                       </h5>
                       <p class="fs-12 text-muted">{{ entity.address || "Үйлчилгээний төв" }}</p>
+                      <p class="fs-12 text-muted">Нэгж талбарын дугаар: {{ entity.parcel_id || '-' }}</p>
                       <p class="fs-12 text-muted">Давхарын тоо: {{ entity.build_floor || 0 }}</p>
+                      
+                      <!-- Map мэдээлэл -->
+                      <div v-if="entity.mapData" class="mt-2">
+                        <div class="d-flex justify-content-between small text-muted">
+                          <span><i class="fas fa-user text-primary"></i> {{ entity.mapData.owner_count || 0 }} эзэмшигч</span>
+                          <span><i class="fas fa-building text-success"></i> {{ entity.mapData.activity_operators || 0 }} үйл ажиллагаа</span>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted mt-1">
+                          <span><i class="fas fa-expand-arrows-alt text-info"></i> {{ formatNumber(entity.mapData.area || 0) }} мкв</span>
+                          <span><i class="fas fa-users text-warning"></i> {{ entity.mapData.tenants || 0 }} түрээслэгч</span>
+                        </div>
+                      </div>
+                      
                       <p class="card-text"></p>
-                      <small class="text-muted">Бүртгэл</small>
-                      <div class="progress">
-                        <div
-                          class="progress-bar bg-gray progress-bar-striped progress-bar-animated"
-                          role="progressbar"
-                          :style="`width:${entity.registration || 90}%`"
-                          :aria-valuenow="entity.registration || 90"
-                          aria-valuemin="0"
-                          aria-valuemax="100"
-                        ></div>
-                      </div>
-                      <small class="text-muted">Тайлан</small>
-                      <div class="progress">
-                        <div
-                          class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
-                          role="progressbar"
-                          :style="`width:${entity.report || 75}%`"
-                          :aria-valuenow="entity.report || 75"
-                          aria-valuemin="0"
-                          aria-valuemax="100"
-                        ></div>
-                      </div>
                     </div>
                     <div class="card-footer">
                       <a
@@ -271,10 +263,10 @@ interface Building {
   kho_code: string;
   build_floor: number;
   address?: string;
-  registration?: number;
-  report?: number;
   mapUrl?: string;
   tax_payers?: number;
+  parcel_id?: string;
+  mapData?: any;
   // add other fields if needed
 }
 
@@ -306,6 +298,50 @@ function selectKhoroo(code: string, name: string) {
   selectedKhorooName.value = name;
 }
 
+function formatNumber(num: number | string): string {
+  if (num === undefined || num === null) return '0';
+  return Number(num).toLocaleString('en-US');
+}
+
+async function fetchMapDataForBuildings() {
+  if (!buildings.value || buildings.value.length === 0) return;
+  
+  // Batch дуудлага хийх building ID-уудыг цуглуулах
+  const buildingIds = buildings.value.map(b => b.id).filter(id => id);
+  
+  if (buildingIds.length === 0) return;
+  
+  try {
+    const response = await fetch(`http://localhost:8080/api/v1/map-data-batch?pay_center_ids=${buildingIds.join(',')}`);
+    const result = await response.json();
+    
+    if (result.success && result.data) {
+      // Building бүрт map data нэмэх
+      buildings.value = buildings.value.map(building => {
+        const mapDataResponse = result.data[building.id.toString()];
+        if (mapDataResponse && mapDataResponse.success && mapDataResponse.data) {
+          return {
+            ...building,
+            mapData: mapDataResponse.data
+          };
+        } else {
+          return {
+            ...building,
+            mapData: {
+              owner_count: 0,
+              activity_operators: 0,
+              area: 0,
+              tenants: 0
+            }
+          };
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching map data batch:', error);
+  }
+}
+
 const filteredBuildings = computed(() => {
   return buildings.value.filter((b) => {
     const districtMatch =
@@ -331,8 +367,6 @@ onMounted(async () => {
     const buildingsData = Array.isArray(resBuildings.data) ? resBuildings.data : [];
     buildings.value = buildingsData.map((b: any) => ({
       ...b,
-      registration: b.registration || 90,
-      report: b.report || 75,
       tax_payers: b.tax_payers || 0,
       mapUrl:
         b.mapUrl ||
@@ -341,6 +375,7 @@ onMounted(async () => {
   } else {
     error.value = resBuildings.error?.message || 'Алдаа';
   }
+  await fetchMapDataForBuildings(); // Map data fetch on mount
 });
 
 function handleFloorSelect(buildingId: number, floor: number) {
