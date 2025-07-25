@@ -113,8 +113,8 @@
                       </div>
                     </div>
                     <div class="flex-grow-1 ms-3">
-                      <h6 class="mb-0 text-muted">Нийт талбай (га)</h6>
-                      <h4 class="mb-0">{{ formatNumber(totalAreaHA) }}</h4>
+                      <h6 class="mb-0 text-muted">Нийт талбай (м²)</h6>
+                      <h4 class="mb-0">{{ formatNumber(totalAreaM2) }}</h4>
                     </div>
                   </div>
                 </div>
@@ -359,7 +359,6 @@ interface LandData {
   pii: string
   au2_name: string
   area_m2: number
-  area_ha: number
   name: string
 }
 
@@ -405,9 +404,7 @@ const totalAreaM2 = computed(() => {
   return landData.value.reduce((sum, item) => sum + (item.area_m2 || 0), 0)
 })
 
-const totalAreaHA = computed(() => {
-  return landData.value.reduce((sum, item) => sum + (item.area_ha || 0), 0)
-})
+
 
 // Payment statistics
 const totalLandPayment = computed(() => {
@@ -441,7 +438,7 @@ const districtData = computed(() => {
     }
     const data = districts.get(district)!
     data.count += 1
-    data.area += (item.area_m2 || 0) + (item.area_ha || 0)
+    data.area += (item.area_m2 || 0)
   })
   
   return Array.from(districts.values()).sort((a, b) => b.count - a.count)

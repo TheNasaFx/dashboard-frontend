@@ -26,8 +26,30 @@
           </div>
           <div class="row justify-content-center">
             <div class="col-md-12 col-lg-12">
-              <div class="card">
+                              <div class="card">
                 <div class="card-body">
+                  <!-- Map Type Selection Buttons -->
+                  <div class="d-flex gap-2 mb-3">
+                    <button 
+                      type="button" 
+                      class="btn"
+                      :class="mapType === 'land' ? 'btn-success' : 'btn-outline-success'"
+                      @click="selectMapType('land')"
+                    >
+                      <i class="las la-map-marked-alt me-1"></i>
+                      Газар
+                    </button>
+                    <button 
+                      type="button" 
+                      class="btn"
+                      :class="mapType === 'real_estate' ? 'btn-info' : 'btn-outline-info'"
+                      @click="selectMapType('real_estate')"
+                    >
+                      <i class="las la-building me-1"></i>
+                      Үл хөдлөх хөрөнгө
+                    </button>
+                  </div>
+                  
                   <div class="d-flex flex-wrap gap-2 align-items-center">
                     <div class="dropdown">
                       <button
@@ -217,6 +239,8 @@
                   <client-only>
                     <MapView
                       :organizations="organizations || []"
+                      :payCenter="payCenter || []"
+                      :mapType="mapType"
                     />
                   </client-only>
                 </div>
@@ -256,6 +280,8 @@ const searchName = ref("");
 const searchRegno = ref("");
 const searchedLand = ref<any[] | null>(null);
 const organizations = ref<any[] | null>(null);
+const mapType = ref(""); // Current map type: 'land' or 'real_estate'
+const payCenter = ref<any[] | null>(null);
 
 // Khoroo list with proper formatting
 const khorooList = ref([
@@ -305,6 +331,48 @@ function selectCategory(val: string, name: string) {
   selectedCategory.value = val;
   selectedCategoryName.value = name;
   filterOrganizations();
+}
+
+async function selectMapType(type: string) {
+  // Toggle logic: if same type is clicked, deselect it
+  if (mapType.value === type) {
+    mapType.value = "";
+    payCenter.value = null;
+    return;
+  }
+  
+  mapType.value = type;
+  
+  if (type === 'land') {
+    // Load land/pay center data - keep existing organizations
+    await loadPayCenterData();
+  } else if (type === 'real_estate') {
+    // Load real estate data (if needed) - keep existing organizations
+    payCenter.value = null;
+  } else {
+    // Reset to default - show organizations only
+    payCenter.value = null;
+  }
+}
+
+async function loadPayCenterData() {
+  try {
+    console.log('Loading pay center data...');
+    const res = await useApi("/pay-center-locations?grouped=true");
+    if (res.success && res.data) {
+      payCenter.value = res.data as any; // This will be a grouped object now
+      // Keep existing organizations - don't clear them
+      console.log('Pay center data loaded (grouped):', Object.keys(payCenter.value || {}).length, 'groups');
+    } else {
+      console.error('Failed to fetch pay center data:', res);
+      payCenter.value = null;
+      alert("Газрын мэдээлэл авахад алдаа гарлаа!");
+    }
+  } catch (error) {
+    console.error('Error loading pay center data:', error);
+    payCenter.value = null;
+    alert("Газрын мэдээлэл авахад алдаа гарлаа!");
+  }
 }
 
 // Fetch organizations on page load
