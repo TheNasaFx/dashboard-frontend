@@ -50,7 +50,7 @@ export default defineNuxtConfig({
     "leaflet.markercluster/dist/MarkerCluster.css",
     "leaflet.markercluster/dist/MarkerCluster.Default.css",
   ],
-  plugins: ["~/plugins/custom-js.client.ts"],
+  plugins: ["~/plugins/custom-js.client.ts", "~/plugins/apexcharts.client.ts"],
   runtimeConfig: {
     public: {
       backendApiUrl: process.env.BACKEND_API_URL

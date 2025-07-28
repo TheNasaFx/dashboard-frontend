@@ -234,15 +234,134 @@
           </div>
           <div class="row">
             <div class="col-12">
-              <div class="card">
-                <div class="card-body">
-                  <client-only>
-                    <MapView
-                      :organizations="organizations || []"
-                      :payCenter="payCenter || []"
-                      :mapType="mapType"
-                    />
-                  </client-only>
+              <div class="d-flex position-relative">
+                <!-- Map Container -->
+                <div class="flex-grow-1">
+                  <div class="card">
+                    <div class="card-body">
+                      <client-only>
+                        <MapView
+                          :organizations="organizations || []"
+                          :payCenter="payCenter || []"
+                          :mapType="mapType"
+                        />
+                      </client-only>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Land Information Sidebar -->
+                <div 
+                  v-show="showLandSidebar" 
+                  class="land-sidebar"
+                  :class="{ 'show': showLandSidebar }"
+                >
+                  <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <h5 class="mb-0">
+                        <i class="las la-map-marked-alt me-2"></i>
+                        Газрын мэдээлэл
+                      </h5>
+                      <button 
+                        class="btn btn-sm btn-outline-secondary"
+                        @click="showLandSidebar = false"
+                      >
+                        <i class="las la-times"></i>
+                      </button>
+                    </div>
+                    <div class="card-body p-3">
+                      <!-- Loading State -->
+                      <div v-if="landDataLoading" class="text-center py-4">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                          <span class="visually-hidden">Ачаалж байна...</span>
+                        </div>
+                        <p class="mt-2 small text-muted">Газрын мэдээлэл ачаалж байна...</p>
+                      </div>
+
+                      <!-- Land Statistics -->
+                      <div v-else>
+                        <!-- Land Count Statistics -->
+                        <div class="mb-4">
+                          <h6 class="text-primary mb-3">
+                            <i class="las la-map-marked-alt me-1"></i>
+                            Газрын статистик
+                          </h6>
+                          <div class="row g-2">
+                            <div class="col-6">
+                              <div class="bg-light rounded p-2 text-center">
+                                <div class="fs-6 fw-bold text-primary">{{ formatNumber(landStatistics.totalUniqueLands) }}</div>
+                                <div class="small text-muted">Нийт газар</div>
+                              </div>
+                            </div>
+                            <div class="col-6">
+                              <div class="bg-light rounded p-2 text-center">
+                                <div class="fs-6 fw-bold text-success">{{ formatNumber(landStatistics.mappedLandsCount) }}</div>
+                                <div class="small text-muted">Map дээрх газар</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="mt-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                              <span class="small text-muted">Харьцаа:</span>
+                              <span class="fw-bold text-success">{{ landStatistics.mappedPercentage.toFixed(1) }}%</span>
+                            </div>
+                            <div class="progress mt-1" style="height: 8px;">
+                              <div class="progress-bar bg-success" 
+                                   :style="{ width: landStatistics.mappedPercentage + '%' }">
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Payment Statistics -->
+                        <div class="mb-4">
+                          <h6 class="text-warning mb-3">
+                            <i class="las la-money-bill me-1"></i>
+                            Газрын төлөлт
+                          </h6>
+                          <div class="row g-2">
+                            <div class="col-12">
+                              <div class="bg-light rounded p-2">
+                                <div class="d-flex justify-content-between">
+                                  <span class="small text-muted">Нийт дүн:</span>
+                                  <span class="fw-bold text-warning">{{ formatNumber(landPayments.totalPaymentAmount) }}₮</span>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                  <span class="small text-muted">Төлөлтийн тоо:</span>
+                                  <span class="fw-bold text-info">{{ formatNumber(landPayments.totalPaymentCount) }}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Payment Distribution Chart -->
+                        <div v-if="landPaymentDistribution.length > 0">
+                          <h6 class="text-info mb-3">
+                            <i class="las la-chart-pie me-1"></i>
+                            Төлөлтийн тархалт
+                          </h6>
+                          <div class="chart-container">
+                            <client-only>
+                              <apexchart
+                                type="pie"
+                                height="250"
+                                :options="landPaymentDistributionChart.options"
+                                :series="landPaymentDistributionChart.series"
+                              />
+                            </client-only>
+                          </div>
+                        </div>
+
+                        <!-- No Data State -->
+                        <div v-else-if="!landDataLoading && landPaymentDistribution.length === 0" 
+                             class="text-center py-3">
+                          <i class="las la-info-circle text-muted fs-3"></i>
+                          <p class="small text-muted mb-0">Төлөлтийн мэдээлэл олдсонгүй</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -262,11 +381,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useHead } from "@unhead/vue";
 import StatisticsCards from "../components/StatisticsCards.vue";
 import { useCache } from "../composables/useCache";
 import { useApi } from "../composables/useApi";
+
+// Interfaces for land data
+interface LandStatistics {
+  totalUniqueLands: number
+  mappedLandsCount: number
+  mappedPercentage: number
+}
+
+interface LandPayments {
+  totalPaymentCount: number
+  totalPaymentAmount: number
+}
+
+interface LandPaymentDistribution {
+  branchId: string
+  districtName: string
+  totalAmount: number
+  paymentCount: number
+}
 
 const { get, set } = useCache();
 const selectedDistrict = ref("");
@@ -282,6 +420,90 @@ const searchedLand = ref<any[] | null>(null);
 const organizations = ref<any[] | null>(null);
 const mapType = ref(""); // Current map type: 'land' or 'real_estate'
 const payCenter = ref<any[] | null>(null);
+const showLandSidebar = ref(false); // New state for sidebar visibility
+
+// Land data states
+const landStatistics = ref<LandStatistics>({
+  totalUniqueLands: 0,
+  mappedLandsCount: 0,
+  mappedPercentage: 0
+});
+
+const landPayments = ref<LandPayments>({
+  totalPaymentCount: 0,
+  totalPaymentAmount: 0
+});
+
+const landPaymentDistribution = ref<LandPaymentDistribution[]>([]);
+const landDataLoading = ref(false);
+
+// Chart colors for land data
+const landChartColors = [
+  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', 
+  '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3'
+];
+
+// Computed chart configuration for land payments by district
+const landPaymentDistributionChart = computed(() => ({
+  series: landPaymentDistribution.value.map(item => item.totalAmount),
+  options: {
+    chart: {
+      type: 'pie',
+      height: 300,
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800
+      }
+    },
+    labels: landPaymentDistribution.value.map(item => item.districtName),
+    colors: landChartColors,
+    dataLabels: {
+      enabled: true,
+      formatter: function(val: number, opts: any) {
+        return landPaymentDistribution.value[opts.seriesIndex]?.districtName + "\n" + val.toFixed(1) + "%"
+      },
+      style: {
+        fontSize: '11px',
+        fontWeight: 'bold'
+      }
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '30%'
+        }
+      }
+    },
+    legend: {
+      position: 'bottom',
+      horizontalAlign: 'center',
+      fontSize: '11px',
+      markers: {
+        width: 10,
+        height: 10,
+        radius: 5
+      },
+      itemMargin: {
+        horizontal: 8,
+        vertical: 3
+      }
+    },
+    tooltip: {
+      y: {
+        formatter: function (val: number) {
+          return formatNumber(val) + '₮'
+        }
+      }
+    }
+  }
+}));
+
+// Helper function for number formatting
+function formatNumber(num: number | null | undefined): string {
+  if (num === undefined || num === null || isNaN(num)) return '0'
+  return Number(num).toLocaleString('en-US')
+}
 
 // Khoroo list with proper formatting
 const khorooList = ref([
@@ -334,23 +556,39 @@ function selectCategory(val: string, name: string) {
 }
 
 async function selectMapType(type: string) {
-  // Toggle logic: if same type is clicked, deselect it
-  if (mapType.value === type) {
-    mapType.value = "";
-    payCenter.value = null;
-    return;
-  }
-  
-  mapType.value = type;
-  
   if (type === 'land') {
-    // Load land/pay center data - keep existing organizations
-    await loadPayCenterData();
+    // Toggle logic for land button
+    if (mapType.value === 'land') {
+      // If land is already selected, toggle sidebar and deselect
+      if (showLandSidebar.value) {
+        showLandSidebar.value = false;
+      } else {
+        mapType.value = "";
+        payCenter.value = null;
+      }
+    } else {
+      // First time selecting land - show sidebar
+      mapType.value = type;
+      showLandSidebar.value = true;
+      await Promise.all([
+        loadPayCenterData(),
+        fetchLandData()
+      ]);
+    }
   } else if (type === 'real_estate') {
-    // Load real estate data (if needed) - keep existing organizations
-    payCenter.value = null;
+    // For real estate, hide sidebar and deselect if same type
+    if (mapType.value === type) {
+      mapType.value = "";
+      payCenter.value = null;
+    } else {
+      mapType.value = type;
+      payCenter.value = null;
+    }
+    showLandSidebar.value = false;
   } else {
     // Reset to default - show organizations only
+    mapType.value = "";
+    showLandSidebar.value = false;
     payCenter.value = null;
   }
 }
@@ -372,6 +610,70 @@ async function loadPayCenterData() {
     console.error('Error loading pay center data:', error);
     payCenter.value = null;
     alert("Газрын мэдээлэл авахад алдаа гарлаа!");
+  }
+}
+
+// Land data fetch functions
+async function fetchLandStatistics() {
+  try {
+    const response = await useApi('/land/statistics');
+    if (response.success && response.data) {
+      const data = response.data as any;
+      landStatistics.value = {
+        totalUniqueLands: data.total_unique_lands || 0,
+        mappedLandsCount: data.mapped_lands_count || 0,
+        mappedPercentage: data.mapped_percentage || 0
+      };
+    }
+  } catch (err) {
+    console.error('Error fetching land statistics:', err);
+  }
+}
+
+async function fetchLandPayments() {
+  try {
+    const response = await useApi('/land/payments');
+    if (response.success && response.data) {
+      const data = response.data as any;
+      landPayments.value = {
+        totalPaymentCount: data.total_payment_count || 0,
+        totalPaymentAmount: data.total_payment_amount || 0
+      };
+    }
+  } catch (err) {
+    console.error('Error fetching land payments:', err);
+  }
+}
+
+async function fetchLandPaymentDistribution() {
+  try {
+    const response = await useApi('/land/payments-by-district');
+    if (response.success && response.data) {
+      const data = Array.isArray(response.data) ? response.data : [];
+      landPaymentDistribution.value = data.map((item: any) => ({
+        branchId: item.branch_id,
+        districtName: item.district_name,
+        totalAmount: item.total_amount,
+        paymentCount: item.payment_count
+      }));
+    }
+  } catch (err) {
+    console.error('Error fetching land payment distribution:', err);
+  }
+}
+
+async function fetchLandData() {
+  landDataLoading.value = true;
+  try {
+    await Promise.all([
+      fetchLandStatistics(),
+      fetchLandPayments(),
+      fetchLandPaymentDistribution()
+    ]);
+  } catch (err) {
+    console.error('Error fetching land data:', err);
+  } finally {
+    landDataLoading.value = false;
   }
 }
 
@@ -500,3 +802,79 @@ useHead({
   ],
 });
 </script>
+
+<style scoped>
+.land-sidebar {
+  width: 0;
+  max-width: 0;
+  min-width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  transition: all 0.3s ease-in-out;
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.land-sidebar.show {
+  width: 400px;
+  max-width: 400px;
+  min-width: 350px;
+  margin-left: 15px;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.land-sidebar .card {
+  border: 1px solid #e9ecef;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.land-sidebar .card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  padding: 1rem;
+}
+
+.land-sidebar .card-body {
+  background-color: #ffffff;
+  min-height: 400px;
+  padding: 1.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .land-sidebar.show {
+    width: 300px;
+    min-width: 300px;
+  }
+}
+
+@media (max-width: 992px) {
+  .land-sidebar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1000;
+    height: 100%;
+  }
+  
+  .land-sidebar.show {
+    width: 320px;
+    min-width: 320px;
+    margin-left: 0;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .d-flex {
+    position: relative;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 768px) {
+  .land-sidebar.show {
+    width: 280px;
+    min-width: 280px;
+  }
+}
+</style>
