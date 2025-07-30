@@ -392,7 +392,7 @@ async function fetchTaxpayer() {
       } else {
         const barimtRes = await useApi(`/ebarimt/${regno}`);
         if (barimtRes.success && barimtRes.data) {
-          barimtCount.value = (barimtRes.data as any)?.count || 0;
+          barimtCount.value = (barimtRes.data as any)?.count_receipt || 0;
           set(barimtCacheKey, barimtCount.value);
         }
       }

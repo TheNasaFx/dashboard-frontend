@@ -289,48 +289,35 @@
                   </div>
                 </div>
                 <div class="card-body">
-                  <table class="table table-bordered table-hover">
-                    <thead>
-                      <tr>
-                        <th>Тасгийн нэр (stor_name)</th>
-                        <th>Регистр (mrch_regno)</th>
-                        <th>Үйл ажиллагааны чиглэл (op_type_name)</th>
-                        <th>Баримтын тоо (3)</th>
-                        <th>Баримтын тоо (30)</th>
-                        <th>Төлөв</th>
-                        <th>Дэлгэрэнгүй</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="org in filteredOrganizations" :key="org.id">
-                        <td>{{ org.stor_name }}</td>
-                        <td>{{ org.mrch_regno }}</td>
-                        <td>{{ org.op_type_name }}</td>
-                        <td>{{ org.count_receipt ?? 0 }}</td>
-                        <td>{{ org.cnt_30 ?? 0 }}</td>
-                        <td>
-                          <span
-                            v-if="!org.count_receipt || org.count_receipt === 0"
-                            class="status-badge status-red"
-                            >Баримт гаргаагүй</span
-                          >
-                          <span v-else class="status-badge status-green"
-                            >Баримт гаргасан</span
-                          >
-                        </td>
-                        <td>
-                          <button class="btn btn-sm btn-info" @click="openDetailModal(org.mrch_regno)">
-                            Дэлгэрэнгүй
-                          </button>
-                        </td>
-                      </tr>
-                      <tr v-if="filteredOrganizations.length === 0">
-                        <td colspan="7" class="text-center">
-                          {{ searchQuery ? 'Хайлтад тохирох мэдээлэл олдсонгүй' : 'Мэдээлэл олдсонгүй' }}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover">
+                      <thead>
+                        <tr>
+                          <th>Тасгийн нэр (stor_name)</th>
+                          <th>Регистр (mrch_regno)</th>
+                          <th>Үйл ажиллагааны чиглэл (op_type_name)</th>
+                          <th>Дэлгэрэнгүй</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="org in filteredOrganizations" :key="org.id">
+                          <td>{{ org.stor_name }}</td>
+                          <td>{{ org.mrch_regno }}</td>
+                          <td>{{ org.op_type_name }}</td>
+                          <td>
+                            <button class="btn btn-sm btn-info" @click="openDetailModal(org.mrch_regno)">
+                              Дэлгэрэнгүй
+                            </button>
+                          </td>
+                        </tr>
+                        <tr v-if="filteredOrganizations.length === 0">
+                          <td colspan="4" class="text-center">
+                            {{ searchQuery ? 'Хайлтад тохирох мэдээлэл олдсонгүй' : 'Мэдээлэл олдсонгүй' }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                   <!-- Search results info -->
                   <div v-if="searchQuery && filteredOrganizations.length > 0" class="mt-2">
                     <small class="text-muted">
@@ -368,41 +355,43 @@
                   </div>
                 </div>
                 <div class="card-body">
-                  <table class="table table-bordered table-hover">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Огноо(updated_date)</th>
-                        <th>Төрөл(property_type)</th>
-                        <th>Эзэмшигч регистр(owner_regno)</th>
-                        <th>Хэмжээ (м2)(property_size)</th>
-                        <th>Түрээсийн дүн(rent_amount)</th>
-                        <th>1мкв түрээс</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="item in filteredRentProperties" :key="item.id">
-                        <td>{{ item.id }}</td>
-                        <td>{{ item.updated_date || item.created_date || '-' }}</td>
-                        <td>{{ item.property_type }}</td>
-                        <td>{{ item.owner_regno }}</td>
-                        <td>{{ item.property_size }}</td>
-                        <td>{{ formatNumber(item.rent_amount) }}</td>
-                        <td>
-                          {{
-                            item.property_size && item.rent_amount
-                              ? formatNumber(Math.round(item.rent_amount / item.property_size))
-                              : '-' 
-                          }}
-                        </td>
-                      </tr>
-                      <tr v-if="filteredRentProperties.length === 0">
-                        <td colspan="7" class="text-center">
-                          {{ rentSearchQuery ? 'Хайлтад тохирох мэдээлэл олдсонгүй' : 'Мэдээлэл олдсонгүй' }}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Огноо(updated_date)</th>
+                          <th>Төрөл(property_type)</th>
+                          <th>Эзэмшигч регистр(owner_regno)</th>
+                          <th>Хэмжээ (м2)(property_size)</th>
+                          <th>Түрээсийн дүн(rent_amount)</th>
+                          <th>1мкв түрээс</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="item in filteredRentProperties" :key="item.id">
+                          <td>{{ item.id }}</td>
+                          <td>{{ item.updated_date || item.created_date || '-' }}</td>
+                          <td>{{ item.property_type }}</td>
+                          <td>{{ item.owner_regno }}</td>
+                          <td>{{ item.property_size }}</td>
+                          <td>{{ formatNumber(item.rent_amount) }}</td>
+                          <td>
+                            {{
+                              item.property_size && item.rent_amount
+                                ? formatNumber(Math.round(item.rent_amount / item.property_size))
+                                : '-' 
+                            }}
+                          </td>
+                        </tr>
+                        <tr v-if="filteredRentProperties.length === 0">
+                          <td colspan="7" class="text-center">
+                            {{ rentSearchQuery ? 'Хайлтад тохирох мэдээлэл олдсонгүй' : 'Мэдээлэл олдсонгүй' }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                   <!-- Rent Search results info -->
                   <div v-if="rentSearchQuery && filteredRentProperties.length > 0" class="mt-2">
                     <small class="text-muted">
@@ -432,7 +421,7 @@
                     <p>Энэ барилганд үйл ажиллагааны мэдээлэл олдсонгүй</p>
                   </div>
                   <div v-else>
-                    <div class="table-responsive">
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
                       <table class="table table-hover table-striped">
                         <thead class="table-dark">
                           <tr>
@@ -762,7 +751,7 @@ async function fetchOrganizations() {
   }
   
   try {
-    // Get organizations data
+    // Get organizations data only - no additional API calls
     const url = floor 
       ? `/buildings/${id}/floors/${floor}/organizations`
       : `/buildings/${id}/organizations`;
@@ -770,117 +759,24 @@ async function fetchOrganizations() {
     const res = await useApi(url);
     if (res.success && res.data) {
       const orgsData = Array.isArray(res.data) ? res.data : [];
-      // Get all MRCH_REGNO values for batch processing
-      const mrchRegnos = orgsData.map(org => org.mrch_regno).filter(regno => regno);
       
-      // Batch fetch all API data at once
-      const [ebarimtBatchData, reportBatchData, paymentBatchData, debtBatchData] = await Promise.all([
-        // Ebarimt batch data (сүүлийн 3 болон 30 хоног)
-        Promise.all(mrchRegnos.map(async (regno: string) => {
-          try {
-            const response = await fetch(`http://localhost:8080/api/ebarimt/${regno}`);
-            if (response.ok) {
-              const data = await response.json();
-              return { regno, data: data.data || {} };
-            }
-          } catch (error) {
-            console.error(`Error fetching ebarimt for ${regno}:`, error);
-          }
-          return { regno, data: {} };
-        })),
-        
-        // Report batch data (V_E_TUB_REPORT_DATA-аас SUBMITTED_DATE)
-        Promise.all(mrchRegnos.map(async (regno: string) => {
-          try {
-            const response = await fetch(`http://localhost:8080/api/v1/tub-report-data?tin=${regno}`);
-            if (response.ok) {
-              const data = await response.json();
-              const reportData = data.data;
-              // Get the latest submitted date from the array
-              if (Array.isArray(reportData) && reportData.length > 0) {
-                const latestReport = reportData.reduce((latest, current) => {
-                  if (!latest.submitted_date) return current;
-                  if (!current.submitted_date) return latest;
-                  return new Date(current.submitted_date) > new Date(latest.submitted_date) ? current : latest;
-                });
-                return { regno, data: latestReport };
-              }
-              return { regno, data: {} };
-            }
-          } catch (error) {
-            console.error(`Error fetching report for ${regno}:`, error);
-          }
-          return { regno, data: {} };
-        })),
-        
-        // Payment batch data (V_E_TUB_PAYMENTS-аас AMOUNT нийлбэр)
-        Promise.all(mrchRegnos.map(async (regno: string) => {
-          try {
-            const response = await fetch(`http://localhost:8080/api/v1/payments/${regno}`);
-            if (response.ok) {
-              const data = await response.json();
-              return { regno, data: data.data || {} };
-            }
-          } catch (error) {
-            console.error(`Error fetching payments for ${regno}:`, error);
-          }
-          return { regno, data: {} };
-        })),
-        
-        // Debt batch data (V_ACCOUNT_GENERAL_YEAR-аас C2_DEBIT нийлбэр)
-        Promise.all(mrchRegnos.map(async (regno: string) => {
-          try {
-            const response = await fetch(`http://localhost:8080/api/v1/account-general-years?regno=${regno}&tab=debt`);
-            if (response.ok) {
-              const data = await response.json();
-              // Calculate total C2_DEBIT for all records
-              if (Array.isArray(data) && data.length > 0) {
-                const totalDebt = data.reduce((total, record) => {
-                  const c2Debit = record.C2_DEBIT || 0;
-                  return total + parseFloat(c2Debit);
-                }, 0);
-                return { regno, data: { total_debt: totalDebt } };
-              }
-              return { regno, data: { total_debt: 0 } };
-            }
-          } catch (error) {
-            console.error(`Error fetching debt for ${regno}:`, error);
-          }
-          return { regno, data: { total_debt: 0 } };
-        }))
-      ]);
-
-      // Create lookup maps for fast access
-      const ebarimtMap = new Map(ebarimtBatchData.map(item => [item.regno, item.data]));
-      const reportMap = new Map(reportBatchData.map(item => [item.regno, item.data]));
-      const paymentMap = new Map(paymentBatchData.map(item => [item.regno, item.data]));
-      const debtMap = new Map(debtBatchData.map(item => [item.regno, item.data]));
-
-      // Combine all data
-      const enrichedOrgs = orgsData.map((org: any) => {
-        const mrchRegno = org.mrch_regno;
-        const ebarimtData = ebarimtMap.get(mrchRegno) || {};
-        const reportData = reportMap.get(mrchRegno) || {};
-        const paymentData = paymentMap.get(mrchRegno) || {};
-        const debtData = debtMap.get(mrchRegno) || {};
-
-        return {
-          ...org,
-          count_receipt: (ebarimtData as any)?.count_receipt || 0,
-          cnt_3: (ebarimtData as any)?.cnt_3 || 0,
-          cnt_30: (ebarimtData as any)?.cnt_30 || 0,
-          report_submitted_date: (reportData as any)?.submitted_date || '',
-          payment_amount: (paymentData as any)?.total_amount || 0,
-          debt_amount: (debtData as any)?.total_debt || 0,
-          advice_count: 0 // Fixed value as requested
-        };
-      });
-
-      organizations.value = enrichedOrgs;
+      // Set basic organization data without additional API calls
+      organizations.value = orgsData.map((org: any) => ({
+        ...org,
+        // Initialize with default values - these will be loaded in detail modal
+        count_receipt: 0,
+        cnt_3: 0,
+        cnt_30: 0,
+        report_submitted_date: '',
+        payment_amount: 0,
+        debt_amount: 0,
+        advice_count: 0
+      }));
+      
       filteredOrganizations.value = organizations.value;
       
       // Cache the result
-      set(cacheKey, enrichedOrgs);
+      set(cacheKey, organizations.value);
       console.log('Cached organizations data');
     } else {
       console.error('Invalid response format from organizations API');

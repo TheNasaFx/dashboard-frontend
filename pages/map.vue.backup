@@ -3,50 +3,55 @@
     <template #sidebar>
       <TheMenu />
     </template>
+    
     <div class="page-wrapper">
       <div class="page-content">
         <div class="container-fluid">
           <div class="row">
             <div class="col-sm-12">
-              <div class="page-title-box d-md-flex justify-content-md-between align-items-center">
+              <div
+                class="page-title-box d-md-flex justify-content-md-between align-items-center"
+              >
                 <h4 class="page-title">Татвар төлөгчид</h4>
                 <div class="">
                   <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="#">МТА – НТГ</a></li>
-                    <li class="breadcrumb-item"><a href="#">Татвар төлөгчид</a></li>
+                    <li class="breadcrumb-item">
+                      <a href="#">Татвар төлөгчид</a>
+                    </li>
                     <li class="breadcrumb-item active">Жагсаалт</li>
                   </ol>
                 </div>
               </div>
             </div>
           </div>
-          <div class="row justify-content-center">
-            <div class="col-md-12 col-lg-12">
-              <div class="card">
-                <div class="card-body">
-                  <!-- Map Type Selection Buttons -->
-                  <div class="d-flex gap-2 mb-3">
-                    <button
-                      type="button"
-                      class="btn"
-                      :class="mapType === 'land' ? 'btn-success' : 'btn-outline-success'"
-                      @click="selectMapType('land')"
-                    >
-                      <i class="las la-map-marked-alt me-1"></i>
-                      Газар
-                    </button>
-                    <button
-                      type="button"
-                      class="btn"
-                      :class="mapType === 'real_estate' ? 'btn-info' : 'btn-outline-info'"
-                      @click="selectMapType('real_estate')"
-                    >
-                      <i class="las la-building me-1"></i>
-                      Үл хөдлөх хөрөнгө
-                    </button>
-                  </div>
-
-                  <div class="d-flex flex-wrap gap-2 align-items-center">
+            <div class="row justify-content-center">
+              <div class="col-md-12 col-lg-12">
+                <div class="card">
+                  <div class="card-body">
+                    <!-- Map Type Selection Buttons -->
+                    <div class="d-flex gap-2 mb-3">
+                      <button 
+                        type="button" 
+                        class="btn"
+                        :class="mapType === 'land' ? 'btn-success' : 'btn-outline-success'"
+                        @click="selectMapType('land')"
+                      >
+                        <i class="las la-map-marked-alt me-1"></i>
+                        Газар
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn"
+                        :class="mapType === 'real_estate' ? 'btn-info' : 'btn-outline-info'"
+                        @click="selectMapType('real_estate')"
+                      >
+                        <i class="las la-building me-1"></i>
+                        Үл хөдлөх хөрөнгө
+                      </button>
+                    </div>
+                    
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
                       <div class="dropdown">
                         <button
                           type="button"
@@ -229,21 +234,22 @@
               </div>
             </div>
             <div class="row">
-            <div class="col-12">
-              <div class="d-flex position-relative">
-                <div class="flex-grow-1">
-                  <div class="card">
-                    <div class="card-body">
-                      <client-only>
-                        <MapView
-                          :organizations="organizations || []"
-                          :payCenter="payCenter || []"
-                          :mapType="mapType"
-                        />
-                      </client-only>
+              <div class="col-12">
+                <div class="d-flex position-relative">
+                  <!-- Map Container -->
+                  <div class="flex-grow-1">
+                    <div class="card">
+                      <div class="card-body">
+                        <client-only>
+                          <MapView
+                            :organizations="organizations || []"
+                            :payCenter="payCenter || []"
+                            :mapType="mapType"
+                          />
+                        </client-only>
+                      </div>
                     </div>
                   </div>
-                </div>
                   
                   <!-- Land Information Sidebar -->
                   <div 
@@ -395,7 +401,6 @@
                 </div>
               </div>
             </div>
-          </div>
             
             <!-- Statistics Cards -->
             <div class="row">
