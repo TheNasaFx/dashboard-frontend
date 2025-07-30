@@ -30,17 +30,8 @@ async function loadDetailedOrganizationData(org) {
   const originalData = { ...org };
   
   try {
-    // Parallel fetch all detailed data
-    const [ebarimtRes, reportRes, paymentRes, debtRes] = await Promise.all([
-      // И-баримтын мэдээлэл 
-      useApi(`/ebarimt/${org.mrch_regno}`),
-      // Тайлангийн мэдээлэл
-      useApi(`/tub-report-data?tin=${org.mrch_regno}`),
-      // Төлөлтийн мэдээлэл 
-      useApi(`/payments/${org.mrch_regno}`),
-      // Өрийн мэдээлэл
-      useApi(`/account-general-years?regno=${org.mrch_regno}&tab=debt`)
-    ]);
+    // Only fetch ebarimt data - remove other API calls
+    const ebarimtRes = await useApi(`/ebarimt/${org.mrch_regno}`);
 
     // Process е-баримт data
     if (ebarimtRes.success && ebarimtRes.data) {
@@ -52,58 +43,18 @@ async function loadDetailedOrganizationData(org) {
       set(`ebarimt_${org.mrch_regno}`, ebarimtData);
     }
 
-    // Process report data
-    if (reportRes.success && reportRes.data) {
-      const reportData = reportRes.data;
-      if (Array.isArray(reportData) && reportData.length > 0) {
-        org.report_count = reportData.length;
-        const latestReport = reportData.reduce((latest, current) => {
-          if (!latest.submitted_date) return current;
-          if (!current.submitted_date) return latest;
-          return new Date(current.submitted_date) > new Date(latest.submitted_date) ? current : latest;
-        });
-        org.latest_report_date = latestReport.submitted_date || '';
-      }
-      set(`report_${org.mrch_regno}`, reportData);
-    }
-
-    // Process payment data
-    if (paymentRes.success && paymentRes.data) {
-      const paymentData = paymentRes.data;
-      if (Array.isArray(paymentData) && paymentData.length > 0) {
-        const totalPayment = paymentData.reduce((total, payment) => {
-          return total + (parseFloat(payment.amount) || 0);
-        }, 0);
-        org.payment_amount = totalPayment;
-      }
-      set(`payment_${org.mrch_regno}`, paymentData);
-    }
-
-    // Process debt data
-    if (debtRes.success && debtRes.data) {
-      const debtData = debtRes.data;
-      if (Array.isArray(debtData) && debtData.length > 0) {
-        const totalDebt = debtData.reduce((total, record) => {
-          return total + (parseFloat(record.C2_DEBIT) || 0);
-        }, 0);
-        org.debt_amount = totalDebt;
-      }
-      set(`debt_${org.mrch_regno}`, debtData);
-    }
-
-    // Determine color based on е-баримт data
-    org.all_barimt_ok = org.count_receipt > 0;
+    // Determine color based on е-баримт data (3 or 30 days)
+    org.has_ebarimt = (org.cnt_3 > 0) || (org.cnt_30 > 0);
     
-    console.log(`Detailed data loaded for ${org.mrch_regno}:`, {
-      count_receipt: org.count_receipt,
-      report_count: org.report_count,
-      payment_amount: org.payment_amount,
-      debt_amount: org.debt_amount
+    console.log(`Ebarimt data loaded for ${org.mrch_regno}:`, {
+      cnt_3: org.cnt_3,
+      cnt_30: org.cnt_30,
+      has_ebarimt: org.has_ebarimt
     });
 
     return org;
   } catch (error) {
-    console.error(`Error loading detailed data for ${org.mrch_regno}:`, error);
+    console.error(`Error loading ebarimt data for ${org.mrch_regno}:`, error);
     return originalData; // Return original data if error
   }
 }
@@ -160,20 +111,13 @@ onMounted(async () => {
     console.log("API call failed or no data");
   }
 
-
-
   // Байгууллага бүрийн үндсэн мэдээлэл харуулах (API дуудалтгүйгээр)
   orgs = orgs.map((org) => ({
     ...org,
     // Initialize with default values - detailed data will be loaded on click
-    count_receipt: 0,
     cnt_3: 0,
     cnt_30: 0,
-    report_count: 0,
-    latest_report_date: '',
-    payment_amount: 0,
-    debt_amount: 0,
-    all_barimt_ok: false // Default color
+    has_ebarimt: false // Default color - will be updated based on ebarimt data
   }));
 
   console.log("orgs:", orgs); // debug
@@ -189,6 +133,32 @@ onMounted(async () => {
     console.warn("Байгууллагын жагсаалт хоосон байна");
     return;
   }
+
+  // Load ebarimt data for all organizations in parallel
+  console.log("Loading ebarimt data for all organizations...");
+  const ebarimtPromises = orgs.map(async (org) => {
+    if (!org.mrch_regno) return org;
+    
+    try {
+      const ebarimtRes = await useApi(`/ebarimt/${org.mrch_regno}`);
+      if (ebarimtRes.success && ebarimtRes.data) {
+        const ebarimtData = ebarimtRes.data;
+        org.cnt_3 = ebarimtData.cnt_3 ?? 0;
+        org.cnt_30 = ebarimtData.cnt_30 ?? 0;
+        org.has_ebarimt = (org.cnt_3 > 0) || (org.cnt_30 > 0);
+        // Cache the data
+        set(`ebarimt_${org.mrch_regno}`, ebarimtData);
+      }
+    } catch (error) {
+      console.error(`Error loading ebarimt data for ${org.mrch_regno}:`, error);
+    }
+    return org;
+  });
+
+  // Wait for all ebarimt data to load
+  await Promise.all(ebarimtPromises);
+  console.log("All ebarimt data loaded:", orgs);
+
   const first = orgs.find((o) => o.lat && o.lng);
   const center = first
     ? [parseFloat(first.lat), parseFloat(first.lng)]
@@ -208,7 +178,7 @@ onMounted(async () => {
   let markerCount = 0;
 
   orgs.forEach((org) => {
-    console.log("Processing org:", org.stor_name, "lat:", org.lat, "lng:", org.lng);
+    console.log("Processing org:", org.stor_name, "lat:", org.lat, "lng:", org.lng, "has_ebarimt:", org.has_ebarimt);
     if (org.lat && org.lng) {
       const lat = parseFloat(org.lat);
       const lng = parseFloat(org.lng);
@@ -231,9 +201,9 @@ onMounted(async () => {
             <div style='margin-bottom:6px;'><b>Нэгж талбарын дугаар:</b> <span style='color:#6c757d;'>${org.parcel_id || '-'}</span></div>
             
             <div style='margin-bottom:6px;'><b>И-Баримт сүүлийн 3 хоногт:</b> 
-              ${!org.count_receipt || org.count_receipt === 0 ? 
+              ${!org.cnt_3 || org.cnt_3 === 0 ? 
                 '<span style="color:#dc3545;">0</span>' : 
-                `<span style="color:#28a745;">${org.count_receipt}</span>`
+                `<span style="color:#28a745;">${org.cnt_3}</span>`
               }
             </div>
             
@@ -244,58 +214,46 @@ onMounted(async () => {
               }
             </div>
             
-            <div style='margin-bottom:6px;'><b>Зөвшөөрлийн мэдээ:</b> <span style='color:#6c757d;'>0</span></div>
-            
-            <div style='margin-bottom:6px;'><b>Тайлан:</b> <span style='color:#17a2b8;'>${org.report_count || 0}</span></div>
-            
-            <div style='margin-bottom:6px;'><b>Төлөлт:</b> <span style='color:#28a745; font-weight:bold;'>${formatNumber(org.payment_amount)}₮</span></div>
-            
-            <div style='margin-bottom:6px;'><b>Өрийн үлдэгдэл:</b> <span style='color:#dc3545; font-weight:bold;'>${formatNumber(org.debt_amount)}₮</span></div>
-            
-            <div style='margin-bottom:6px;'><b>Туслан зөвлөх үйлчилгээ:</b> <span style='color:#6c757d;'>0</span></div>
-            
-            <div style='margin-bottom:6px;'><b>Зөрчлийн мэдээлэл:</b> <span style='color:#6c757d;'>0</span></div>
-            
             <div style='margin-top:10px; padding-top:8px; border-top:1px solid #dee2e6; text-align:center;'>
               <small style='color:#6c757d;'>🏢 Үйл ажиллагааны чиглэл: ${org.op_type_name || 'Тодорхойгүй'}</small>
             </div>
           </div>
         `;
-        // count_receipt > 0 бол ногоон, үгүй бол улаан icon
-        const markerIcon = org.count_receipt && org.count_receipt > 0 ? greenIcon : redIcon;
+        // has_ebarimt бол ногоон, үгүй бол улаан icon
+        const markerIcon = org.has_ebarimt ? greenIcon : redIcon;
         const marker = L.marker([lat, lng], { icon: markerIcon })
           .addTo(map.value)
           .bindPopup(popupHtml);
         
-        // Click event listener нэмэх - дэлгэрэнгүй мэдээлэл дуудах
+        // Click event listener нэмэх - е-баримтын мэдээлэл дуудах (refresh only)
         marker.on('click', async () => {
-          console.log(`Marker clicked for ${org.stor_name}, loading detailed data...`);
+          console.log(`Marker clicked for ${org.stor_name}, refreshing ebarimt data...`);
           
           // Show loading popup first
           const loadingPopup = `
             <div style='min-width:280px; text-align:center; padding:20px;'>
               <div style='margin-bottom:10px;'>
-                <h6 style='margin:0; color:#495057;'>${org.stor_name || 'Мэдээлэл татаж байна...'}</h6>
+                <h6 style='margin:0; color:#495057;'>${org.stor_name || 'Е-баримтын мэдээлэл шинэчилж байна...'}</h6>
               </div>
               <div style='color:#6c757d;'>
-                <i>📊 Дэлгэрэнгүй мэдээлэл татаж байна...</i>
+                <i>📊 Е-баримтын мэдээлэл шинэчилж байна...</i>
               </div>
             </div>
           `;
           marker.setPopupContent(loadingPopup);
           
           try {
-            // Load detailed data
+            // Refresh ebarimt data
             const updatedOrg = await loadDetailedOrganizationData(org);
             
             // Update the org object
             Object.assign(org, updatedOrg);
             
             // Update marker icon based on new data
-            const newIcon = org.count_receipt && org.count_receipt > 0 ? greenIcon : redIcon;
+            const newIcon = org.has_ebarimt ? greenIcon : redIcon;
             marker.setIcon(newIcon);
             
-            // Update popup with detailed data
+            // Update popup with refreshed data
             const detailedPopupHtml = `
               <div style='min-width:280px; max-width:350px; font-size:13px;'>
                 <div style='background:#f8f9fa; padding:8px; border-radius:5px; margin-bottom:10px; text-align:center;'>
@@ -308,9 +266,9 @@ onMounted(async () => {
                 <div style='margin-bottom:6px;'><b>Нэгж талбарын дугаар:</b> <span style='color:#6c757d;'>${org.parcel_id || '-'}</span></div>
                 
                 <div style='margin-bottom:6px;'><b>И-Баримт сүүлийн 3 хоногт:</b> 
-                  ${!org.count_receipt || org.count_receipt === 0 ? 
+                  ${!org.cnt_3 || org.cnt_3 === 0 ? 
                     '<span style="color:#dc3545;">0</span>' : 
-                    `<span style="color:#28a745;">${org.count_receipt}</span>`
+                    `<span style="color:#28a745;">${org.cnt_3}</span>`
                   }
                 </div>
                 
@@ -320,18 +278,6 @@ onMounted(async () => {
                     `<span style="color:#28a745;">${org.cnt_30}</span>`
                   }
                 </div>
-                
-                <div style='margin-bottom:6px;'><b>Зөвшөөрлийн мэдээ:</b> <span style='color:#6c757d;'>0</span></div>
-                
-                <div style='margin-bottom:6px;'><b>Тайлан:</b> <span style='color:#17a2b8;'>${org.report_count || 0}</span></div>
-                
-                <div style='margin-bottom:6px;'><b>Төлөлт:</b> <span style='color:#28a745; font-weight:bold;'>${formatNumber(org.payment_amount)}₮</span></div>
-                
-                <div style='margin-bottom:6px;'><b>Өрийн үлдэгдэл:</b> <span style='color:#dc3545; font-weight:bold;'>${formatNumber(org.debt_amount)}₮</span></div>
-                
-                <div style='margin-bottom:6px;'><b>Туслан зөвлөх үйлчилгээ:</b> <span style='color:#6c757d;'>0</span></div>
-                
-                <div style='margin-bottom:6px;'><b>Зөрчлийн мэдээлэл:</b> <span style='color:#6c757d;'>0</span></div>
                 
                 <div style='margin-top:10px; padding-top:8px; border-top:1px solid #dee2e6; text-align:center;'>
                   <small style='color:#6c757d;'>🏢 Үйл ажиллагааны чиглэл: ${org.op_type_name || 'Тодорхойгүй'}</small>
@@ -345,14 +291,14 @@ onMounted(async () => {
             marker.setPopupContent(detailedPopupHtml);
             
           } catch (error) {
-            console.error('Error loading detailed data:', error);
+            console.error('Error refreshing ebarimt data:', error);
             const errorPopup = `
               <div style='min-width:280px; text-align:center; padding:20px;'>
                 <div style='margin-bottom:10px;'>
                   <h6 style='margin:0; color:#dc3545;'>${org.stor_name || 'Алдаа гарлаа'}</h6>
                 </div>
                 <div style='color:#dc3545;'>
-                  <i>❌ Мэдээлэл татахад алдаа гарлаа</i>
+                  <i>❌ Е-баримтын мэдээлэл шинэчлэхэд алдаа гарлаа</i>
                 </div>
               </div>
             `;
@@ -361,7 +307,7 @@ onMounted(async () => {
         });
         
         markerCount++;
-        console.log(`Added marker ${markerCount} for ${org.stor_name} at [${lat}, ${lng}]`);
+        console.log(`Added marker ${markerCount} for ${org.stor_name} at [${lat}, ${lng}] with color: ${org.has_ebarimt ? 'green' : 'red'}`);
       }
     }
   });
