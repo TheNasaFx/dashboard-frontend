@@ -65,7 +65,7 @@
                       <div class="col-4 mb-2">
                         <div class="border rounded p-2">
                           <div class="fs-14 fw-bold text-success">{{ mapData.activity_operators || 0 }}</div>
-                          <div class="fs-11 text-muted">Үйл ажиллагаа эрхлэгч</div>
+                          <div class="fs-11 text-muted">Үйл ажиллагаа эрхлэгч байгууллагууд</div>
                         </div>
                       </div>
                       <div class="col-4 mb-2">
@@ -74,16 +74,22 @@
                           <div class="fs-11 text-muted">Түрээслэгч</div>
                         </div>
                       </div>
-                      <div class="col-4">
+                      <div class="col-4 mb-2">
                         <div class="border rounded p-2">
-                          <div class="fs-14 fw-bold text-info">{{ formatNumber(mapData.area || 0) }}</div>
-                          <div class="fs-11 text-muted">Ашиглагдаж байгаа талбай (мкв)</div>
+                          <div class="fs-14 fw-bold text-warning">{{ Math.floor(mapData.activity_operators - mapData.tenants) || 0 }}</div>
+                          <div class="fs-11 text-muted">Давхар түрээслэгч</div>
                         </div>
                       </div>
                       <div class="col-4">
                         <div class="border rounded p-2">
                           <div class="fs-14 fw-bold text-secondary">{{ formatNumber(mapData.land_area || 0) }}</div>
                           <div class="fs-11 text-muted">Газрын талбай (мкв)</div>
+                        </div>
+                      </div>
+                      <div class="col-4">
+                        <div class="border rounded p-2">
+                          <div class="fs-14 fw-bold text-info">{{ formatNumber(mapData.area || 0) }}</div>
+                          <div class="fs-11 text-muted">Ашиглагдаж байгаа талбай (мкв)</div>
                         </div>
                       </div>
                       <div class="col-4">
@@ -756,32 +762,57 @@ async function fetchOrganizations() {
       ? `/buildings/${id}/floors/${floor}/organizations`
       : `/buildings/${id}/organizations`;
     
-    const res = await useApi(url);
-    if (res.success && res.data) {
-      const orgsData = Array.isArray(res.data) ? res.data : [];
+    // Add timeout for large data requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    try {
+      const res = await useApi(url, {}, false); // Disable cache for large data
+      clearTimeout(timeoutId);
       
-      // Set basic organization data without additional API calls
-      organizations.value = orgsData.map((org: any) => ({
-        ...org,
-        // Initialize with default values - these will be loaded in detail modal
-        count_receipt: 0,
-        cnt_3: 0,
-        cnt_30: 0,
-        report_submitted_date: '',
-        payment_amount: 0,
-        debt_amount: 0,
-        advice_count: 0
-      }));
-      
-      filteredOrganizations.value = organizations.value;
-      
-      // Cache the result
-      set(cacheKey, organizations.value);
-      console.log('Cached organizations data');
-    } else {
-      console.error('Invalid response format from organizations API');
-      organizations.value = [];
-      filteredOrganizations.value = [];
+      if (res.success && res.data) {
+        const orgsData = Array.isArray(res.data) ? res.data : [];
+        
+        // Validate organization data
+        const validOrgs = orgsData.filter((org: any) => 
+          org && 
+          typeof org === 'object' && 
+          org.id && 
+          typeof org.id === 'number'
+        );
+        
+        // Set basic organization data without additional API calls
+        organizations.value = validOrgs.map((org: any) => ({
+          ...org,
+          // Initialize with default values - these will be loaded in detail modal
+          count_receipt: 0,
+          cnt_3: 0,
+          cnt_30: 0,
+          report_submitted_date: '',
+          payment_amount: 0,
+          debt_amount: 0,
+          advice_count: 0
+        }));
+        
+        filteredOrganizations.value = organizations.value;
+        
+        // Cache the result
+        set(cacheKey, organizations.value);
+        console.log(`Cached organizations data: ${organizations.value.length} organizations`);
+      } else {
+        console.error('Invalid response format from organizations API:', res);
+        organizations.value = [];
+        filteredOrganizations.value = [];
+      }
+    } catch (apiError) {
+      clearTimeout(timeoutId);
+      if (apiError instanceof Error && apiError.name === 'AbortError') {
+        console.error('Organizations API request timed out');
+        organizations.value = [];
+        filteredOrganizations.value = [];
+      } else {
+        throw apiError;
+      }
     }
   } catch (error) {
     console.error('Error fetching organizations:', error);

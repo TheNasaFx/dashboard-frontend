@@ -117,14 +117,30 @@ async function fetchTaxOfficeData(buildingId: string) {
       apiData.value = cachedData;
       console.log('Cache-аас өгөгдөл ашиглаж байна:', apiData.value);
     } else {
-      const response = await useApi(`/tax-office-stats/${buildingId}`);
-      if (response.success && response.data) {
-        apiData.value = response.data as ApiResponse;
-        set(cacheKey, response.data);
-        console.log('Шинэ өгөгдөл татаж авлаа:', apiData.value);
-      } else {
-        console.error('API алдаа:', response);
-        apiData.value = { districts: [] };
+      // Add timeout and disable cache for large data
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      try {
+        const response = await useApi(`/tax-office-stats/${buildingId}`, {}, false);
+        clearTimeout(timeoutId);
+        
+        if (response.success && response.data) {
+          apiData.value = response.data as ApiResponse;
+          set(cacheKey, response.data);
+          console.log('Шинэ өгөгдөл татаж авлаа:', apiData.value);
+        } else {
+          console.error('API алдаа:', response);
+          apiData.value = { districts: [] };
+        }
+      } catch (apiError) {
+        clearTimeout(timeoutId);
+        if (apiError instanceof Error && apiError.name === 'AbortError') {
+          console.error('API хүсэлт хугацаа хэтэрсэн');
+          apiData.value = { districts: [] };
+        } else {
+          throw apiError;
+        }
       }
     }
     
@@ -165,8 +181,26 @@ function createChart() {
     return;
   }
 
+  // Validate and process data
+  const validData = data.filter(item => 
+    item && 
+    typeof item === 'object' && 
+    item.name && 
+    typeof item.name === 'string' && 
+    typeof item.count === 'number' && 
+    item.count > 0
+  );
+
+  if (validData.length === 0) {
+    ctx.font = '16px Arial';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.textAlign = 'center';
+    ctx.fillText('Хүчинтэй өгөгдөл байхгүй', ctx.canvas.width / 2, ctx.canvas.height / 2);
+    return;
+  }
+
   // Тоогоор эрэмбэлэх
-  const sortedData = [...data].sort((a, b) => b.count - a.count);
+  const sortedData = [...validData].sort((a, b) => b.count - a.count);
 
   // Chart-ийн өндрийг тооцох
   const minHeight = 250;

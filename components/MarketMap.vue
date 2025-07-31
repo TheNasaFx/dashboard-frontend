@@ -1,8 +1,36 @@
 <template>
-  <div
-    id="market-map"
-    style="width: 100%; height: 400px; border-radius: 10px"
-  ></div>
+  <div>
+    <div
+      id="market-map"
+      style="width: 100%; height: 400px; border-radius: 10px"
+    ></div>
+    
+    <!-- Е-баримт статистик хэсэг -->
+    <div class="ebarimt-stats mt-3" v-if="ebarimtStats">
+      <div class="card">
+        <div class="card-body p-3">
+          <h6 class="card-title mb-3">
+            <i class="fas fa-receipt me-2 text-primary"></i>
+            Е-баримт олголт
+          </h6>
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="border rounded p-2">
+                <div class="fs-16 fw-bold text-primary">{{ ebarimtStats.total_organizations || 0 }}</div>
+                <div class="fs-11 text-muted">Нийт байгууллага</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded p-2">
+                <div class="fs-16 fw-bold text-success">{{ ebarimtStats.organizations_with_ebarimt || 0 }}</div>
+                <div class="fs-11 text-muted">Е-баримт гаргадаг</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -15,10 +43,11 @@ import { useApi } from "../composables/useApi";
 const { get, set } = useCache();
 
 const props = defineProps({
-  centerId: Number,
+  centerId: Number
 });
 
 const map = ref(null);
+const ebarimtStats = ref(null);
 
 // Pin point click хийхэд дэлгэрэнгүй мэдээлэл дуудах функц
 async function loadDetailedOrganizationData(org) {
@@ -59,6 +88,25 @@ async function loadDetailedOrganizationData(org) {
   }
 }
 
+// Е-баримт статистик дуудах функц
+async function fetchEbarimtStats() {
+  if (!props.centerId) return;
+  
+  try {
+    console.log(`Fetching ebarimt stats for building ${props.centerId} (all floors)`);
+    const response = await useApi(`/buildings/${props.centerId}/ebarimt-stats`);
+    
+    if (response.success && response.data) {
+      ebarimtStats.value = response.data;
+      console.log('Ebarimt stats loaded:', ebarimtStats.value);
+    } else {
+      console.error('Failed to load ebarimt stats:', response.error);
+    }
+  } catch (error) {
+    console.error('Error fetching ebarimt stats:', error);
+  }
+}
+
 onMounted(async () => {
   console.log("MarketMap mounted with centerId:", props.centerId);
   if (typeof window === "undefined") return;
@@ -67,6 +115,9 @@ onMounted(async () => {
     console.error("centerId is not provided to MarketMap component");
     return;
   }
+  
+  // Е-баримт статистик дуудах
+  await fetchEbarimtStats();
   const [{ default: L }, _] = await Promise.all([
     import("leaflet"),
     import("leaflet/dist/leaflet.css"),
@@ -315,3 +366,46 @@ onMounted(async () => {
   console.log(`Total markers added: ${markerCount}`);
 });
 </script>
+
+<style scoped>
+.ebarimt-stats {
+  background: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ebarimt-stats .card {
+  border: none;
+  box-shadow: none;
+}
+
+.ebarimt-stats .card-title {
+  color: #495057;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.ebarimt-stats .fs-16 {
+  font-size: 1.2rem !important;
+}
+
+.ebarimt-stats .fs-11 {
+  font-size: 0.75rem !important;
+}
+
+.ebarimt-stats .border {
+  border-color: #dee2e6 !important;
+}
+
+.ebarimt-stats .text-primary {
+  color: #007bff !important;
+}
+
+.ebarimt-stats .text-success {
+  color: #28a745 !important;
+}
+
+.ebarimt-stats .text-muted {
+  color: #6c757d !important;
+}
+</style>

@@ -4,7 +4,10 @@
       <h5 class="chart-title">Сегментийн тархалт</h5>
       <div class="chart-subtitle">Түрээслэгчдийн сегментийн хуваарилалт</div>
       <div class="total-count" v-if="totalCount > 0">
-        Нийт: <span class="count-number">{{ totalCount }}</span> түрээслэгч
+        Нийт: <span class="count-number">{{ totalCount }}</span> 
+      </div>
+      <div class="data-info" v-if="dataInfo">
+        <small>{{ dataInfo }}</small>
       </div>
     </div>
     
@@ -15,6 +18,12 @@
     <div class="loading-overlay" v-if="loading">
       <div class="spinner"></div>
       <div>Өгөгдөл уншиж байна...</div>
+    </div>
+
+    <div class="error-overlay" v-if="error">
+      <div class="error-icon">⚠️</div>
+      <div class="error-message">{{ error }}</div>
+      <button @click="retryFetch" class="retry-btn">Дахин оролдох</button>
     </div>
   </div>
 </template>
@@ -38,6 +47,8 @@ const chartId = ref(`entity-pie-type-chart-${Date.now()}`);
 const chartInstance = ref<Chart | null>(null);
 const segmentData = ref<SegmentData[]>([]);
 const loading = ref(false);
+const error = ref<string | null>(null);
+const dataInfo = ref<string | null>(null);
 
 // Compute total count from segment data
 const totalCount = computed(() => {
@@ -51,50 +62,116 @@ const colors = [
   '#a8edea', '#fed6e3', '#ffecd2', '#fcb69f', '#ff9a9e'
 ];
 
+// Validate and process segment data
+function validateAndProcessData(data: any[]): SegmentData[] {
+  if (!Array.isArray(data)) {
+    console.warn('Invalid data format: not an array');
+    return [];
+  }
+
+  const validData = data
+    .filter(item => item && typeof item === 'object' && 
+                   typeof item.name === 'string' && 
+                   typeof item.count === 'number' && 
+                   item.count > 0)
+    .map(item => ({
+      name: item.name.trim() || 'Тодорхойгүй',
+      count: Math.max(0, item.count)
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // Limit to top 15 items to prevent chart overcrowding
+  const limitedData = validData.slice(0, 15);
+  
+  if (validData.length > 15) {
+    const othersCount = validData.slice(15).reduce((sum, item) => sum + item.count, 0);
+    if (othersCount > 0) {
+      limitedData.push({
+        name: 'Бусад',
+        count: othersCount
+      });
+    }
+  }
+
+  return limitedData;
+}
+
 async function fetchSegmentData(buildingId: string) {
   loading.value = true;
+  error.value = null;
+  dataInfo.value = null;
+  
   try {
     const cacheKey = `segment_stats_${buildingId}`;
     const cachedData = get(cacheKey);
     
     if (cachedData) {
-      segmentData.value = cachedData;
+      console.log('Using cached segment data');
+      segmentData.value = validateAndProcessData(cachedData);
+      dataInfo.value = 'Кэшээс авсан өгөгдөл';
     } else {
-      const response = await useApi(`/segment-stats/${buildingId}`);
-      if (response.success && response.data) {
-        segmentData.value = response.data as SegmentData[];
-        set(cacheKey, response.data);
-      } else {
-        // Fallback data if API fails
-        segmentData.value = [
-          { name: 'ХХК', count: 30 },
-          { name: 'ТББ', count: 25 },
-          { name: 'ХЗХ', count: 20 },
-          { name: 'ББСБ', count: 15 },
-          { name: 'Бусад', count: 10 }
-        ];
+      console.log('Fetching segment data from API');
+      
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      try {
+        const response = await useApi(`/segment-stats/${buildingId}`, {}, false); // Disable cache for fresh data
+        
+        clearTimeout(timeoutId);
+        
+        if (response.success && response.data) {
+          const processedData = validateAndProcessData(response.data as SegmentData[]);
+          
+          if (processedData.length === 0) {
+            throw new Error('Өгөгдөл олдсонгүй');
+          }
+          
+          segmentData.value = processedData;
+          set(cacheKey, response.data); // Cache original data
+          dataInfo.value = 'API-аас авсан өгөгдөл';
+          
+          console.log(`Processed ${processedData.length} segments from ${(response.data as any[]).length} total records`);
+        } else {
+          throw new Error(response.error?.message || 'API алдаа гарлаа');
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          throw new Error('Хүсэлт хэт удаж байна. Дахин оролдоно уу.');
+        }
+        throw fetchError;
       }
     }
     
-    createChart();
-  } catch (error) {
-    console.error('Error fetching segment data:', error);
-    // Fallback data
-    segmentData.value = [
-      { name: 'ХХК', count: 30 },
-      { name: 'ТББ', count: 25 },
-      { name: 'ХЗХ', count: 20 },
-      { name: 'ББСБ', count: 15 },
-      { name: 'Бусад', count: 10 }
-    ];
-    createChart();
+    await createChart();
+  } catch (err) {
+    console.error('Error fetching segment data:', err);
+    error.value = err instanceof Error ? err.message : 'Алдаа гарлаа';
+    
+    // Only show fallback data if we have no data at all
+    if (segmentData.value.length === 0) {
+      segmentData.value = [
+        { name: 'ХХК', count: 30 },
+        { name: 'ТББ', count: 25 },
+        { name: 'ХЗХ', count: 20 },
+        { name: 'ББСБ', count: 15 },
+        { name: 'Бусад', count: 10 }
+      ];
+      dataInfo.value = 'Жишээ өгөгдөл';
+      await createChart();
+    }
   } finally {
     loading.value = false;
   }
 }
 
-function createChart() {
-  if (!chartCanvas.value || !segmentData.value) return;
+async function createChart() {
+  if (!chartCanvas.value) {
+    console.warn('Chart canvas not available');
+    return;
+  }
 
   // Destroy existing chart
   if (chartInstance.value) {
@@ -103,7 +180,10 @@ function createChart() {
   }
 
   const ctx = chartCanvas.value.getContext('2d');
-  if (!ctx) return;
+  if (!ctx) {
+    console.warn('Could not get 2D context');
+    return;
+  }
 
   // Check if data exists and has length
   if (!segmentData.value || segmentData.value.length === 0) {
@@ -115,12 +195,8 @@ function createChart() {
     return;
   }
 
-  // Sort data by count in descending order
-  const sortedData = segmentData.value
-    .sort((a, b) => b.count - a.count);
-
-  // Take only top 10 items to avoid overcrowding
-  const displayData = sortedData.slice(0, 10);
+  // Use processed data directly (already sorted and limited)
+  const displayData = segmentData.value;
   const labels = displayData.map(item => item.name);
   const values = displayData.map(item => item.count);
 
@@ -131,6 +207,12 @@ function createChart() {
     gradient.addColorStop(1, adjustBrightness(color, -20));
     return gradient;
   });
+
+  // Add more colors if needed
+  const extendedColors = [...colors];
+  while (extendedColors.length < labels.length) {
+    extendedColors.push(...colors);
+  }
 
   chartInstance.value = new Chart(ctx, {
     type: 'doughnut',
@@ -170,7 +252,37 @@ function createChart() {
             },
             padding: 15,
             usePointStyle: true,
-            pointStyle: 'circle'
+            pointStyle: 'circle',
+            generateLabels: function(chart) {
+              const data = chart.data;
+              if (data.labels && data.datasets && data.datasets[0] && data.datasets[0].data && data.datasets[0].backgroundColor) {
+                const labels: any[] = [];
+                data.labels.forEach((label, index) => {
+                  const value = data.datasets[0].data[index];
+                  if (value !== null && value !== undefined && typeof value === 'number') {
+                    const total = data.datasets[0].data.reduce((a: any, b: any) => {
+                      const aVal = typeof a === 'number' ? a : 0;
+                      const bVal = typeof b === 'number' ? b : 0;
+                      return aVal + bVal;
+                    }, 0) as number;
+                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                    const backgroundColor = data.datasets[0].backgroundColor?.[index];
+                    
+                    labels.push({
+                      text: `${label} (${percentage}%)`,
+                      fillStyle: backgroundColor,
+                      strokeStyle: backgroundColor,
+                      lineWidth: 0,
+                      pointStyle: 'circle',
+                      hidden: false,
+                      index: index
+                    });
+                  }
+                });
+                return labels;
+              }
+              return [];
+            }
           }
         },
         tooltip: {
@@ -188,12 +300,12 @@ function createChart() {
             },
             label: function(context) {
               const value = context.parsed;
-              const total = context.dataset.data.reduce((a: any, b: any) => (a || 0) + (b || 0), 0);
+              const total = context.dataset.data.reduce((a: any, b: any) => (a || 0) + (b || 0), 0) as number;
               const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
               return `${value} түрээслэгч (${percentage}%)`;
             },
             afterBody: function(context) {
-              const total = (context[0] as any).dataset.data.reduce((a: any, b: any) => (a || 0) + (b || 0), 0);
+              const total = (context[0] as any).dataset.data.reduce((a: any, b: any) => (a || 0) + (b || 0), 0) as number;
               return `Нийт: ${total} түрээслэгч`;
             }
           }
@@ -217,16 +329,26 @@ function createChart() {
         const dataset = data.datasets[0];
         const meta = chart.getDatasetMeta(0);
         
+        if (!dataset || !dataset.data) return;
+        
         meta.data.forEach((element: any, index: number) => {
           if (element.hidden) return;
           
           const { x, y } = element.tooltipPosition();
           const value = dataset.data[index];
-          const total = dataset.data.reduce((a: number, b: number) => a + b, 0);
+          
+          if (value === null || value === undefined || typeof value !== 'number') return;
+          
+          const total = dataset.data.reduce((a: any, b: any) => {
+            const aVal = typeof a === 'number' ? a : 0;
+            const bVal = typeof b === 'number' ? b : 0;
+            return aVal + bVal;
+          }, 0) as number;
+          
           const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
           
-          // Only show label if percentage is greater than 5% to avoid clutter
-          if (percentage >= 5) {
+          // Only show label if percentage is greater than 3% to avoid clutter
+          if (percentage >= 3) {
             ctx.save();
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 12px Arial';
@@ -256,6 +378,13 @@ function adjustBrightness(hex: string, percent: number): string {
   return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
     (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
     (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+}
+
+function retryFetch() {
+  const buildingId = route.query.id as string;
+  if (buildingId) {
+    fetchSegmentData(buildingId);
+  }
 }
 
 onMounted(async () => {
@@ -335,6 +464,13 @@ watch(() => route.query.id, (newId) => {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+.data-info {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  font-style: italic;
+}
+
 .chart-wrapper {
   position: relative;
   height: 300px;
@@ -355,6 +491,50 @@ watch(() => route.query.id, (newId) => {
   justify-content: center;
   z-index: 10;
   border-radius: 16px;
+}
+
+.error-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.error-message {
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+  opacity: 0.9;
+}
+
+.retry-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+}
+
+.retry-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
 }
 
 .spinner {
@@ -397,6 +577,15 @@ watch(() => route.query.id, (newId) => {
   
   .chart-wrapper {
     height: 250px;
+  }
+  
+  .error-message {
+    font-size: 0.8rem;
+  }
+  
+  .retry-btn {
+    font-size: 0.75rem;
+    padding: 6px 12px;
   }
 }
 </style>
