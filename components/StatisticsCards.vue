@@ -1,6 +1,27 @@
 <template>
   <div class="statistics-cards">
-    <div class="row g-3 mb-4">
+    <!-- Loading state -->
+    <div v-if="loading" class="text-center py-4">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Уншиж байна...</span>
+      </div>
+      <p class="mt-2 text-muted">Статистик мэдээлэл уншиж байна...</p>
+    </div>
+    
+    <!-- Error state -->
+    <div v-else-if="error" class="alert alert-danger" role="alert">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      {{ error }}
+      <button @click="fetchStatistics" class="btn btn-sm btn-outline-danger ms-3">
+        Дахин оролдох
+      </button>
+    </div>
+    
+    <!-- Statistics content -->
+    <div v-else>
+
+      
+      <div class="row g-3 mb-4">
       <!-- Эхний мөр -->
       <div class="col-lg-2 col-md-4 col-7">
         <div class="card stats-card text-center p-3">
@@ -19,22 +40,37 @@
           <div class="stats-icon bg-danger-light mb-2">
             <i class="fas fa-exclamation-circle text-danger"></i>
           </div>
-          <div class="stats-number text-danger fs-4 fw-bold">18</div>
-          <div class="stats-label text-muted small">Зах. хуулиарналт тев</div>
+          <div class="stats-number text-danger fs-4 fw-bold">
+            {{ formatNumber(statistics.total_active_organizations) }}
+          </div>
+          <div class="stats-label text-muted small">Нийт үйл ажиллагаа явуулж буй байгууллагууд</div>
         </div>
       </div>
       
       <div class="col-lg-2 col-md-4 col-7">
         <div class="card stats-card text-center p-3">
-          <div class="stats-icon bg-success-light mb-2">
-            <i class="fas fa-users text-success"></i>
+          <div class="stats-icon bg-warning-light mb-2">
+            <i class="fas fa-user-check text-warning"></i>
           </div>
-          <div class="stats-number text-success fs-4 fw-bold">
-            {{ formatNumber(statistics.total_legal_entities) }}
+          <div class="stats-number text-warning fs-4 fw-bold">
+            {{ formatNumber(statistics.total_tenants) }}
           </div>
-          <div class="stats-label text-muted small">Хуулийн этгээд</div>
+          <div class="stats-label text-muted small">Түрээслэгч</div>
         </div>
       </div>
+
+      <div class="col-lg-2 col-md-4 col-7">
+        <div class="card stats-card text-center p-3">
+          <div class="stats-icon bg-cyan-light mb-2">
+            <i class="fas fa-female text-cyan"></i>
+          </div>
+          <div class="stats-number text-cyan fs-4 fw-bold">
+            {{ formatNumber(statistics.total_owners) }}
+          </div>
+          <div class="stats-label text-muted small">Эзэмшигч</div>
+        </div>
+      </div>
+
       
       <div class="col-lg-2 col-md-4 col-7">
         <div class="card stats-card text-center p-3">
@@ -50,25 +86,13 @@
       
       <div class="col-lg-2 col-md-4 col-7">
         <div class="card stats-card text-center p-3">
-          <div class="stats-icon bg-cyan-light mb-2">
-            <i class="fas fa-female text-cyan"></i>
+          <div class="stats-icon bg-success-light mb-2">
+            <i class="fas fa-users text-success"></i>
           </div>
-          <div class="stats-number text-cyan fs-4 fw-bold">
-            {{ formatNumber(statistics.total_owners) }}
+          <div class="stats-number text-success fs-4 fw-bold">
+            {{ formatNumber(statistics.total_legal_entities) }}
           </div>
-          <div class="stats-label text-muted small">Эзэмшигч</div>
-        </div>
-      </div>
-
-      <div class="col-lg-2 col-md-4 col-7">
-        <div class="card stats-card text-center p-3">
-          <div class="stats-icon bg-warning-light mb-2">
-            <i class="fas fa-user-check text-warning"></i>
-          </div>
-          <div class="stats-number text-warning fs-4 fw-bold">
-            {{ formatNumber(statistics.total_tenants) }}
-          </div>
-          <div class="stats-label text-muted small">Түрээслэгч</div>
+          <div class="stats-label text-muted small">Хуулийн этгээд</div>
         </div>
       </div>
       
@@ -85,6 +109,28 @@
             {{ formatNumber(statistics.nuat_count) }}
           </div>
           <div class="stats-label text-muted small">НӨАТ суутган төлөгч</div>
+        </div>
+      </div>
+
+      <div class="col-lg-2 col-md-4 col-7">
+        <div class="card stats-card text-center p-3">
+          <div class="stats-icon bg-info-light mb-2">
+            <i class="fas fa-coins text-info"></i>
+          </div>
+          <div class="stats-number text-info fs-4 fw-bold">{{ formatNumber(statistics.nhat_count) }}</div>
+          <div class="stats-label text-muted small">НХАТ төлөгч</div>
+        </div>
+      </div>
+
+      <div class="col-lg-2 col-md-4 col-7">
+        <div class="card stats-card text-center p-3">
+          <div class="stats-icon bg-danger-light mb-2">
+            <i class="fas fa-receipt text-danger"></i>
+          </div>
+          <div class="stats-number text-danger fs-4 fw-bold">
+            {{ formatNumber(statistics.total_receipt_count) }}
+          </div>
+          <div class="stats-label text-muted small">Баримт хэвлэдэг</div>
         </div>
       </div>
 
@@ -124,34 +170,13 @@
         </div>
       </div>
       
-      
-      <div class="col-lg-2 col-md-4 col-7">
-        <div class="card stats-card text-center p-3">
-          <div class="stats-icon bg-danger-light mb-2">
-            <i class="fas fa-receipt text-danger"></i>
-          </div>
-          <div class="stats-number text-danger fs-4 fw-bold">
-            {{ formatNumber(statistics.total_receipt_count) }}
-          </div>
-          <div class="stats-label text-muted small">Баримт хэвлэдэг</div>
-        </div>
-      </div>
-
-      <div class="col-lg-2 col-md-4 col-7">
-        <div class="card stats-card text-center p-3">
-          <div class="stats-icon bg-info-light mb-2">
-            <i class="fas fa-coins text-info"></i>
-          </div>
-          <div class="stats-number text-info fs-4 fw-bold">{{ formatNumber(statistics.nhat_count) }}</div>
-          <div class="stats-label text-muted small">НХАТ төлөгч</div>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useApi } from '../composables/useApi';
 
 interface StatisticsData {
@@ -160,6 +185,7 @@ interface StatisticsData {
   total_land_area: number;
   unused_area: number;
   total_legal_entities: number;
+  total_active_organizations: number;
   total_citizens: number;
   total_owners: number;
   total_tenants: number;
@@ -174,6 +200,7 @@ const statistics = ref<StatisticsData>({
   total_land_area: 0,
   unused_area: 0,
   total_legal_entities: 0,
+  total_active_organizations: 0,
   total_citizens: 0,
   total_owners: 0,
   total_tenants: 0,
@@ -195,27 +222,41 @@ async function fetchStatistics() {
   error.value = '';
   
   try {
-    console.log('DEBUG: Starting statistics fetch');
-    const res = await useApi('/statistics');
-    console.log('DEBUG: API response:', res);
+    const res = await useApi('/statistics', {}, false); // Disable cache for fresh data
     
     if (res.success && res.data) {
-      console.log('DEBUG: Statistics data received:', res.data);
-      statistics.value = res.data as StatisticsData;
-      console.log('DEBUG: Statistics value set:', statistics.value);
+      // Ensure all fields are properly mapped
+      const data = res.data as any;
+      const newStats = {
+        total_buildings: data.total_buildings || 0,
+        total_area: data.total_area || 0,
+        total_land_area: data.total_land_area || 0,
+        unused_area: data.unused_area || 0,
+        total_legal_entities: data.total_legal_entities || 0,
+        total_active_organizations: data.total_active_organizations || 0,
+        total_citizens: data.total_citizens || 0,
+        total_owners: data.total_owners || 0,
+        total_tenants: data.total_tenants || 0,
+        total_receipt_count: data.total_receipt_count || 0,
+        nuat_count: data.nuat_count || 0,
+        nhat_count: data.nhat_count || 0
+      };
+      
+      statistics.value = newStats;
     } else {
-      console.log('DEBUG: API failed:', res);
-      error.value = 'Статистик мэдээлэл авахад алдаа гарлаа';
+      error.value = res.error?.message || 'Статистик мэдээлэл авахад алдаа гарлаа';
     }
   } catch (e: any) {
-    console.error('DEBUG: Exception in fetchStatistics:', e);
     error.value = e.message || 'Алдаа гарлаа';
-    console.error('Statistics fetch error:', e);
   } finally {
     loading.value = false;
-    console.log('DEBUG: Statistics fetch completed, current value:', statistics.value);
   }
 }
+
+// Watch for changes in statistics
+watch(statistics, (newVal, oldVal) => {
+  console.log('DEBUG: Statistics changed:', { old: oldVal, new: newVal });
+}, { deep: true });
 
 onMounted(() => {
   fetchStatistics();

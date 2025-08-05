@@ -168,42 +168,14 @@
                           {{ selectedCategoryName }}
                           <i class="las la-angle-down ms-1"></i>
                         </button>
-                        <div class="dropdown-menu">
+                        <div class="dropdown-menu" style="max-height: 300px; overflow-y: auto;">
                           <a
+                            v-for="address in distinctAddresses"
+                            :key="address"
                             class="dropdown-item"
                             href="#"
-                            @click.prevent="selectCategory('1', 'Худалдаа')"
-                            >Худалдаа</a
-                          >
-                          <a
-                            class="dropdown-item"
-                            href="#"
-                            @click.prevent="selectCategory('2', 'Хүнс')"
-                            >Хүнс</a
-                          >
-                          <a
-                            class="dropdown-item"
-                            href="#"
-                            @click.prevent="selectCategory('3', 'Санхүү')"
-                            >Санхүү</a
-                          >
-                          <a
-                            class="dropdown-item"
-                            href="#"
-                            @click.prevent="selectCategory('4', 'Тээвэр')"
-                            >Тээвэр</a
-                          >
-                          <a
-                            class="dropdown-item"
-                            href="#"
-                            @click.prevent="selectCategory('5', 'Эрүүл мэнд')"
-                            >Эрүүл мэнд</a
-                          >
-                          <a
-                            class="dropdown-item"
-                            href="#"
-                            @click.prevent="selectCategory('6', 'Боловсрол')"
-                            >Боловсрол</a
+                            @click.prevent="selectCategory(address, address)"
+                            >{{ address }}</a
                           >
                           <div class="dropdown-divider"></div>
                           <a
@@ -248,6 +220,7 @@
                           :organizations="organizations || []"
                           :payCenter="payCenter || []"
                           :mapType="mapType"
+                          :selectedAddress="selectedCategory"
                         />
                       </client-only>
                     </div>
@@ -273,13 +246,18 @@
                           <i class="las la-times"></i>
                         </button>
                       </div>
-                      <div class="card-body p-3">
+                      <div class="card-body p-3 land-scrollable-content">
                         <!-- Loading State -->
                         <div v-if="landDataLoading" class="text-center py-4">
                           <div class="spinner-border spinner-border-sm text-primary" role="status">
                             <span class="visually-hidden">Ачаалж байна...</span>
                           </div>
-                          <p class="mt-2 small text-muted">Газрын мэдээлэл ачаалж байна...</p>
+                          <p class="mt-2 small text-muted loading-text">Газрын мэдээлэл татаж байна...</p>
+                          <div class="mt-3">
+                            <div class="progress" style="height: 6px;">
+                              <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: 100%"></div>
+                            </div>
+                          </div>
                         </div>
 
                         <!-- Land Statistics -->
@@ -374,6 +352,9 @@
                         <div class="bg-light rounded p-3 text-center">
                           <div class="fs-5 fw-bold text-danger">{{ formatNumber(landDebtTotal) }}₮</div>
                           <div class="small text-muted">Нийт газрын өр</div>
+                          <div class="mt-2">
+                            <span class="badge bg-warning">{{ landDebtDistribution.length }} дүүрэг</span>
+                          </div>
                         </div>
                       </div>
 
@@ -387,11 +368,41 @@
                           <div class="chart-container" style="height: 300px;">
                             <client-only>
                               <apexchart
-                                type="bar"
+                                type="pie"
                                 :options="landDebtDistributionChart.options"
                                 :series="landDebtDistributionChart.series"
                               />
                             </client-only>
+                          </div>
+                          
+                          <!-- District Debt Details -->
+                          <div class="mt-3">
+                            <h6 class="text-secondary mb-2">Дүүрэг бүрийн дэлгэрэнгүй:</h6>
+                            <div class="district-debt-list">
+                              <div 
+                                v-for="(district, index) in landDebtDistribution" 
+                                :key="index"
+                                class="district-debt-item"
+                              >
+                                <div class="d-flex justify-content-between align-items-center">
+                                  <div class="district-info">
+                                    <div class="district-name">{{ district.districtName }}</div>
+                                    <div class="district-percentage">
+                                      {{ ((district.debtAmount / landDebtTotal) * 100).toFixed(1) }}%
+                                    </div>
+                                  </div>
+                                  <div class="district-amount">
+                                    {{ formatNumber(district.debtAmount) }}₮
+                                  </div>
+                                </div>
+                                <div class="progress mt-1" style="height: 4px;">
+                                  <div 
+                                    class="progress-bar bg-danger" 
+                                    :style="{ width: ((district.debtAmount / landDebtTotal) * 100) + '%' }"
+                                  ></div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                         <div v-else-if="!landDataLoading" class="text-center py-3">
@@ -428,7 +439,12 @@
                         <div class="spinner-border spinner-border-sm text-warning" role="status">
                           <span class="visually-hidden">Ачаалж байна...</span>
                         </div>
-                        <p class="mt-2 small text-muted">Е-баримтын мэдээлэл ачаалж байна...</p>
+                        <p class="mt-2 small text-muted loading-text">Е-баримтын мэдээлэл татаж байна...</p>
+                        <div class="mt-3">
+                          <div class="progress" style="height: 6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" style="width: 100%"></div>
+                          </div>
+                        </div>
                       </div>
 
                       <!-- E-Barimt Statistics -->
@@ -678,6 +694,78 @@
                     </div>
                   </div>
                 </div>
+                
+                <!-- Real Estate Information Sidebar -->
+                <div 
+                  v-show="showRealEstateSidebar" 
+                  class="real-estate-sidebar"
+                  :class="{ 'show': showRealEstateSidebar }"
+                >
+                  <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <h5 class="mb-0">
+                        <i class="las la-building me-2"></i>
+                        Үл хөдлөх статистик
+                      </h5>
+                      <button 
+                        class="btn btn-sm btn-outline-secondary"
+                        @click="showRealEstateSidebar = false"
+                      >
+                        <i class="las la-times"></i>
+                      </button>
+                    </div>
+                    <div class="card-body p-3 real-estate-scrollable-content">
+                      <!-- Loading State -->
+                      <div v-if="realEstateDataLoading" class="text-center py-4">
+                        <div class="spinner-border spinner-border-sm text-info" role="status">
+                          <span class="visually-hidden">Ачаалж байна...</span>
+                        </div>
+                        <p class="mt-2 small text-muted loading-text">Үл хөдлөх мэдээлэл татаж байна...</p>
+                        <div class="mt-3">
+                          <div class="progress" style="height: 6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width: 100%"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Real Estate Statistics -->
+                      <div v-else>
+                        <!-- Real Estate Count Statistics -->
+                        <div class="mb-4">
+                          <h6 class="text-info mb-3">
+                            <i class="las la-building me-1"></i>
+                            Үл хөдлөх статистик
+                          </h6>
+                          <div class="row g-2">
+                            <div class="col-6">
+                              <div class="bg-light rounded p-2 text-center">
+                                <div class="fs-6 fw-bold text-info">{{ formatNumber(realEstateStatistics.totalRealEstateCount) }}</div>
+                                <div class="small text-muted">Нийт Үл хөдлөхийн тоо</div>
+                              </div>
+                            </div>
+                            <div class="col-6">
+                              <div class="bg-light rounded p-2 text-center">
+                                <div class="fs-6 fw-bold text-success">{{ formatNumber(realEstateStatistics.realEstateOnMap) }}</div>
+                                <div class="small text-muted">Map дээрх үл хөдлөх</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="mt-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                              <span class="small text-muted">Харьцаа:</span>
+                              <span class="fw-bold text-success">{{ realEstateStatistics.ratio.toFixed(1) }}%</span>
+                            </div>
+                            <div class="progress mt-1" style="height: 8px;">
+                              <div class="progress-bar bg-success" 
+                                   :style="{ width: realEstateStatistics.ratio + '%' }">
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -753,6 +841,13 @@ interface MerchantRegnoData {
   total_count: number
 }
 
+// Interfaces for real estate data
+interface RealEstateStatistics {
+  totalRealEstateCount: number
+  realEstateOnMap: number
+  ratio: number
+}
+
 const { get, set } = useCache();
 const selectedDistrict = ref("");
 const selectedDistrictName = ref("Дүүрэг");
@@ -760,6 +855,7 @@ const selectedKhoroo = ref("");
 const selectedKhorooName = ref("Хороо");
 const selectedCategory = ref("");
 const selectedCategoryName = ref("Ү/а чиглэл");
+const distinctAddresses = ref<string[]>([]);
 
 const searchName = ref("");
 const searchRegno = ref("");
@@ -769,6 +865,7 @@ const mapType = ref(""); // Current map type: 'land', 'real_estate', or 'ebarimt
 const payCenter = ref<any[] | null>(null);
 const showLandSidebar = ref(false); // New state for sidebar visibility
 const showEbarimtSidebar = ref(false); // New state for ebarimt sidebar visibility
+const showRealEstateSidebar = ref(false); // New state for real estate sidebar visibility
 
 // Land data states
 const landStatistics = ref<LandStatistics>({
@@ -797,6 +894,14 @@ const ebarimtStatistics = ref<EbarimtStatistics>({
   organizationsWithoutEbarimt: 0,
   totalEbarimtRecords: 0,
   ebarimtPercentage: 0
+});
+
+// Real estate data states
+const realEstateDataLoading = ref(false);
+const realEstateStatistics = ref<RealEstateStatistics>({
+  totalRealEstateCount: 0,
+  realEstateOnMap: 0,
+  ratio: 0
 });
 
 // Activity type data for charts
@@ -879,64 +984,55 @@ const landPaymentDistributionChart = computed(() => ({
 }));
 
 // Computed chart configuration for land debt by district
-const landDebtDistributionChart = computed(() => ({
-  series: [{
-    name: 'Газрын өр',
-    data: landDebtDistribution.value.map(item => item.debtAmount)
-  }],
-  options: {
+const landDebtDistributionChart = computed(() => {
+  const series = landDebtDistribution.value.map(item => item.debtAmount);
+  console.log('Chart series data:', series);
+  console.log('Total debt amount:', series.reduce((sum, val) => sum + val, 0));
+  
+  return {
+    series: series,
+    options: {
     chart: {
-      type: 'bar',
+      type: 'pie',
       height: 300,
       toolbar: {
         show: false
       }
     },
-    plotOptions: {
-      bar: {
-        horizontal: false,
-        columnWidth: '60%',
-        endingShape: 'rounded'
-      }
-    },
+    labels: landDebtDistribution.value.map(item => item.districtName),
     dataLabels: {
-      enabled: false
-    },
-    stroke: {
-      show: true,
-      width: 2,
-      colors: ['transparent']
-    },
-    xaxis: {
-      categories: landDebtDistribution.value.map(item => item.districtName),
-      labels: {
-        style: {
-          fontSize: '11px'
-        }
+      enabled: true,
+      formatter: function (val: number, opts: any) {
+        // val is already the percentage from ApexCharts, just format it
+        return val.toFixed(1) + '%';
       }
     },
-    yaxis: {
-      title: {
-        text: 'Өрийн дүн (₮)'
-      },
-      labels: {
-        formatter: function (val: number) {
-          return formatNumber(val)
-        }
-      }
-    },
-    fill: {
-      colors: ['#FF6B6B']
-    },
+    colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE'],
     tooltip: {
       y: {
         formatter: function (val: number) {
-          return formatNumber(val) + '₮'
+          return formatNumber(val) + '₮';
         }
       }
-    }
+    },
+    legend: {
+      position: 'bottom',
+      fontSize: '12px'
+    },
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          width: 200
+        },
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }]
   }
-}));
+  };
+});
 
 // Computed chart configuration for e-barimt activity types by 3 days
 const ebarimtActivityTypes3DaysChart = computed(() => ({
@@ -1432,6 +1528,7 @@ async function selectMapType(type: string) {
     mapType.value = "";
     showLandSidebar.value = false;
     showEbarimtSidebar.value = false;
+    showRealEstateSidebar.value = false;
     // Clear payCenter data when toggling off land mode to hide PAY_CENTER_LOCATION data
     if (type === 'land') {
       payCenter.value = null;
@@ -1445,18 +1542,36 @@ async function selectMapType(type: string) {
   // Close other sidebars
   showLandSidebar.value = false;
   showEbarimtSidebar.value = false;
+  showRealEstateSidebar.value = false;
 
   // Handle specific map type logic
   if (type === 'land') {
-    // Load land data and pay center data, then show sidebar
-    await Promise.all([fetchLandData(), loadPayCenterData()]);
+    // Show sidebar immediately with loading state
     showLandSidebar.value = true;
+    landDataLoading.value = true;
+    
+    // Load land data and pay center data in background
+    Promise.all([fetchLandData(), loadPayCenterData()]).finally(() => {
+      landDataLoading.value = false;
+    });
   } else if (type === 'ebarimt') {
-    // Load ebarimt data and show sidebar
-    await loadEbarimtStatistics();
+    // Show sidebar immediately with loading state
+    showEbarimtSidebar.value = true;
+    ebarimtDataLoading.value = true;
+    
+    // Load ebarimt data in background
+    loadEbarimtStatistics().finally(() => {
+      ebarimtDataLoading.value = false;
+    });
   } else if (type === 'real_estate') {
-    // For real estate, clear payCenter data
-    payCenter.value = null;
+    // Show sidebar immediately with loading state
+    showRealEstateSidebar.value = true;
+    realEstateDataLoading.value = true;
+    
+    // Load real estate data in background
+    loadRealEstateStatistics().finally(() => {
+      realEstateDataLoading.value = false;
+    });
   } else {
     // Reset to default - show organizations only
     payCenter.value = null;
@@ -1472,12 +1587,10 @@ async function loadEbarimtStatistics() {
   if (cachedData && !ebarimtDataLoading.value) {
     console.log('Using cached ebarimt statistics');
     ebarimtStatistics.value = cachedData;
-    showEbarimtSidebar.value = true;
     return;
   }
 
   try {
-    ebarimtDataLoading.value = true;
     console.log('Loading fresh ebarimt statistics...');
     
     // Load all statistics in parallel for better performance
@@ -1547,14 +1660,51 @@ async function loadEbarimtStatistics() {
     // Cache the data for 5 minutes
     set(cacheKey, newStatistics, 300);
     
-    showEbarimtSidebar.value = true;
     console.log('Ebarimt statistics loaded and cached:', ebarimtStatistics.value);
     
   } catch (error) {
     console.error('Error loading ebarimt statistics:', error);
     alert("Е-баримтын мэдээлэл авахад алдаа гарлаа!");
-  } finally {
-    ebarimtDataLoading.value = false;
+  }
+}
+
+// Real estate statistics function
+async function loadRealEstateStatistics() {
+  // Check if we have cached data first
+  const cacheKey = 'real_estate_statistics_cache';
+  const cachedData = get(cacheKey);
+  
+  if (cachedData && !realEstateDataLoading.value) {
+    console.log('Using cached real estate statistics');
+    realEstateStatistics.value = cachedData;
+    return;
+  }
+
+  try {
+    console.log('Loading fresh real estate statistics...');
+    
+    const response = await useApi('/real-estate/statistics');
+    if (response.success && response.data) {
+      const data = response.data as any;
+      const newStatistics = {
+        totalRealEstateCount: data.total_real_estate_count || 0,
+        realEstateOnMap: data.real_estate_on_map || 0,
+        ratio: data.ratio || 0
+      };
+      
+      realEstateStatistics.value = newStatistics;
+      
+      // Cache the data for 5 minutes
+      set(cacheKey, newStatistics, 300);
+      
+      console.log('Real estate statistics loaded and cached:', realEstateStatistics.value);
+    } else {
+      console.error('Failed to fetch real estate statistics:', response);
+      alert("Үл хөдлөх мэдээлэл авахад алдаа гарлаа!");
+    }
+  } catch (error) {
+    console.error('Error loading real estate statistics:', error);
+    alert("Үл хөдлөх мэдээлэл авахад алдаа гарлаа!");
   }
 }
 
@@ -1640,31 +1790,25 @@ async function fetchLandPaymentDistribution() {
   }
 }
 
-async function fetchLandDebtTotal() {
+async function fetchLandDebtData() {
   try {
-    const response = await useApi('/land/debt-total');
+    const response = await useApi('/land/debt');
     if (response.success && response.data) {
-      landDebtTotal.value = (response.data as any).total_debt || 0;
-    }
-  } catch (err) {
-    console.error('Error fetching land debt total:', err);
-  }
-}
-
-async function fetchLandDebtDistribution() {
-  try {
-    const response = await useApi('/land/debt-by-district');
-    if (response.success && response.data) {
-      const data = Array.isArray(response.data) ? response.data : [];
-      landDebtDistribution.value = data.map((item: any) => ({
-        branchId: item.branch_id,
-        districtName: item.district_name,
-        debtAmount: item.debt_amount,
-        recordCount: item.record_count
+      const data = response.data as any;
+      landDebtTotal.value = data.totalDebt || 0;
+      landDebtDistribution.value = (data.distribution || []).map((item: any) => ({
+        branchId: '', // Not provided in new API
+        districtName: item.districtName,
+        debtAmount: Number(item.debtAmount) || 0,
+        recordCount: 0 // Not provided in new API
       }));
+      console.log('Land debt data loaded:', {
+        total: landDebtTotal.value,
+        distribution: landDebtDistribution.value
+      });
     }
   } catch (err) {
-    console.error('Error fetching land debt distribution:', err);
+    console.error('Error fetching land debt data:', err);
   }
 }
 
@@ -1683,17 +1827,15 @@ async function fetchLandData() {
     return;
   }
 
-  landDataLoading.value = true;
   try {
     console.log('Fetching fresh land data...');
     
     // Load all data in parallel for better performance
-    const [statsResult, paymentsResult, paymentDistResult, debtTotalResult, debtDistResult] = await Promise.allSettled([
+    const [statsResult, paymentsResult, paymentDistResult, debtResult] = await Promise.allSettled([
       fetchLandStatistics(),
       fetchLandPayments(),
       fetchLandPaymentDistribution(),
-      fetchLandDebtTotal(),
-      fetchLandDebtDistribution()
+      fetchLandDebtData()
     ]);
 
     // Cache the successful results
@@ -1712,8 +1854,6 @@ async function fetchLandData() {
     console.log('Land data loaded and cached successfully');
   } catch (err) {
     console.error('Error fetching land data:', err);
-  } finally {
-    landDataLoading.value = false;
   }
 }
 
@@ -1739,6 +1879,9 @@ onMounted(async () => {
       organizations.value = [];
     }
   }
+
+  // Load distinct addresses for activity direction filter
+      await loadDistinctAddresses();
 
   // Pay center data will be loaded only when "Газар" button is clicked
 });
@@ -1772,25 +1915,11 @@ async function filterOrganizations() {
     filtered = filtered.filter(org => org.kho_code === selectedKhoroo.value);
   }
   
-  // Filter by category (ADDRESS)
+  // Filter by category (ADDRESS) - this filters organizations by their address field
   if (selectedCategory.value) {
     filtered = filtered.filter(org => {
       if (!org.address) return false;
-      const address = org.address.toLowerCase();
-      const category = selectedCategory.value.toLowerCase();
-      
-      // Simple category matching based on address keywords
-      const categoryMap: any = {
-        '1': ['худалдаа', 'дэлгүүр', 'супермаркет', 'маркет'],
-        '2': ['хүнс', 'ресторан', 'кафе', 'зоогий'],
-        '3': ['санхүү', 'банк', 'зээл', 'даатгал'],
-        '4': ['тээвэр', 'такси', 'авто', 'машин'],
-        '5': ['эрүүл', 'эмнэлэг', 'клиник', 'эм'],
-        '6': ['боловсрол', 'сургууль', 'цэцэрлэг', 'их сургууль']
-      };
-      
-      const keywords = categoryMap[category] || [];
-      return keywords.some((keyword: string) => address.includes(keyword));
+      return org.address === selectedCategory.value;
     });
   }
   
@@ -1816,6 +1945,51 @@ async function filterOrganizations() {
   } else {
     organizations.value = null;
     alert("Хайлтад тохирох мэдээлэл олдсонгүй!");
+  }
+}
+
+async function loadDistinctAddresses() {
+  try {
+    console.log('Loading distinct addresses...');
+    const res = await useApi("/distinct-addresses");
+    console.log('Distinct addresses API response:', res);
+    
+    if (res.success && res.data && Array.isArray(res.data) && res.data.length > 0) {
+      distinctAddresses.value = res.data;
+      console.log('Distinct addresses loaded:', distinctAddresses.value.length);
+      console.log('Addresses:', distinctAddresses.value);
+    } else {
+      console.error('Failed to fetch distinct addresses or no data:', res);
+      // Use fallback addresses for testing
+      distinctAddresses.value = [
+        'Аж, ахуйн',
+        'Гэр, орон сууцны хашааны газар',
+        'Худалдаа, нийтийн үйлчилгээний газар, төв, цогцолбор',
+        'Үйлчилгээтэй орон сууц',
+        'Төрийн захиргааны байгууллага'
+      ];
+    }
+  } catch (error) {
+    console.error('Error loading distinct addresses:', error);
+    // Use fallback addresses for testing
+    distinctAddresses.value = [
+      'Аж, ахуйн',
+      'Гэр, орон сууцны хашааны газар',
+      'Худалдаа, нийтийн үйлчилгээний газар, төв, цогцолбор',
+      'Үйлчилгээтэй орон сууц',
+      'Төрийн захиргааны байгууллага'
+    ];
+  }
+}
+
+// Load land debt data when land sidebar is shown
+async function loadLandDebtData() {
+  try {
+    console.log('Loading land debt data...');
+    await fetchLandDebtData();
+    console.log('Land debt data loaded successfully');
+  } catch (error) {
+    console.error('Error loading land debt data:', error);
   }
 }
 
@@ -1880,7 +2054,6 @@ useHead({
 
 .land-sidebar .card-body {
   background-color: #ffffff;
-  min-height: 400px;
   padding: 1.5rem;
 }
 
@@ -1918,12 +2091,37 @@ useHead({
 
 .ebarimt-sidebar .card-body {
   background-color: #ffffff;
-  min-height: 400px;
   padding: 1.5rem;
 }
 
+.land-scrollable-content {
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+.land-scrollable-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.land-scrollable-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.land-scrollable-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.land-scrollable-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
 .ebarimt-scrollable-content {
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 250px);
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
@@ -1946,6 +2144,92 @@ useHead({
 
 .ebarimt-scrollable-content::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* Real estate sidebar styles */
+.real-estate-sidebar {
+  width: 0;
+  max-width: 0;
+  min-width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  transition: all 0.3s ease-in-out;
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.real-estate-sidebar.show {
+  width: 400px;
+  max-width: 400px;
+  min-width: 350px;
+  margin-left: 15px;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.real-estate-sidebar .card {
+  border: 1px solid #e9ecef;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.real-estate-sidebar .card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  padding: 1rem;
+}
+
+.real-estate-sidebar .card-body {
+  background-color: #ffffff;
+  padding: 1.5rem;
+}
+
+.real-estate-scrollable-content {
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+.real-estate-scrollable-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.real-estate-scrollable-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.real-estate-scrollable-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.real-estate-scrollable-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Loading animation for sidebars */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.land-sidebar .spinner-border,
+.ebarimt-sidebar .spinner-border {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Loading text animation */
+.loading-text {
+  animation: pulse 2s ease-in-out infinite;
 }
 
 /* Chart section header styles */
@@ -2047,7 +2331,8 @@ useHead({
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .land-sidebar.show,
-  .ebarimt-sidebar.show {
+  .ebarimt-sidebar.show,
+  .real-estate-sidebar.show {
     width: 300px;
     min-width: 300px;
   }
@@ -2055,7 +2340,8 @@ useHead({
 
 @media (max-width: 992px) {
   .land-sidebar,
-  .ebarimt-sidebar {
+  .ebarimt-sidebar,
+  .real-estate-sidebar {
     position: absolute;
     top: 0;
     right: 0;
@@ -2064,7 +2350,8 @@ useHead({
   }
   
   .land-sidebar.show,
-  .ebarimt-sidebar.show {
+  .ebarimt-sidebar.show,
+  .real-estate-sidebar.show {
     width: 320px;
     min-width: 320px;
     margin-left: 0;
@@ -2078,9 +2365,59 @@ useHead({
 }
 
 @media (max-width: 768px) {
-  .land-sidebar.show {
+  .land-sidebar.show,
+  .ebarimt-sidebar.show,
+  .real-estate-sidebar.show {
     width: 280px;
     min-width: 280px;
   }
+}
+
+/* District debt list styles */
+.district-debt-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.district-debt-item {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.district-debt-item:hover {
+  background: #e9ecef;
+  border-color: #dee2e6;
+}
+
+.district-debt-item:last-child {
+  margin-bottom: 0;
+}
+
+.district-info {
+  flex: 1;
+}
+
+.district-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.25rem;
+}
+
+.district-percentage {
+  font-size: 11px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.district-amount {
+  font-size: 13px;
+  font-weight: bold;
+  color: #dc3545;
+  text-align: right;
 }
 </style>

@@ -24,6 +24,7 @@ const props = defineProps<{
   searchLand?: LandData[];
   payCenter?: any;
   mapType?: string;
+  selectedAddress?: string;
 }>();
 
 const map = ref<any>(null);
@@ -138,15 +139,26 @@ async function fetchAndRenderMarkers() {
   
   let markersCreated = 0;
   
-  // 1. Байгууллагаар хайсан бол organizations pin-үүдийг харуулна (always show organizations)
+  // 1. Байгууллагаар хайсан бол organizations pin-үүдийг харуулна (filter by selectedAddress if provided)
   if (props.organizations && Array.isArray(props.organizations) && props.organizations.length > 0) {
     console.log('Processing organizations section...');
     console.log('Organizations count:', props.organizations.length);
+    console.log('Selected address filter:', props.selectedAddress);
+    
+    // Filter organizations by selectedAddress if provided
+    let filteredOrganizations = props.organizations;
+    if (props.selectedAddress && props.selectedAddress !== '') {
+      filteredOrganizations = props.organizations.filter(org => {
+        if (!org.address) return false;
+        return org.address === props.selectedAddress;
+      });
+      console.log(`Filtered organizations count: ${filteredOrganizations.length} (matching address: ${props.selectedAddress})`);
+    }
     
     console.log('Starting organization marker creation loop...');
     
     // Create all markers simultaneously without individual API calls
-    for (const org of props.organizations) {
+    for (const org of filteredOrganizations) {
       // Lat/lng parsing
       let lat, lng;
       
@@ -242,6 +254,7 @@ async function fetchAndRenderMarkers() {
   if (props.payCenter && typeof props.payCenter === 'object' && props.payCenter !== null) {
     console.log('Processing grouped pay center locations...');
     console.log('Pay center groups:', Object.keys(props.payCenter));
+    console.log('Selected address filter:', props.selectedAddress);
     
     // Generate different colors for different PAY_CENTER_IDs
     const colors = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'];
@@ -252,10 +265,28 @@ async function fetchAndRenderMarkers() {
       
       console.log(`Processing PAY_CENTER_ID ${payCenterID} with ${locations.length} locations`);
       
+      // Filter by ADDRESS if selectedAddress is provided
+      let filteredLocations = locations;
+      if (props.selectedAddress && props.selectedAddress !== '') {
+        filteredLocations = locations.filter((payLoc: any) => {
+          // Check both ADDRESS and NAME fields for filtering
+          const address = payLoc.ADDRESS || payLoc.address;
+          const name = payLoc.NAME || payLoc.name;
+          return address === props.selectedAddress || name === props.selectedAddress;
+        });
+        
+        if (filteredLocations.length === 0) {
+          console.log(`No locations match ADDRESS/NAME filter: ${props.selectedAddress}`);
+          return;
+        }
+        
+        console.log(`Filtered to ${filteredLocations.length} locations matching ADDRESS/NAME: ${props.selectedAddress}`);
+      }
+      
       // Extract valid coordinates for this group
       const validCoordinates: [number, number][] = [];
       
-      for (const payLoc of locations) {
+      for (const payLoc of filteredLocations) {
         // LNG, LAT coordinates parsing
         let lat, lng;
         
@@ -779,7 +810,7 @@ onMounted(async () => {
 });
 
 watch(
-  () => [props.district, props.khoroo, props.category, props.searchLand, props.organizations, props.payCenter, props.mapType],
+  () => [props.district, props.khoroo, props.category, props.searchLand, props.organizations, props.payCenter, props.mapType, props.selectedAddress],
   async (newValues, oldValues) => {
     console.log('=== MapView watch triggered ===');
     console.log('New values:', newValues);
