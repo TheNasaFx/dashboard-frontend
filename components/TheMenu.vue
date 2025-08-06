@@ -123,7 +123,7 @@
               <li class="nav-item">
                 <NuxtLink class="nav-link" to="/reports">
                   <i class="fa fa-pie-chart menu-icon"></i>
-                  <span>Тайлан</span>
+                  <span>Үйл ажиллагааны чиглэл</span>
                 </NuxtLink>
               </li>
               <li class="nav-item">

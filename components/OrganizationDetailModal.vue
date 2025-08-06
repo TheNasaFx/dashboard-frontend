@@ -228,43 +228,7 @@
                   <div v-else class="text-muted">Өрийн мэдээлэл олдсонгүй</div>
                 </div>
               </div>
-            </div>
-            
-            <!-- үлдэгдэл өр -->
-            <div class="col-12 mb-4">
-              <div class="card">
-                <div class="card-header bg-warning text-dark">
-                  <h6 class="mb-0">Үлдэгдэл өр</h6>
-                </div>
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col-md-4">
-                      <div class="text-center">
-                        <h4 class="text-danger">{{ formatNumber(totalDebt) }}₮</h4>
-                        <small class="text-muted">Нийт өр</small>
-                      </div>
-                    </div>
-                    <div class="col-md-4">
-                      <div class="text-center">
-                        <h4 class="text-success">{{ formatNumber(totalPayment) }}₮</h4>
-                        <small class="text-muted">Нийт төлөлт</small>
-                      </div>
-                    </div>
-                    <div class="col-md-4">
-                      <div class="text-center">
-                        <h4 :class="remainingDebt >= 0 ? 'text-danger' : 'text-success'">
-                          {{ formatNumber(Math.abs(remainingDebt)) }}₮
-                        </h4>
-                        <small class="text-muted">
-                          {{ remainingDebt >= 0 ? 'Үлдэгдэл өр' : 'Илүү төлөлт' }}
-                        </small>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
+            </div>            
             <!-- НӨАТ болон НХАТ мэдээлэл -->
             <div class="col-12 mb-4">
               <div class="card">
@@ -278,19 +242,68 @@
                     </div>
                     <span class="ms-2">Мэдээлэл татаж байна...</span>
                   </div>
-                  <div v-else class="row">
-                    <div class="col-md-6">
-                      <div class="text-center p-3 border rounded bg-light">
-                        <h4 class="text-primary mb-2">{{ formatNumber(nuatNhatData.nuat_count) }}</h4>
-                        <div class="text-muted">НӨАТ суутган төлөгч</div>
-                        <small class="text-secondary">Нөхцөлт атавартай татварын тоо</small>
+                  <div v-else>
+                    <!-- НӨАТ мэдээлэл -->
+                    <div class="row mb-4">
+                      <div class="col-12">
+                        <h6 class="text-primary mb-3">
+                          <i class="fas fa-receipt me-2"></i>
+                          НӨАТ суутган төлөгч
+                        </h6>
+                        <div v-if="nuatNhatData.nuat_records && nuatNhatData.nuat_records.length > 0" class="table-responsive">
+                          <table class="table table-sm table-striped">
+                            <thead class="table-primary">
+                              <tr>
+                                <th>№</th>
+                                <th>Татварын төрөл</th>
+                                <th>Тоо</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr v-for="(record, index) in nuatNhatData.nuat_records" :key="`nuat-${index}`">
+                                <td>{{ index + 1 }}</td>
+                                <td>{{ record.tax_type_name || 'Мэдээлэл байхгүй' }}</td>
+                                <td class="fw-bold">{{ formatNumber(record.count) }}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        <div v-else class="text-muted text-center py-3">
+                          <i class="fas fa-info-circle me-2"></i>
+                          НӨАТ суутган төлөгчийн мэдээлэл олдсонгүй
+                        </div>
                       </div>
                     </div>
-                    <div class="col-md-6">
-                      <div class="text-center p-3 border rounded bg-light">
-                        <h4 class="text-success mb-2">{{ formatNumber(nuatNhatData.nhat_count) }}</h4>
-                        <div class="text-muted">НХАТ төлөгч</div>
-                        <small class="text-secondary">Нэмэгдсэн ханшийн албан татварын тоо</small>
+
+                    <!-- НХАТ мэдээлэл -->
+                    <div class="row">
+                      <div class="col-12">
+                        <h6 class="text-success mb-3">
+                          <i class="fas fa-receipt me-2"></i>
+                          НХАТ төлөгч
+                        </h6>
+                        <div v-if="nuatNhatData.nhat_records && nuatNhatData.nhat_records.length > 0" class="table-responsive">
+                          <table class="table table-sm table-striped">
+                            <thead class="table-success">
+                              <tr>
+                                <th>№</th>
+                                <th>Татварын төрөл</th>
+                                <th>Тоо</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr v-for="(record, index) in nuatNhatData.nhat_records" :key="`nhat-${index}`">
+                                <td>{{ index + 1 }}</td>
+                                <td>{{ record.tax_type_name || 'Мэдээлэл байхгүй' }}</td>
+                                <td class="fw-bold">{{ formatNumber(record.count) }}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        <div v-else class="text-muted text-center py-3">
+                          <i class="fas fa-info-circle me-2"></i>
+                          НХАТ төлөгчийн мэдээлэл олдсонгүй
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -347,6 +360,19 @@ interface Props {
   mrchRegno: string;
 }
 
+interface NuatNhatRecord {
+  register: string;
+  tax_type_name: string;
+  count: number;
+  row_num: number;
+}
+
+interface NuatNhatData {
+  nuat_records: NuatNhatRecord[];
+  nhat_records: NuatNhatRecord[];
+  mrch_regno: string;
+}
+
 const props = defineProps<Props>();
 const emit = defineEmits(['close']);
 
@@ -357,7 +383,11 @@ const data = ref<any>(null);
 // НӨАТ/НХАТ мэдээллийн variables
 const nuatNhatLoading = ref(false);
 const nuatNhatError = ref('');
-const nuatNhatData = ref({ nuat_count: 0, nhat_count: 0 });
+const nuatNhatData = ref<NuatNhatData>({ 
+  nuat_records: [], 
+  nhat_records: [], 
+  mrch_regno: '' 
+});
 
 // Computed properties for totals
 const totalDebt = computed(() => {
@@ -490,21 +520,30 @@ async function fetchNuatNhatData() {
   nuatNhatError.value = '';
   
   try {
-    const response = await useApi(`/nuat-nhat/${props.mrchRegno}`);
+    const response = await useApi(`/nuat-nhat-details/${props.mrchRegno}`);
     
     if (response.success && response.data) {
-      const responseData = response.data as { nuat_count: number; nhat_count: number };
+      const responseData = response.data as NuatNhatData;
       nuatNhatData.value = {
-        nuat_count: responseData.nuat_count || 0,
-        nhat_count: responseData.nhat_count || 0
+        nuat_records: responseData.nuat_records || [],
+        nhat_records: responseData.nhat_records || [],
+        mrch_regno: responseData.mrch_regno || props.mrchRegno
       };
     } else {
       nuatNhatError.value = 'НӨАТ/НХАТ мэдээлэл авахад алдаа гарлаа';
-      nuatNhatData.value = { nuat_count: 0, nhat_count: 0 };
+      nuatNhatData.value = { 
+        nuat_records: [], 
+        nhat_records: [], 
+        mrch_regno: props.mrchRegno 
+      };
     }
   } catch (e: any) {
     nuatNhatError.value = e.message || 'НӨАТ/НХАТ мэдээлэл авахад алдаа гарлаа';
-    nuatNhatData.value = { nuat_count: 0, nhat_count: 0 };
+    nuatNhatData.value = { 
+      nuat_records: [], 
+      nhat_records: [], 
+      mrch_regno: props.mrchRegno 
+    };
   } finally {
     nuatNhatLoading.value = false;
   }

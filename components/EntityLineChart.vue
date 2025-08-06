@@ -82,7 +82,7 @@ async function fetchRegistrationData(buildingId: string) {
         registrationData.value = {
           registered: 0,
           not_registered: 0,
-          total: 0,
+          total: 0, 
           registered_percentage: 0,
           not_registered_percentage: 0
         };

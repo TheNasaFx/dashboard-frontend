@@ -116,31 +116,37 @@ async function fetchTaxOfficeData(buildingId: string) {
     if (cachedData) {
       apiData.value = cachedData;
       console.log('Cache-аас өгөгдөл ашиглаж байна:', apiData.value);
-    } else {
-      // Add timeout and disable cache for large data
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      createChart();
+      return;
+    }
+
+    console.log('Шинэ өгөгдөл татаж эхэллээ...');
+    
+    // Add timeout and disable cache for large data
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Reduced to 15 seconds
+    
+    try {
+      const response = await useApi(`/tax-office-stats/${buildingId}`, {}, false);
+      clearTimeout(timeoutId);
       
-      try {
-        const response = await useApi(`/tax-office-stats/${buildingId}`, {}, false);
-        clearTimeout(timeoutId);
+      if (response.success && response.data) {
+        apiData.value = response.data as ApiResponse;
         
-        if (response.success && response.data) {
-          apiData.value = response.data as ApiResponse;
-          set(cacheKey, response.data);
-          console.log('Шинэ өгөгдөл татаж авлаа:', apiData.value);
-        } else {
-          console.error('API алдаа:', response);
-          apiData.value = { districts: [] };
-        }
-      } catch (apiError) {
-        clearTimeout(timeoutId);
-        if (apiError instanceof Error && apiError.name === 'AbortError') {
-          console.error('API хүсэлт хугацаа хэтэрсэн');
-          apiData.value = { districts: [] };
-        } else {
-          throw apiError;
-        }
+        // Cache the data for 5 minutes
+        set(cacheKey, response.data, 300); // 5 minutes cache
+        console.log('Шинэ өгөгдөл татаж авлаа:', apiData.value);
+      } else {
+        console.error('API алдаа:', response);
+        apiData.value = { districts: [] };
+      }
+    } catch (apiError) {
+      clearTimeout(timeoutId);
+      if (apiError instanceof Error && apiError.name === 'AbortError') {
+        console.error('API хүсэлт хугацаа хэтэрсэн');
+        apiData.value = { districts: [] };
+      } else {
+        throw apiError;
       }
     }
     
@@ -181,7 +187,7 @@ function createChart() {
     return;
   }
 
-  // Validate and process data
+  // Validate and process data - optimize validation
   const validData = data.filter(item => 
     item && 
     typeof item === 'object' && 
@@ -199,14 +205,13 @@ function createChart() {
     return;
   }
 
-  // Тоогоор эрэмбэлэх
-  const sortedData = [...validData].sort((a, b) => b.count - a.count);
+  // Тоогоор эрэмбэлэх - limit to top 10 for better performance
+  const sortedData = [...validData].sort((a, b) => b.count - a.count).slice(0, 10);
 
-  // Chart-ийн өндрийг тооцох
+  // Chart-ийн өндрийг тооцох - optimize height calculation
   const minHeight = 250;
   const heightPerItem = 35;
-  const maxItems = 15;
-  const itemsToShow = Math.min(sortedData.length, maxItems);
+  const itemsToShow = Math.min(sortedData.length, 10); // Limit to 10 items
   const dynamicHeight = Math.max(minHeight, itemsToShow * heightPerItem);
   
   // Chart wrapper-ийн өндрийг шинэчлэх
@@ -215,11 +220,11 @@ function createChart() {
   }
   
   // Дээд талын өгөгдлүүдийг авах
-  const displayData = sortedData.slice(0, maxItems);
+  const displayData = sortedData;
   const labels = displayData.map(item => item.name);
   const values = displayData.map(item => item.count);
 
-  // Gradient үүсгэх
+  // Gradient үүсгэх - optimize gradient creation
   const gradient = ctx.createLinearGradient(0, 0, 400, 0);
   gradient.addColorStop(0, colors.primary);
   gradient.addColorStop(1, colors.secondary);
@@ -277,12 +282,13 @@ function createChart() {
               
               let tooltipText = `${value} түрээслэгч (${percentage}%)`;
               
-              // Хороонуудын мэдээлэл харуулах
+              // Хороонуудын мэдээлэл харуулах - optimize tooltip
               const itemName = context[0].label;
               const districtData = displayData.find(item => item.name === itemName) as DistrictData;
               
               if (districtData && districtData.khoroos && districtData.khoroos.length > 0) {
                 tooltipText += '\n\nХороонууд:';
+                // Show only top 3 khoroos in tooltip for performance
                 districtData.khoroos.slice(0, 3).forEach((khoroo: KhorooData) => {
                   tooltipText += `\n• ${khoroo.name}: ${khoroo.count} түрээслэгч`;
                 });
@@ -333,7 +339,7 @@ function createChart() {
         }
       },
       animation: {
-        duration: 1000,
+        duration: 800, // Reduced animation duration
         easing: 'easeOutQuart'
       },
       interaction: {
@@ -364,7 +370,7 @@ function createChart() {
           const value = dataset.data[index];
           const { x, y } = element;
           
-          // Bar-ийн дотор тоог харуулах
+          // Bar-ийн дотор тоог харуулах - optimize rendering
           ctx.save();
           ctx.fillStyle = '#ffffff';
           ctx.font = 'bold 12px Arial';

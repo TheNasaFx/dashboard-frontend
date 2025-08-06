@@ -3,8 +3,19 @@
     <div class="chart-header">
       <h5 class="chart-title">Сегментийн тархалт</h5>
       <div class="chart-subtitle">Түрээслэгчдийн сегментийн хуваарилалт</div>
-      <div class="total-count" v-if="totalCount > 0">
-        Нийт: <span class="count-number">{{ totalCount }}</span> 
+      <div class="stats-summary" v-if="statsData">
+        <div class="stat-item">
+          <span class="stat-label">Нийт түрээслэгч:</span>
+          <span class="stat-value">{{ statsData.totalTenants }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Нийт сегментэд бүртгэлтэй түрээслэгч:</span>
+          <span class="stat-value">{{ statsData.totalRegistered }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Бүртгэгдээгүй:</span>
+          <span class="stat-value">{{ statsData.unregisteredCount }}</span>
+        </div>
       </div>
       <div class="data-info" v-if="dataInfo">
         <small>{{ dataInfo }}</small>
@@ -31,6 +42,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick, computed } from "vue";
 import { useRoute } from "vue-router";
+import { useRuntimeConfig } from "nuxt/app";
 import { useCache } from "../composables/useCache";
 import { useApi } from "../composables/useApi";
 import Chart from 'chart.js/auto';
@@ -40,17 +52,24 @@ interface SegmentData {
   count: number;
 }
 
+interface StatsData {
+  totalTenants: number;
+  totalRegistered: number;
+  unregisteredCount: number;
+}
+
 const route = useRoute();
 const { get, set } = useCache();
 const chartCanvas = ref<HTMLCanvasElement>();
 const chartId = ref(`entity-pie-type-chart-${Date.now()}`);
 const chartInstance = ref<Chart | null>(null);
 const segmentData = ref<SegmentData[]>([]);
+const statsData = ref<StatsData | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const dataInfo = ref<string | null>(null);
 
-// Compute total count from segment data
+// Compute total count from segment data (for backward compatibility)
 const totalCount = computed(() => {
   return segmentData.value.reduce((sum, item) => sum + item.count, 0);
 });
@@ -110,38 +129,92 @@ async function fetchSegmentData(buildingId: string) {
       segmentData.value = validateAndProcessData(cachedData);
       dataInfo.value = 'Кэшээс авсан өгөгдөл';
     } else {
-      console.log('Fetching segment data from API');
-      
-      // Add timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      
       try {
-        const response = await useApi(`/segment-stats/${buildingId}`, {}, false); // Disable cache for fresh data
+        console.log('Fetching segment data from API');
         
-        clearTimeout(timeoutId);
+        // Add timeout to prevent hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
         
-        if (response.success && response.data) {
-          const processedData = validateAndProcessData(response.data as SegmentData[]);
+        try {
+          // Use direct fetch to get full response
+          const config = useRuntimeConfig();
+          const baseUrl = config.public.apiUrl || 'http://localhost:8080/api/v1';
+          const res = await fetch(`${baseUrl}/segment-stats/${buildingId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal
+          });
           
-          if (processedData.length === 0) {
-            throw new Error('Өгөгдөл олдсонгүй');
+          clearTimeout(timeoutId);
+          
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
           }
           
-          segmentData.value = processedData;
-          set(cacheKey, response.data); // Cache original data
-          dataInfo.value = 'API-аас авсан өгөгдөл';
+          const response = await res.json();
+          console.log('Segment stats API response:', response);
           
-          console.log(`Processed ${processedData.length} segments from ${(response.data as any[]).length} total records`);
-        } else {
-          throw new Error(response.error?.message || 'API алдаа гарлаа');
+          if (response.success && response.data) {
+            const processedData = validateAndProcessData(response.data as SegmentData[]);
+            
+            if (processedData.length === 0) {
+              throw new Error('Өгөгдөл олдсонгүй');
+            }
+            
+            segmentData.value = processedData;
+            
+            // Extract stats data from response
+            if (response.total_tenants !== undefined) {
+              statsData.value = {
+                totalTenants: response.total_tenants || 0,
+                totalRegistered: response.total || 0,
+                unregisteredCount: response.unregistered_count || 0
+              };
+              console.log('Stats data extracted:', statsData.value);
+            } else {
+              console.log('No stats data found in response');
+            }
+            
+            set(cacheKey, response.data); // Cache original data
+            dataInfo.value = 'API-аас авсан өгөгдөл';
+            
+            console.log(`Processed ${processedData.length} segments from ${(response.data as any[]).length} total records`);
+          } else {
+            throw new Error(response.error?.message || 'API алдаа гарлаа');
+          }
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+            throw new Error('Хүсэлт хэт удаж байна. Дахин оролдоно уу.');
+          }
+          throw fetchError;
         }
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-          throw new Error('Хүсэлт хэт удаж байна. Дахин оролдоно уу.');
+      } catch (err) {
+        console.error('Error fetching segment data:', err);
+        error.value = err instanceof Error ? err.message : 'Алдаа гарлаа';
+        
+        // Only show fallback data if we have no data at all
+        if (segmentData.value.length === 0) {
+          segmentData.value = [
+            { name: 'ХХК', count: 30 },
+            { name: 'ТББ', count: 25 },
+            { name: 'ХЗХ', count: 20 },
+            { name: 'ББСБ', count: 15 },
+            { name: 'Бусад', count: 10 }
+          ];
+          statsData.value = {
+            totalTenants: 100,
+            totalRegistered: 100,
+            unregisteredCount: 0
+          };
+          dataInfo.value = 'Жишээ өгөгдөл';
+          await createChart();
         }
-        throw fetchError;
+      } finally {
+        loading.value = false;
       }
     }
     
@@ -159,6 +232,11 @@ async function fetchSegmentData(buildingId: string) {
         { name: 'ББСБ', count: 15 },
         { name: 'Бусад', count: 10 }
       ];
+      statsData.value = {
+        totalTenants: 100,
+        totalRegistered: 100,
+        unregisteredCount: 0
+      };
       dataInfo.value = 'Жишээ өгөгдөл';
       await createChart();
     }
@@ -445,6 +523,42 @@ watch(() => route.query.id, (newId) => {
   font-weight: 300;
 }
 
+.stats-summary {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 15px 0;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 120px;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-weight: 400;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ffecd2;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 .total-count {
   font-size: 0.9rem;
   opacity: 0.9;
@@ -564,6 +678,28 @@ watch(() => route.query.id, (newId) => {
   
   .chart-subtitle {
     font-size: 0.8rem;
+  }
+  
+  .stats-summary {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  
+  .stat-item {
+    min-width: auto;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .stat-label {
+    font-size: 0.7rem;
+    margin-bottom: 0;
+  }
+  
+  .stat-value {
+    font-size: 1rem;
   }
   
   .total-count {

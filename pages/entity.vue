@@ -80,6 +80,12 @@
                           <div class="fs-11 text-muted">Давхар түрээслэгч</div>
                         </div>
                       </div>
+                      <div class="col-4 mb-2">
+                        <div class="border rounded p-2">
+                          <div class="fs-14 fw-bold text-success">{{ mapData.ebarimt_organizations || 0 }}</div>
+                          <div class="fs-11 text-muted">Е-баримт гаргадаг</div>
+                        </div>
+                      </div>
                       <div class="col-4">
                         <div class="border rounded p-2">
                           <div class="fs-14 fw-bold text-secondary">{{ formatNumber(mapData.land_area || 0) }}</div>

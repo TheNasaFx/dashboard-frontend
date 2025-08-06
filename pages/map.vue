@@ -762,6 +762,53 @@
                             </div>
                           </div>
                         </div>
+
+                        <!-- Real Estate Payment Statistics -->
+                        <div class="mb-4">
+                          <h6 class="text-warning mb-3">
+                            <i class="las la-money-bill me-1"></i>
+                            Үл хөдлөхийн төлөлт
+                          </h6>
+                          <div class="row g-2">
+                            <div class="col-12">
+                              <div class="bg-light rounded p-2">
+                                <div class="d-flex justify-content-between">
+                                  <span class="small text-muted">Нийт дүн:</span>
+                                  <span class="fw-bold text-warning">{{ formatNumber(realEstatePayments.totalPaymentAmount) }}₮</span>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                  <span class="small text-muted">Төлөлтийн тоо:</span>
+                                  <span class="fw-bold text-info">{{ formatNumber(realEstatePayments.totalPaymentCount) }}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Real Estate Payment Distribution Chart -->
+                        <div v-if="realEstatePaymentDistribution.length > 0">
+                          <h6 class="text-info mb-3">
+                            <i class="las la-chart-pie me-1"></i>
+                            Төлөлтийн тархалт
+                          </h6>
+                          <div class="chart-container">
+                            <client-only>
+                              <apexchart
+                                type="pie"
+                                height="250"
+                                :options="realEstatePaymentDistributionChart.options"
+                                :series="realEstatePaymentDistributionChart.series"
+                              />
+                            </client-only>
+                          </div>
+                        </div>
+
+                        <!-- No Data State -->
+                        <div v-else-if="!realEstateDataLoading && realEstatePaymentDistribution.length === 0" 
+                             class="text-center py-3">
+                          <i class="las la-info-circle text-muted fs-3"></i>
+                          <p class="small text-muted mb-0">Төлөлтийн мэдээлэл олдсонгүй</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -848,6 +895,18 @@ interface RealEstateStatistics {
   ratio: number
 }
 
+interface RealEstatePayments {
+  totalPaymentAmount: number
+  totalPaymentCount: number
+}
+
+interface RealEstatePaymentDistribution {
+  branchId: string
+  districtName: string
+  totalAmount: number
+  paymentCount: number
+}
+
 const { get, set } = useCache();
 const selectedDistrict = ref("");
 const selectedDistrictName = ref("Дүүрэг");
@@ -903,6 +962,13 @@ const realEstateStatistics = ref<RealEstateStatistics>({
   realEstateOnMap: 0,
   ratio: 0
 });
+
+const realEstatePayments = ref<RealEstatePayments>({
+  totalPaymentAmount: 0,
+  totalPaymentCount: 0
+});
+
+const realEstatePaymentDistribution = ref<RealEstatePaymentDistribution[]>([]);
 
 // Activity type data for charts
 const activityTypes3Days = ref<ActivityTypeData[]>([]);
@@ -1400,6 +1466,62 @@ const ebarimtSegmentDistributionChart = computed(() => ({
   }
 }));
 
+// Computed chart configuration for real estate payment distribution
+const realEstatePaymentDistributionChart = computed(() => ({
+  series: realEstatePaymentDistribution.value.map(item => item.totalAmount),
+  options: {
+    chart: {
+      type: 'pie',
+      height: 250,
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800
+      }
+    },
+    labels: realEstatePaymentDistribution.value.map(item => item.districtName),
+    colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3'],
+    dataLabels: {
+      enabled: true,
+      formatter: function(val: number, opts: any) {
+        return realEstatePaymentDistribution.value[opts.seriesIndex]?.districtName + "\n" + val.toFixed(1) + "%"
+      },
+      style: {
+        fontSize: '11px',
+        fontWeight: 'bold'
+      }
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '30%'
+        }
+      }
+    },
+    legend: {
+      position: 'bottom',
+      horizontalAlign: 'center',
+      fontSize: '11px',
+      markers: {
+        width: 10,
+        height: 10,
+        radius: 5
+      },
+      itemMargin: {
+        horizontal: 8,
+        vertical: 3
+      }
+    },
+    tooltip: {
+      y: {
+        formatter: function (val: number) {
+          return formatNumber(val) + '₮'
+        }
+      }
+    }
+  }
+}));
+
 // Computed chart configuration for top merchant regnos
 const ebarimtTopMerchantRegnosChart = computed(() => ({
   series: [{
@@ -1671,39 +1793,53 @@ async function loadEbarimtStatistics() {
 // Real estate statistics function
 async function loadRealEstateStatistics() {
   // Check if we have cached data first
-  const cacheKey = 'real_estate_statistics_cache';
+  const cacheKey = 'real_estate_data_cache';
   const cachedData = get(cacheKey);
   
   if (cachedData && !realEstateDataLoading.value) {
-    console.log('Using cached real estate statistics');
-    realEstateStatistics.value = cachedData;
+    console.log('Using cached real estate data');
+    realEstateStatistics.value = cachedData.statistics || realEstateStatistics.value;
+    realEstatePayments.value = cachedData.payments || realEstatePayments.value;
+    realEstatePaymentDistribution.value = cachedData.distribution || [];
     return;
   }
 
   try {
-    console.log('Loading fresh real estate statistics...');
+    console.log('Loading fresh real estate data...');
     
-    const response = await useApi('/real-estate/statistics');
+    const response = await useApi('/real-estate/data');
     if (response.success && response.data) {
       const data = response.data as any;
-      const newStatistics = {
-        totalRealEstateCount: data.total_real_estate_count || 0,
-        realEstateOnMap: data.real_estate_on_map || 0,
-        ratio: data.ratio || 0
-      };
       
-      realEstateStatistics.value = newStatistics;
+      // Update statistics
+      realEstateStatistics.value = data.statistics || realEstateStatistics.value;
+      
+      // Update payments
+      realEstatePayments.value = data.payments || realEstatePayments.value;
+      
+      // Update payment distribution
+      realEstatePaymentDistribution.value = data.distribution || [];
       
       // Cache the data for 5 minutes
-      set(cacheKey, newStatistics, 300);
+      const cacheData = {
+        statistics: realEstateStatistics.value,
+        payments: realEstatePayments.value,
+        distribution: realEstatePaymentDistribution.value,
+        timestamp: Date.now()
+      };
+      set(cacheKey, cacheData, 300);
       
-      console.log('Real estate statistics loaded and cached:', realEstateStatistics.value);
+      console.log('Real estate data loaded and cached:', {
+        statistics: realEstateStatistics.value,
+        payments: realEstatePayments.value,
+        distribution: realEstatePaymentDistribution.value
+      });
     } else {
-      console.error('Failed to fetch real estate statistics:', response);
+      console.error('Failed to fetch real estate data:', response);
       alert("Үл хөдлөх мэдээлэл авахад алдаа гарлаа!");
     }
   } catch (error) {
-    console.error('Error loading real estate statistics:', error);
+    console.error('Error loading real estate data:', error);
     alert("Үл хөдлөх мэдээлэл авахад алдаа гарлаа!");
   }
 }
@@ -1748,9 +1884,9 @@ async function fetchLandStatistics() {
     if (response.success && response.data) {
       const data = response.data as any;
       landStatistics.value = {
-        totalUniqueLands: data.total_unique_lands || 0,
-        mappedLandsCount: data.mapped_lands_count || 0,
-        mappedPercentage: data.mapped_percentage || 0
+        totalUniqueLands: data.totalUniqueLands || 0,
+        mappedLandsCount: data.mappedLandsCount || 0,
+        mappedPercentage: data.mappedPercentage || 0
       };
     }
   } catch (err) {
@@ -1764,8 +1900,8 @@ async function fetchLandPayments() {
     if (response.success && response.data) {
       const data = response.data as any;
       landPayments.value = {
-        totalPaymentCount: data.total_payment_count || 0,
-        totalPaymentAmount: data.total_payment_amount || 0
+        totalPaymentCount: data.totalPaymentCount || 0,
+        totalPaymentAmount: data.totalPaymentAmount || 0
       };
     }
   } catch (err) {
@@ -1779,10 +1915,10 @@ async function fetchLandPaymentDistribution() {
     if (response.success && response.data) {
       const data = Array.isArray(response.data) ? response.data : [];
       landPaymentDistribution.value = data.map((item: any) => ({
-        branchId: item.branch_id,
-        districtName: item.district_name,
-        totalAmount: item.total_amount,
-        paymentCount: item.payment_count
+        branchId: item.branchId,
+        districtName: item.districtName,
+        totalAmount: item.totalAmount,
+        paymentCount: item.paymentCount
       }));
     }
   } catch (err) {

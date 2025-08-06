@@ -4,32 +4,6 @@
       id="market-map"
       style="width: 100%; height: 400px; border-radius: 10px"
     ></div>
-    
-    <!-- Е-баримт статистик хэсэг -->
-    <div class="ebarimt-stats mt-3" v-if="ebarimtStats">
-      <div class="card">
-        <div class="card-body p-3">
-          <h6 class="card-title mb-3">
-            <i class="fas fa-receipt me-2 text-primary"></i>
-            Е-баримт олголт
-          </h6>
-          <div class="row text-center">
-            <div class="col-6">
-              <div class="border rounded p-2">
-                <div class="fs-16 fw-bold text-primary">{{ ebarimtStats.total_organizations || 0 }}</div>
-                <div class="fs-11 text-muted">Нийт байгууллага</div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="border rounded p-2">
-                <div class="fs-16 fw-bold text-success">{{ ebarimtStats.organizations_with_ebarimt || 0 }}</div>
-                <div class="fs-11 text-muted">Е-баримт гаргадаг</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -47,7 +21,6 @@ const props = defineProps({
 });
 
 const map = ref(null);
-const ebarimtStats = ref(null);
 
 // Pin point click хийхэд дэлгэрэнгүй мэдээлэл дуудах функц
 async function loadDetailedOrganizationData(org) {
@@ -88,25 +61,6 @@ async function loadDetailedOrganizationData(org) {
   }
 }
 
-// Е-баримт статистик дуудах функц
-async function fetchEbarimtStats() {
-  if (!props.centerId) return;
-  
-  try {
-    console.log(`Fetching ebarimt stats for building ${props.centerId} (all floors)`);
-    const response = await useApi(`/buildings/${props.centerId}/ebarimt-stats`);
-    
-    if (response.success && response.data) {
-      ebarimtStats.value = response.data;
-      console.log('Ebarimt stats loaded:', ebarimtStats.value);
-    } else {
-      console.error('Failed to load ebarimt stats:', response.error);
-    }
-  } catch (error) {
-    console.error('Error fetching ebarimt stats:', error);
-  }
-}
-
 onMounted(async () => {
   console.log("MarketMap mounted with centerId:", props.centerId);
   if (typeof window === "undefined") return;
@@ -116,8 +70,6 @@ onMounted(async () => {
     return;
   }
   
-  // Е-баримт статистик дуудах
-  await fetchEbarimtStats();
   const [{ default: L }, _] = await Promise.all([
     import("leaflet"),
     import("leaflet/dist/leaflet.css"),

@@ -746,7 +746,7 @@ function truncateText(text: string, maxLength: number): string {
 
 async function fetchStatistics() {
   try {
-    const response = await useApi('/real-estate/statistics')
+    const response = await useApi('/real-estate-info/statistics')
     if (response.success && response.data) {
       const data = response.data as any
       statistics.value = {
@@ -764,7 +764,7 @@ async function fetchStatistics() {
 
 async function fetchPaymentStats() {
   try {
-    const response = await useApi('/real-estate/payments')
+    const response = await useApi('/real-estate-info/payments')
     if (response.success && response.data) {
       const data = response.data as any
       paymentStats.value = {
@@ -780,7 +780,7 @@ async function fetchPaymentStats() {
 
 async function fetchDistrictData() {
   try {
-    const response = await useApi('/real-estate/by-district')
+    const response = await useApi('/real-estate-info/by-district')
     if (response.success && response.data) {
       districtData.value = response.data as DistrictData[]
     }
@@ -792,7 +792,7 @@ async function fetchDistrictData() {
 
 async function fetchPaymentDistribution() {
   try {
-    const response = await useApi('/real-estate/payments-by-district')
+    const response = await useApi('/real-estate-info/payments-by-district')
     if (response.success && response.data) {
       paymentDistribution.value = response.data as PaymentDistribution[]
     }
@@ -815,7 +815,7 @@ async function fetchRealEstateData(page: number = 1, search: string = '') {
       params.append('search', search.trim())
     }
     
-    const response = await useApi(`/real-estate/data?${params.toString()}`)
+    const response = await useApi(`/real-estate-info/data?${params.toString()}`)
     if (response.success && response.data) {
       realEstateData.value = response.data as RealEstateData
     } else {
