@@ -70,10 +70,15 @@ onMounted(async () => {
     return;
   }
   
-  const [{ default: L }, _] = await Promise.all([
+  const [{ default: L }, _, { default: markerClusterGroup }] = await Promise.all([
     import("leaflet"),
     import("leaflet/dist/leaflet.css"),
+    import("leaflet.markercluster")
   ]);
+  
+  // Import marker cluster CSS
+  await import("leaflet.markercluster/dist/MarkerCluster.css");
+  await import("leaflet.markercluster/dist/MarkerCluster.Default.css");
   // Custom icon-ууд (MapView.vue шиг)
   const greenIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
@@ -177,6 +182,57 @@ onMounted(async () => {
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map.value);
 
+  // Create separate cluster groups for green and red markers
+  const greenClusterGroup = L.markerClusterGroup({
+    iconCreateFunction: function(cluster) {
+      const childCount = cluster.getChildCount();
+      let c = ' marker-cluster-green';
+      if (childCount < 10) {
+        c += ' marker-cluster-small';
+      } else if (childCount < 100) {
+        c += ' marker-cluster-medium';
+      } else {
+        c += ' marker-cluster-large';
+      }
+      
+      return new L.DivIcon({
+        html: '<div><span>' + childCount + '</span></div>',
+        className: 'marker-cluster' + c,
+        iconSize: new L.Point(40, 40)
+      });
+    },
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    maxClusterRadius: 50,
+    disableClusteringAtZoom: 18
+  });
+
+  const redClusterGroup = L.markerClusterGroup({
+    iconCreateFunction: function(cluster) {
+      const childCount = cluster.getChildCount();
+      let c = ' marker-cluster-red';
+      if (childCount < 10) {
+        c += ' marker-cluster-small';
+      } else if (childCount < 100) {
+        c += ' marker-cluster-medium';
+      } else {
+        c += ' marker-cluster-large';
+      }
+      
+      return new L.DivIcon({
+        html: '<div><span>' + childCount + '</span></div>',
+        className: 'marker-cluster' + c,
+        iconSize: new L.Point(40, 40)
+      });
+    },
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    maxClusterRadius: 50,
+    disableClusteringAtZoom: 18
+  });
+
   console.log("Adding markers to map...");
   let markerCount = 0;
 
@@ -225,8 +281,16 @@ onMounted(async () => {
         // has_ebarimt бол ногоон, үгүй бол улаан icon
         const markerIcon = org.has_ebarimt ? greenIcon : redIcon;
         const marker = L.marker([lat, lng], { icon: markerIcon })
-          .addTo(map.value)
           .bindPopup(popupHtml);
+        
+        // Add marker to appropriate cluster group based on color
+        if (org.has_ebarimt) {
+          greenClusterGroup.addLayer(marker);
+          marker._myClusterGroup = greenClusterGroup;
+        } else {
+          redClusterGroup.addLayer(marker);
+          marker._myClusterGroup = redClusterGroup;
+        }
         
         // Click event listener нэмэх - е-баримтын мэдээлэл дуудах (refresh only)
         marker.on('click', async () => {
@@ -251,6 +315,23 @@ onMounted(async () => {
             
             // Update the org object
             Object.assign(org, updatedOrg);
+            
+            // Check if marker needs to change cluster group
+            const newHasEbarimt = org.has_ebarimt;
+            const oldClusterGroup = marker._myClusterGroup;
+            const newClusterGroup = newHasEbarimt ? greenClusterGroup : redClusterGroup;
+            
+            // Only change cluster group if needed
+            if (oldClusterGroup !== newClusterGroup) {
+              // Remove from old cluster group
+              if (oldClusterGroup) {
+                oldClusterGroup.removeLayer(marker);
+              }
+              
+              // Add to new cluster group
+              newClusterGroup.addLayer(marker);
+              marker._myClusterGroup = newClusterGroup;
+            }
             
             // Update marker icon based on new data
             const newIcon = org.has_ebarimt ? greenIcon : redIcon;
@@ -315,6 +396,10 @@ onMounted(async () => {
     }
   });
   
+  // Add cluster groups to map
+  map.value.addLayer(greenClusterGroup);
+  map.value.addLayer(redClusterGroup);
+  
   console.log(`Total markers added: ${markerCount}`);
 });
 </script>
@@ -359,5 +444,86 @@ onMounted(async () => {
 
 .ebarimt-stats .text-muted {
   color: #6c757d !important;
+}
+</style>
+
+<style>
+/* Global styles for marker clusters - need to be global to affect Leaflet */
+.marker-cluster-green {
+  background-color: rgba(40, 167, 69, 0.6);
+}
+
+.marker-cluster-green div {
+  background-color: rgba(40, 167, 69, 0.8);
+  border-radius: 20px;
+}
+
+.marker-cluster-green div span {
+  color: white;
+  font-weight: bold;
+  line-height: 40px;
+}
+
+.marker-cluster-red {
+  background-color: rgba(220, 53, 69, 0.6);
+}
+
+.marker-cluster-red div {
+  background-color: rgba(220, 53, 69, 0.8);
+  border-radius: 20px;
+}
+
+.marker-cluster-red div span {
+  color: white;
+  font-weight: bold;
+  line-height: 40px;
+}
+
+.marker-cluster-small {
+  width: 40px;
+  height: 40px;
+}
+
+.marker-cluster-small div {
+  width: 30px;
+  height: 30px;
+  margin: 5px;
+}
+
+.marker-cluster-small div span {
+  line-height: 30px;
+  font-size: 12px;
+}
+
+.marker-cluster-medium {
+  width: 50px;
+  height: 50px;
+}
+
+.marker-cluster-medium div {
+  width: 40px;
+  height: 40px;
+  margin: 5px;
+}
+
+.marker-cluster-medium div span {
+  line-height: 40px;
+  font-size: 14px;
+}
+
+.marker-cluster-large {
+  width: 60px;
+  height: 60px;
+}
+
+.marker-cluster-large div {
+  width: 50px;
+  height: 50px;
+  margin: 5px;
+}
+
+.marker-cluster-large div span {
+  line-height: 50px;
+  font-size: 16px;
 }
 </style>

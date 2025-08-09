@@ -803,6 +803,75 @@
                           </div>
                         </div>
 
+                        <!-- Real Estate Debt Statistics -->
+                        <div class="mb-4">
+                          <h6 class="text-danger mb-3">
+                            <i class="las la-exclamation-triangle me-1"></i>
+                            Үл хөдлөхийн өр
+                          </h6>
+                          <div class="row g-2">
+                            <div class="col-12">
+                              <div class="bg-light rounded p-2">
+                                <div class="d-flex justify-content-between">
+                                  <span class="small text-muted">Нийт үл хөдлөхийн өр:</span>
+                                  <span class="fw-bold text-danger">{{ formatNumber(realEstateDebtTotal.total_debt || 0) }}₮</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Real Estate Debt Distribution Chart -->
+                        <div v-if="realEstateDebtByDistrict.length > 0">
+                          <h6 class="text-danger mb-3">
+                            <i class="las la-chart-pie me-1"></i>
+                            Үл хөдлөхийн өрийн тархалт (дүүрэг дүүрэгээр)
+                          </h6>
+                          <div class="chart-container">
+                            <client-only>
+                              <apexchart
+                                type="pie"
+                                height="280"
+                                :options="realEstateDebtDistributionChart.options"
+                                :series="realEstateDebtDistributionChart.series"
+                              />
+                            </client-only>
+                          </div>
+                          
+                          <!-- District Debt Details -->
+                          <div class="mt-3">
+                            <h6 class="text-secondary mb-2">
+                              <i class="las la-list me-1"></i>
+                              Дүүрэг бүрийн өрийн дэлгэрэнгүй:
+                            </h6>
+                            <div class="district-debt-list">
+                              <div 
+                                v-for="(district, index) in realEstateDebtByDistrict" 
+                                :key="index"
+                                class="district-debt-item mb-2"
+                              >
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                  <div class="district-info">
+                                    <div class="fw-bold text-dark">{{ district.district }}</div>
+                                    <div class="small text-muted">
+                                      {{ ((district.debt_amount / realEstateDebtTotal.total_debt) * 100).toFixed(1) }}% нийт өрийн
+                                    </div>
+                                  </div>
+                                  <div class="district-amount">
+                                    <div class="fw-bold text-danger">{{ formatNumber(district.debt_amount) }}₮</div>
+                                  </div>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                  <div 
+                                    class="progress-bar bg-danger" 
+                                    :style="{ width: ((district.debt_amount / realEstateDebtTotal.total_debt) * 100) + '%' }"
+                                  ></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
                         <!-- No Data State -->
                         <div v-else-if="!realEstateDataLoading && realEstatePaymentDistribution.length === 0" 
                              class="text-center py-3">
@@ -832,10 +901,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { useHead } from "@unhead/vue";
-import StatisticsCards from "../components/StatisticsCards.vue";
 import { useCache } from "../composables/useCache";
 import { useApi } from "../composables/useApi";
+import { useRealEstateDebtApi } from "../composables/useRealEstateDebtApi";
 
 // Interfaces for land data
 interface LandStatistics {
@@ -969,6 +1037,13 @@ const realEstatePayments = ref<RealEstatePayments>({
 });
 
 const realEstatePaymentDistribution = ref<RealEstatePaymentDistribution[]>([]);
+
+// Real estate debt data states
+const realEstateDebtTotal = ref<{ total_debt: number }>({
+  total_debt: 0
+});
+
+const realEstateDebtByDistrict = ref<{ district: string; debt_amount: number }[]>([]);
 
 // Activity type data for charts
 const activityTypes3Days = ref<ActivityTypeData[]>([]);
@@ -1522,6 +1597,63 @@ const realEstatePaymentDistributionChart = computed(() => ({
   }
 }));
 
+// Computed chart configuration for real estate debt distribution by district
+const realEstateDebtDistributionChart = computed(() => ({
+  series: realEstateDebtByDistrict.value.map(item => item.debt_amount),
+  options: {
+    chart: {
+      type: 'pie',
+      height: 280,
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800
+      }
+    },
+    labels: realEstateDebtByDistrict.value.map(item => item.district),
+    colors: ['#FF4757', '#FF6B6B', '#FF7979', '#FD79A8', '#E84393', '#A29BFE', '#6C5CE7', '#74B9FF', '#0984E3'],
+    dataLabels: {
+      enabled: true,
+      formatter: function(val: number, opts: any) {
+        return realEstateDebtByDistrict.value[opts.seriesIndex]?.district + "\n" + val.toFixed(1) + "%"
+      },
+      style: {
+        fontSize: '11px',
+        fontWeight: 'bold',
+        colors: ['#fff']
+      }
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '35%'
+        }
+      }
+    },
+    legend: {
+      position: 'bottom',
+      horizontalAlign: 'center',
+      fontSize: '10px',
+      markers: {
+        width: 8,
+        height: 8,
+        radius: 4
+      },
+      itemMargin: {
+        horizontal: 6,
+        vertical: 2
+      }
+    },
+    tooltip: {
+      y: {
+        formatter: function (val: number) {
+          return formatNumber(val) + '₮'
+        }
+      }
+    }
+  }
+}));
+
 // Computed chart configuration for top merchant regnos
 const ebarimtTopMerchantRegnosChart = computed(() => ({
   series: [{
@@ -1801,13 +1933,30 @@ async function loadRealEstateStatistics() {
     realEstateStatistics.value = cachedData.statistics || realEstateStatistics.value;
     realEstatePayments.value = cachedData.payments || realEstatePayments.value;
     realEstatePaymentDistribution.value = cachedData.distribution || [];
+    realEstateDebtTotal.value = cachedData.debtTotal || realEstateDebtTotal.value;
+    realEstateDebtByDistrict.value = cachedData.debtByDistrict || [];
     return;
   }
 
   try {
     console.log('Loading fresh real estate data...');
     
-    const response = await useApi('/real-estate/data');
+    // Initialize debt API composable
+    const { getRealEstateDebtTotal, getRealEstateDebtByDistrict } = useRealEstateDebtApi();
+    
+    // Load regular real estate data and debt data in parallel
+    const [response, debtTotal, debtByDistrict] = await Promise.all([
+      useApi('/real-estate/data'),
+      getRealEstateDebtTotal().catch(err => {
+        console.error('Error loading debt total:', err);
+        return { total_debt: 0 };
+      }),
+      getRealEstateDebtByDistrict().catch(err => {
+        console.error('Error loading debt by district:', err);
+        return [];
+      })
+    ]);
+    
     if (response.success && response.data) {
       const data = response.data as any;
       
@@ -1819,25 +1968,31 @@ async function loadRealEstateStatistics() {
       
       // Update payment distribution
       realEstatePaymentDistribution.value = data.distribution || [];
-      
-      // Cache the data for 5 minutes
-      const cacheData = {
-        statistics: realEstateStatistics.value,
-        payments: realEstatePayments.value,
-        distribution: realEstatePaymentDistribution.value,
-        timestamp: Date.now()
-      };
-      set(cacheKey, cacheData, 300);
-      
-      console.log('Real estate data loaded and cached:', {
-        statistics: realEstateStatistics.value,
-        payments: realEstatePayments.value,
-        distribution: realEstatePaymentDistribution.value
-      });
-    } else {
-      console.error('Failed to fetch real estate data:', response);
-      alert("Үл хөдлөх мэдээлэл авахад алдаа гарлаа!");
     }
+    
+    // Update debt data
+    realEstateDebtTotal.value = debtTotal;
+    realEstateDebtByDistrict.value = debtByDistrict;
+    
+    // Cache the data for 5 minutes
+    const cacheData = {
+      statistics: realEstateStatistics.value,
+      payments: realEstatePayments.value,
+      distribution: realEstatePaymentDistribution.value,
+      debtTotal: realEstateDebtTotal.value,
+      debtByDistrict: realEstateDebtByDistrict.value,
+      timestamp: Date.now()
+    };
+    set(cacheKey, cacheData, 300);
+    
+    console.log('Real estate data loaded and cached:', {
+      statistics: realEstateStatistics.value,
+      payments: realEstatePayments.value,
+      distribution: realEstatePaymentDistribution.value,
+      debtTotal: realEstateDebtTotal.value,
+      debtByDistrict: realEstateDebtByDistrict.value
+    });
+    
   } catch (error) {
     console.error('Error loading real estate data:', error);
     alert("Үл хөдлөх мэдээлэл авахад алдаа гарлаа!");
@@ -2146,14 +2301,6 @@ async function resetFilters() {
     organizations.value = Array.isArray(res.data) ? res.data : [];
   }
 }
-
-useHead({
-  script: [
-    { src: "/assets/js/app.js" },
-    { src: "/assets/js/baatars.js" },
-    { src: "/assets/js/pages/datatable.init.js" },
-  ],
-});
 </script>
 
 <style scoped>
@@ -2520,13 +2667,26 @@ useHead({
   border: 1px solid #e9ecef;
   border-radius: 6px;
   padding: 0.75rem;
-  margin-bottom: 0.5rem;
   transition: all 0.2s ease;
 }
 
 .district-debt-item:hover {
   background: #e9ecef;
   border-color: #dee2e6;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.district-info .fw-bold {
+  font-size: 0.9rem;
+}
+
+.district-info .small {
+  font-size: 0.75rem;
+}
+
+.district-amount .fw-bold {
+  font-size: 0.85rem;
 }
 
 .district-debt-item:last-child {

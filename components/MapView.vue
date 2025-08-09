@@ -2,6 +2,115 @@
   <div id="map" style="height: 700px; width: 100%; border-radius: 10px; position: relative; z-index: 1;"></div>
 </template>
 
+<style>
+/* Marker Cluster сайжруулсан тохиргоо - давхар дугуй устгах */
+.marker-cluster-small {
+  background-color: rgba(110, 204, 57, 0.9);
+  border: none !important;
+  border-radius: 20px;
+}
+
+.marker-cluster-small div {
+  background-color: rgba(110, 204, 57, 0.9) !important;
+  border-radius: 20px;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  line-height: 36px;
+  width: 36px;
+  height: 36px;
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.marker-cluster-medium {
+  background-color: rgba(240, 194, 12, 0.9);
+  border: none !important;
+  border-radius: 20px;
+}
+
+.marker-cluster-medium div {
+  background-color: rgba(240, 194, 12, 0.9) !important;
+  border-radius: 20px;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  line-height: 36px;
+  width: 36px;
+  height: 36px;
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.marker-cluster-large {
+  background-color: rgba(241, 128, 23, 0.9);
+  border: none !important;
+  border-radius: 20px;
+}
+
+.marker-cluster-large div {
+  background-color: rgba(241, 128, 23, 0.9) !important;
+  border-radius: 20px;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  line-height: 36px;
+  width: 36px;
+  height: 36px;
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Давхар дугуй устгах */
+.marker-cluster {
+  background-clip: padding-box !important;
+  border-radius: 20px !important;
+  border: none !important;
+  background-color: transparent !important;
+  cursor: pointer !important;
+}
+
+.marker-cluster:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+.marker-cluster div {
+  position: relative;
+  top: 0px !important;
+  left: 0px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.marker-cluster span {
+  line-height: 36px !important;
+  display: block;
+  font-size: 12px;
+}
+
+/* Spiderfy animation сайжруулах */
+.marker-cluster-spiderfy {
+  z-index: 1000 !important;
+}
+
+.leaflet-marker-icon.marker-cluster-spiderfy {
+  margin-left: -12px !important;
+  margin-top: -12px !important;
+}
+
+/* Cluster click animation */
+.marker-cluster-clicked {
+  animation: clusterPulse 0.3s ease-out;
+}
+
+@keyframes clusterPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+</style>
+
 <script setup lang="ts">
 import { onMounted, watch, ref } from "vue";
 import { useAttrs } from "vue";
@@ -29,12 +138,14 @@ const props = defineProps<{
 
 const map = ref<any>(null);
 const markersLayer = ref<any>(null);
+const polygonLayer = ref<any>(null); // Polygon-уудад зориулсан тусдаа layer
 const kmlLayer = ref<any>(null);
 let L: any = null;
 let markerClusterGroup: any = null;
 let redIcon: any = null;
 let greenIcon: any = null;
 let blueIcon: any = null;
+let yellowIcon: any = null;
 
 // Simple cache for map data
 const mapDataCache = new Map<string, { data: any; timestamp: number }>();
@@ -128,22 +239,83 @@ async function fetchAndRenderMarkers() {
   }
   console.log('=== MAP DEBUG END ===');
 
-  // Clear existing markers before adding new ones
+  // Clear existing markers and polygons before adding new ones
   if (markersLayer.value) {
     console.log('Clearing existing markers...');
     try { markersLayer.value.clearLayers(); } catch (e) {
       console.error('Error clearing markers:', e);
     }
   }
-  markersLayer.value = L.markerClusterGroup();
   
-  let markersCreated = 0;
+  if (polygonLayer.value) {
+    console.log('Clearing existing polygons...');
+    try { polygonLayer.value.clearLayers(); } catch (e) {
+      console.error('Error clearing polygons:', e);
+    }
+  }
   
-  // 1. Байгууллагаар хайсан бол organizations pin-үүдийг харуулна (filter by selectedAddress if provided)
-  if (props.organizations && Array.isArray(props.organizations) && props.organizations.length > 0) {
+  // Create polygon layer for land mode
+  if (!polygonLayer.value) {
+    polygonLayer.value = L.layerGroup();
+    console.log('Created polygon layer');
+  }
+  
+  // Use appropriate layer type based on map type
+  // Бүх mode-д markerClusterGroup ашиглаж pin point-уудыг багцална
+  markersLayer.value = L.markerClusterGroup({
+    // Cluster багцлах тохиргоо - гацалт багасгах
+    maxClusterRadius: 60, // Cluster-ийн хамгийн их радиус нэмэгдүүлэх
+    disableClusteringAtZoom: 18, // 18-аас дээш zoom-д cluster хийхгүй
+    spiderfyOnMaxZoom: true, // Spider эффект идэвхтэй - pin point ууд задрах
+    showCoverageOnHover: false, // Hover дээр coverage харуулахгүй
+    zoomToBoundsOnClick: true, // Click дээр zoom хийх эсвэл spiderfy
+    spiderfyDistanceMultiplier: 2, // Spider задралтын зай нэмэгдүүлэх
+    removeOutsideVisibleBounds: true, // Харагдахгүй marker-уудыг устгах
+    animate: true, // Animation идэвхтэй болгох - задралтыг харуулах
+    animateAddingMarkers: false, // Marker нэмэх animation идэвхгүй
+    chunkedLoading: true, // Хэсэг хэсгээр ачаалах
+    chunkDelay: 50, // Chunk-ийн хоорондох хугацаа багасгах
+    iconCreateFunction: function(cluster) {
+      const count = cluster.getChildCount();
+      let className = 'marker-cluster-small';
+      
+      if (count < 10) {
+        className = 'marker-cluster-small';
+      } else if (count < 100) {
+        className = 'marker-cluster-medium';
+      } else {
+        className = 'marker-cluster-large';
+      }
+      
+      return L.divIcon({
+        html: `<div><span>${count}</span></div>`,
+        className: `marker-cluster ${className}`,
+        iconSize: L.point(40, 40),
+        iconAnchor: [20, 20] // Center anchor point
+      });
+    }
+  });
+  
+  if (props.mapType === 'land') {
+    console.log('Created markerClusterGroup for land mode with clustering');
+  } else {
+    console.log('Created markerClusterGroup for other modes with clustering');
+  }
+  
+     // 1. Байгууллагаар хайсан бол organizations pin-үүдийг харуулна (filter by selectedAddress if provided)
+   // Зөвхөн е-баримт mode биш үед organization marker-уудыг харуулна (ГАЗАР mode-д ч харуулна)
+   if (props.mapType !== 'ebarimt' && props.organizations && Array.isArray(props.organizations) && props.organizations.length > 0) {
     console.log('Processing organizations section...');
+    console.log('Current mapType:', props.mapType);
     console.log('Organizations count:', props.organizations.length);
     console.log('Selected address filter:', props.selectedAddress);
+    
+    // Special debug for land mode
+    if (props.mapType === 'land') {
+      console.log('🟦 ГАЗАР MODE - Organization маркеруудыг цэнхэр өнгөөр харуулна');
+    } else {
+      console.log('🔴 ҮНДСЭН MODE - Organization маркеруудыг улаан өнгөөр харуулна');
+    }
     
     // Filter organizations by selectedAddress if provided
     let filteredOrganizations = props.organizations;
@@ -191,7 +363,13 @@ async function fetchAndRenderMarkers() {
           <div style='margin-top:8px;'><a href='/entity?id=${org.id}' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a></div>
         </div>`;
         
-        const leafletMarker = L.marker([lat, lng], { icon: redIcon });
+        // Choose icon based on map type
+        let markerIcon = redIcon; // Default red for normal mode
+        if (props.mapType === 'land') {
+          markerIcon = redIcon; // Blue for land mode to differentiate
+        }
+        
+        const leafletMarker = L.marker([lat, lng], { icon: markerIcon });
         leafletMarker.bindPopup(initialPopupHtml);
         
         // Popup ээр дарах үед map data ачаалах
@@ -243,18 +421,27 @@ async function fetchAndRenderMarkers() {
         });
         
         markersLayer.value.addLayer(leafletMarker);
-        markersCreated++;
+        console.log(`✅ Marker нэмэгдлээ: ${org.name} [${lat}, ${lng}] - ${props.mapType === 'land' ? 'ЦЭНХЭР' : 'УЛААН'}`);
       }
     }
     
-    console.log(`Organization markers created: ${markersCreated}`);
+    const markersCount = markersLayer.value.getLayers ? markersLayer.value.getLayers().length : 0;
+    console.log(`✅ Organization markers created: ${markersCount} ширхэг (mapType: ${props.mapType})`);
   }
-
-  // 2. Pay Center (Газрын талбайнууд) - grouped by PAY_CENTER_ID
-  if (props.payCenter && typeof props.payCenter === 'object' && props.payCenter !== null) {
-    console.log('Processing grouped pay center locations...');
+  
+  // 2. Е-баримт button дээр дарахад е-баримтын өнгөтэй marker-ууд харуулах
+  if (props.mapType === 'ebarimt') {
+    console.log('Processing ebarimt mode...');
+    await fetchEbarimtColorData();
+    return; // Е-баримт mode-д organization marker-уудыг харуулахгүй
+  }
+  
+         // 3. Газар button дээр дарахад pay center location-оос polygon-ууд харуулах
+   if (props.mapType === 'land' && props.payCenter && typeof props.payCenter === 'object' && props.payCenter !== null && Object.keys(props.payCenter).length > 0) {
+    console.log('=== LAND MODE PROCESSING START ===');
+    console.log('Processing land mode - pay center locations...');
     console.log('Pay center groups:', Object.keys(props.payCenter));
-    console.log('Selected address filter:', props.selectedAddress);
+    console.log('Pay center data structure:', props.payCenter);
     
     // Generate different colors for different PAY_CENTER_IDs
     const colors = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'];
@@ -265,28 +452,10 @@ async function fetchAndRenderMarkers() {
       
       console.log(`Processing PAY_CENTER_ID ${payCenterID} with ${locations.length} locations`);
       
-      // Filter by ADDRESS if selectedAddress is provided
-      let filteredLocations = locations;
-      if (props.selectedAddress && props.selectedAddress !== '') {
-        filteredLocations = locations.filter((payLoc: any) => {
-          // Check both ADDRESS and NAME fields for filtering
-          const address = payLoc.ADDRESS || payLoc.address;
-          const name = payLoc.NAME || payLoc.name;
-          return address === props.selectedAddress || name === props.selectedAddress;
-        });
-        
-        if (filteredLocations.length === 0) {
-          console.log(`No locations match ADDRESS/NAME filter: ${props.selectedAddress}`);
-          return;
-        }
-        
-        console.log(`Filtered to ${filteredLocations.length} locations matching ADDRESS/NAME: ${props.selectedAddress}`);
-      }
-      
       // Extract valid coordinates for this group
       const validCoordinates: [number, number][] = [];
       
-      for (const payLoc of filteredLocations) {
+      for (const payLoc of locations) {
         // LNG, LAT coordinates parsing
         let lat, lng;
         
@@ -350,8 +519,7 @@ async function fetchAndRenderMarkers() {
           </div>
         `);
         
-        markersLayer.value.addLayer(polygon);
-        markersCreated++;
+        polygonLayer.value.addLayer(polygon);
         
       } else if (validCoordinates.length > 0) {
         // If less than 3 points, show as individual markers
@@ -373,47 +541,21 @@ async function fetchAndRenderMarkers() {
             </div>
           `);
           
-          markersLayer.value.addLayer(marker);
-          markersCreated++;
+          polygonLayer.value.addLayer(marker);
         });
       }
     });
     
-    console.log(`Pay center polygons/markers created with ${markersCreated} elements`);
+    console.log(`Pay center polygons/markers created for land mode`);
+    console.log('=== LAND MODE PROCESSING END ===');
   }
-
-  // 3. Газрын хайлт (searchLand)
+  
+     // 4. Газар mode-д organization marker-уудыг харуулахгүй - зөвхөн polygon-уудыг харуулна
+   // Анхны pin point-уудыг хэвээр үлдээх тул энэ хэсгийг устгасан
+  
+    // 5. Газрын хайлт (searchLand)
   if (props.searchLand && Array.isArray(props.searchLand) && props.searchLand.length > 0) {
-    if (markersLayer.value) {
-      try { markersLayer.value.clearLayers(); } catch (e) {}
-    }
-    markersLayer.value = L.layerGroup(); // Use simple LayerGroup instead of markerClusterGroup
-    // 1. Газрын pin-үүд
-    for (const land of props.searchLand) {
-      const lat = parseFloat(land.COORD_Y?.String || land.COORD_Y);
-      const lng = parseFloat(land.COORD_X?.String || land.COORD_X);
-      if (!isNaN(lat) && !isNaN(lng)) {
-        const icon = greenIcon;
-        const name = land.NAME?.String || land.NAME || 'Газрын нэр';
-        let popupHtml = `<div style='width:240px'>
-          <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
-          <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${name}</div>
-          <div style='font-size:13px;'>ID: ${land.ID || ''}</div>
-          <div style='font-size:13px;'>Нэгж талбарын дугаар: ${land.PARCEL_ID || '-'}</div>
-          <div style='font-size:13px;'>Эзэмшигч: 14</div>
-          <div style='font-size:13px;'>Үйл ажиллагаа эрхлэгч: 137</div>
-          <div style='font-size:13px;'>Талбай: 5,922.92 мкв</div>
-          <div style='font-size:13px;'>Түрээслэгч: 95ш</div>
-          <div style='margin-top:8px;'><a href='/entity?id=${land.ID}' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a></div>
-        </div>`;
-        const leafletMarker = L.marker([lat, lng], { icon });
-        leafletMarker.bindPopup(popupHtml);
-        leafletMarker.on('mouseover', function (e) { this.openPopup(); });
-        leafletMarker.on('mouseout', function (e) { this.closePopup(); });
-        markersLayer.value.addLayer(leafletMarker);
-      }
-    }
-    // 2. Газрын хүрээ (pay_center_location-оос polygon/polyline)
+    // Газрын хүрээ (pay_center_location-оос polygon/polyline)
     const regno = props.searchLand[0]?.PIN?.String || props.searchLand[0]?.PIN;
     if (regno) {
       const payLocs = await fetchPayCenterLocationsByRegno(regno);
@@ -442,150 +584,143 @@ async function fetchAndRenderMarkers() {
     }
     return;
   }
+   
+     // 6. Fallback: if no organizations and not in ebarimt/land mode, show default centers
+  if (props.mapType !== 'ebarimt' && props.mapType !== 'land' && (!props.organizations || props.organizations.length === 0)) {
+    console.log('No organizations data, showing default centers...');
+    
+    // API query string үүсгэх
+    const params = new URLSearchParams();
+    if (props.district) params.append("district", props.district);
+    if (props.khoroo) params.append("khoroo", props.khoroo);
+    const url =
+      "http://localhost:8080/api/v1/centers" +
+      (params.toString() ? `?${params.toString()}` : "");
 
-  // API query string үүсгэх
-  const params = new URLSearchParams();
-  if (props.district) params.append("district", props.district);
-  if (props.khoroo) params.append("khoroo", props.khoroo);
-  const url =
-    "http://localhost:8080/api/v1/centers" +
-    (params.toString() ? `?${params.toString()}` : "");
-
-  let markersData: LandData[] = [];
-  try {
-    console.log('Fetching centers from URL:', url);
-    const res = await fetch(url);
-    const data = await res.json();
-    console.log('Centers API response:', data);
-    if (Array.isArray(data.data)) {
-      markersData = data.data as LandData[];
+    let markersData: LandData[] = [];
+    try {
+      console.log('Fetching centers from URL:', url);
+      const res = await fetch(url);
+      const data = await res.json();
+      console.log('Centers API response:', data);
+      if (Array.isArray(data.data)) {
+        markersData = data.data as LandData[];
+      }
+      console.log('markersData length:', markersData.length);
+    } catch (e) {
+      console.error('Error fetching centers:', e);
+      markersData = [];
     }
-    console.log('markersData length:', markersData.length);
-  } catch (e) {
-    console.error('Error fetching centers:', e);
-    markersData = [];
-  }
 
-  // Add all markers to map
-  if (map.value && markersCreated > 0) {
+    // Маркеруудыг шинэчлэх - fallback markers ч clustering хийх
+    if (markersLayer.value) {
+      try {
+        markersLayer.value.clearLayers();
+      } catch (e) {}
+    }
+    // Fallback хэсэгт ч markerClusterGroup ашиглана
+    markersLayer.value = L.markerClusterGroup({
+      maxClusterRadius: 60,
+      disableClusteringAtZoom: 18,
+      spiderfyOnMaxZoom: true, // Spider эффект идэвхтэй
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true, // Click дээр zoom эсвэл spiderfy
+      spiderfyDistanceMultiplier: 2, // Spider задралтын зай
+      removeOutsideVisibleBounds: true,
+      animate: true, // Animation идэвхтэй болгох
+      animateAddingMarkers: false,
+      chunkedLoading: true,
+      chunkDelay: 50,
+      iconCreateFunction: function(cluster) {
+        const count = cluster.getChildCount();
+        let className = 'marker-cluster-small';
+        
+        if (count < 10) {
+          className = 'marker-cluster-small';
+        } else if (count < 100) {
+          className = 'marker-cluster-medium';
+        } else {
+          className = 'marker-cluster-large';
+        }
+        
+        return L.divIcon({
+          html: `<div><span>${count}</span></div>`,
+          className: `marker-cluster ${className}`,
+          iconSize: L.point(40, 40),
+          iconAnchor: [20, 20]
+        });
+      }
+    });
+    markersData.forEach((marker: LandData) => {
+      const lat = parseFloat(marker.COORD_Y?.String || marker.COORD_Y);
+      const lng = parseFloat(marker.COORD_X?.String || marker.COORD_X);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        // all_barimt_ok утгаар өнгө сонгоно
+        let icon = greenIcon;
+        const leafletMarker = L.marker([lat, lng], { icon });
+        const popupHtml = `
+          <div style='width:240px'>
+            <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
+            <div style='text-align:center;'>
+              <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${
+                marker.NAME?.String || marker.NAME || 'Газрын нэр'
+              }</div>
+            </div>
+            <div style='font-size:13px;'>ID: ${marker.ID || ''}</div>
+            <div style='font-size:13px;'>Нэгж талбарын дугаар: ${marker.PARCEL_ID || '-'}</div>
+            <div style='font-size:13px;margin-bottom:8px;'>${
+              marker.COORD_Y?.String || marker.COORD_Y || ""
+            }</div>
+            <div style='display:flex;align-items:center;gap:6px;'>
+              <a href='/entity?id=${
+                marker.ID
+              }' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a>
+              <span style='font-size:12px;color:#888;'>(2025/06/21 нд шинчлэгдсэн)</span>
+            </div>
+          </div>
+        `;
+        leafletMarker.bindPopup(popupHtml);
+        markersLayer.value.addLayer(leafletMarker);
+      }
+    });
+  }
+  
+  // Add markers and polygon layers to map
+  if (map.value) {
     console.log('Adding markers layer to map...');
+    console.log('Markers layer type:', markersLayer.value.constructor.name);
+    console.log('Markers layer has layers:', markersLayer.value.getLayers ? markersLayer.value.getLayers().length : 'N/A');
     map.value.addLayer(markersLayer.value);
     console.log('Markers layer added to map successfully');
     
-    // Center on first valid organization or pay center
-    const validOrg = props.organizations?.find(org => {
-      const lat = parseFloat(org.lat);
-      const lng = parseFloat(org.lng);
-      return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
-    });
+    // Add polygon layer for land mode
+    if (props.mapType === 'land' && polygonLayer.value) {
+      console.log('Adding polygon layer to map...');
+      console.log('Polygon layer has layers:', polygonLayer.value.getLayers ? polygonLayer.value.getLayers().length : 'N/A');
+      map.value.addLayer(polygonLayer.value);
+      console.log('Polygon layer added to map successfully');
+    }
     
-    if (validOrg) {
-      const centerLat = parseFloat(validOrg.lat);
-      const centerLng = parseFloat(validOrg.lng);
-      console.log(`Setting map view to organization [${centerLat}, ${centerLng}]`);
-      map.value.setView([centerLat, centerLng], 15);
-    } else if (props.payCenter && typeof props.payCenter === 'object' && props.payCenter !== null) {
-      // Find the first valid coordinate from any group
-      let validPayCenter = null;
+    // Center on first valid organization or pay center
+    if (props.mapType !== 'ebarimt') {
+      const validOrg = props.organizations?.find(org => {
+        const lat = parseFloat(org.lat);
+        const lng = parseFloat(org.lng);
+        return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+      });
       
-             for (const [payCenterID, locations] of Object.entries(props.payCenter)) {
-         if (Array.isArray(locations) && locations.length > 0) {
-           validPayCenter = (locations as any[]).find((payLoc: any) => {
-            let lat, lng;
-            if (payLoc.LAT && payLoc.LAT.Float64 !== undefined) {
-              lat = payLoc.LAT.Float64;
-            } else if (typeof payLoc.LAT === 'number') {
-              lat = payLoc.LAT;
-            } else if (typeof payLoc.LAT === 'string') {
-              lat = parseFloat(payLoc.LAT);
-            }
-            
-            if (payLoc.LNG && payLoc.LNG.Float64 !== undefined) {
-              lng = payLoc.LNG.Float64;
-            } else if (typeof payLoc.LNG === 'number') {
-              lng = payLoc.LNG;
-            } else if (typeof payLoc.LNG === 'string') {
-              lng = parseFloat(payLoc.LNG);
-            }
-            
-            return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
-          });
-          
-          if (validPayCenter) break;
-        }
-      }
-      
-      if (validPayCenter) {
-        let centerLat, centerLng;
-        const payCenter = validPayCenter as any;
-        if (payCenter.LAT && payCenter.LAT.Float64 !== undefined) {
-          centerLat = payCenter.LAT.Float64;
-        } else if (typeof payCenter.LAT === 'number') {
-          centerLat = payCenter.LAT;
-        } else if (typeof payCenter.LAT === 'string') {
-          centerLat = parseFloat(payCenter.LAT);
-        }
-        
-        if (payCenter.LNG && payCenter.LNG.Float64 !== undefined) {
-          centerLng = payCenter.LNG.Float64;
-        } else if (typeof payCenter.LNG === 'number') {
-          centerLng = payCenter.LNG;
-        } else if (typeof payCenter.LNG === 'string') {
-          centerLng = parseFloat(payCenter.LNG);
-        }
-        
-        console.log(`Setting map view to pay center location [${centerLat}, ${centerLng}]`);
+      if (validOrg) {
+        const centerLat = parseFloat(validOrg.lat);
+        const centerLng = parseFloat(validOrg.lng);
+        console.log(`🎯 Map центрийг organization руу [${centerLat}, ${centerLng}] зааж байна`);
         map.value.setView([centerLat, centerLng], 15);
       }
     }
     
     console.log('All markers processing completed');
-    return;
   }
   
-  // Fallback: if no organizations or payCenter, show default centers
-  // Маркеруудыг шинэчлэх
-  if (markersLayer.value) {
-    try {
-      markersLayer.value.clearLayers();
-    } catch (e) {}
-  }
-  markersLayer.value = L.layerGroup(); // Use simple LayerGroup instead of markerClusterGroup
-  markersData.forEach((marker: LandData) => {
-    const lat = parseFloat(marker.COORD_Y?.String || marker.COORD_Y);
-    const lng = parseFloat(marker.COORD_X?.String || marker.COORD_X);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      // all_barimt_ok утгаар өнгө сонгоно
-      let icon = greenIcon;
-      const leafletMarker = L.marker([lat, lng], { icon });
-      const popupHtml = `
-        <div style='width:240px'>
-          <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
-          <div style='text-align:center;'>
-            <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${
-              marker.NAME?.String || marker.NAME || 'Газрын нэр'
-            }</div>
-          </div>
-          <div style='font-size:13px;'>ID: ${marker.ID || ''}</div>
-          <div style='font-size:13px;'>Нэгж талбарын дугаар: ${marker.PARCEL_ID || '-'}</div>
-          <div style='font-size:13px;margin-bottom:8px;'>${
-            marker.COORD_Y?.String || marker.COORD_Y || ""
-          }</div>
-          <div style='display:flex;align-items:center;gap:6px;'>
-            <a href='/entity?id=${
-              marker.ID
-            }' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a>
-            <span style='font-size:12px;color:#888;'>(2025/06/21 нд шинчлэгдсэн)</span>
-          </div>
-        </div>
-      `;
-      leafletMarker.bindPopup(popupHtml);
-      markersLayer.value.addLayer(leafletMarker);
-    }
-  });
-  if (map.value) {
-    map.value.addLayer(markersLayer.value);
-  }
+  
 }
 
 // Global cache for organization and map data (survives page navigation)
@@ -616,6 +751,24 @@ function setGlobalCacheData(cacheKey: string, data: any, cacheMap: Map<string, {
     data: data,
     timestamp: Date.now()
   });
+}
+
+// Function to fetch ebarimt color data for all pay centers
+async function fetchEbarimtColorData() {
+  try {
+    console.log('Fetching ebarimt color data for map markers...');
+    const response = await fetch('http://localhost:8080/api/v1/pay-center-locations?with_ebarimt_colors=true');
+    const result = await response.json();
+    
+    if (result.success && result.data) {
+      console.log('Ebarimt color data loaded:', Object.keys(result.data).length, 'locations');
+      updateMarkersWithEbarimtColors(result.data);
+    } else {
+      console.error('Failed to fetch ebarimt color data:', result);
+    }
+  } catch (error) {
+    console.error('Error fetching ebarimt color data:', error);
+  }
 }
 
 onMounted(async () => {
@@ -667,6 +820,16 @@ onMounted(async () => {
       popupAnchor: [1, -34],
       shadowSize: [41, 41],
     });
+    yellowIcon = new L.Icon({
+      iconUrl:
+        "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png",
+      shadowUrl:
+        "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+    });
     console.log('Icons created successfully');
 
     // map дахин үүсгэгдэхэд хуучин map-ийг устгана
@@ -686,8 +849,10 @@ onMounted(async () => {
     console.log('Tile layer added');
     
     markersLayer.value = L.layerGroup(); // Use simple LayerGroup instead of markerClusterGroup
+    polygonLayer.value = L.layerGroup(); // Initialize polygon layer
     map.value.addLayer(markersLayer.value);
-    console.log('Markers layer added to map');
+    map.value.addLayer(polygonLayer.value);
+    console.log('Markers and polygon layers added to map');
     
     // Wait for the next tick to ensure map is fully initialized
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -806,6 +971,26 @@ onMounted(async () => {
     console.error("Error details:", e.message, e.stack);
   }
   
+  // Watch for payCenter changes to update markers with ebarimt colors
+  watch(() => props.payCenter, (newPayCenter) => {
+    if (newPayCenter && Object.keys(newPayCenter).length > 0) {
+      console.log('PayCenter data updated, updating markers with ebarimt colors...');
+      updateMarkersWithEbarimtColors(newPayCenter);
+    }
+  }, { deep: true });
+
+  // Watch for payCenter changes specifically for land mode
+  watch(() => props.payCenter, async (newPayCenter) => {
+    if (props.mapType === 'land' && newPayCenter && Object.keys(newPayCenter).length > 0) {
+      console.log('PayCenter data updated for land mode, re-rendering markers...');
+      if (map.value && L) {
+        await fetchAndRenderMarkers();
+      }
+    }
+  }, { deep: true });
+
+
+
   console.log('=== MapView onMounted END ===');
 });
 
@@ -821,22 +1006,52 @@ watch(
     console.log('MapType changed:', newValues[6] !== oldValues?.[6]);
     console.log('Current mapType:', newValues[6]);
     
-         // Handle KML layer visibility based on mapType
-     if (kmlLayer.value && map.value) {
-       if (newValues[6] === 'land') {
-         // Hide KML layer when in land mode
-         console.log('Hiding KML layer (land mode)');
-         if (map.value.hasLayer(kmlLayer.value)) {
-           map.value.removeLayer(kmlLayer.value);
-         }
-       } else {
-         // Show KML layer when not in land mode (including empty string)
-         console.log('Showing KML layer (normal mode)');
-         if (!map.value.hasLayer(kmlLayer.value)) {
-           map.value.addLayer(kmlLayer.value);
-         }
-       }
-     }
+    // Handle KML layer visibility based on mapType
+    if (kmlLayer.value && map.value) {
+      if (newValues[6] === 'land') {
+        // Hide KML layer when in land mode
+        console.log('Hiding KML layer (land mode)');
+        if (map.value.hasLayer(kmlLayer.value)) {
+          map.value.removeLayer(kmlLayer.value);
+        }
+      } else {
+        // Show KML layer when not in land mode (including empty string)
+        console.log('Showing KML layer (normal mode)');
+        if (!map.value.hasLayer(kmlLayer.value)) {
+          map.value.addLayer(kmlLayer.value);
+        }
+      }
+    }
+    
+    // Handle polygon layer visibility - only show in land mode
+    if (polygonLayer.value && map.value) {
+      if (newValues[6] === 'land') {
+        // Show polygon layer in land mode
+        console.log('Showing polygon layer (land mode)');
+        if (!map.value.hasLayer(polygonLayer.value)) {
+          map.value.addLayer(polygonLayer.value);
+        }
+      } else {
+        // Hide polygon layer in other modes
+        console.log('Hiding polygon layer (non-land mode)');
+        if (map.value.hasLayer(polygonLayer.value)) {
+          map.value.removeLayer(polygonLayer.value);
+        }
+      }
+    }
+    
+    // For land mode, wait a bit for payCenter data to load if it's not available yet
+    if (newValues[6] === 'land' && (!newValues[5] || Object.keys(newValues[5] || {}).length === 0)) {
+      console.log('Land mode selected but payCenter data not ready yet, waiting...');
+      // Wait for payCenter data to be loaded
+      let attempts = 0;
+      const maxAttempts = 10;
+      while (attempts < maxAttempts && (!props.payCenter || Object.keys(props.payCenter || {}).length === 0)) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        attempts++;
+        console.log(`Waiting for payCenter data... attempt ${attempts}/${maxAttempts}`);
+      }
+    }
     
     // Ensure map is ready before rendering markers
     if (map.value && L) {
@@ -847,4 +1062,67 @@ watch(
   },
   { deep: true }
 );
+
+// Function to update markers with ebarimt colors
+function updateMarkersWithEbarimtColors(payCenterData: any) {
+  if (!map.value || !markersLayer.value) return;
+  
+  // Clear existing markers
+  markersLayer.value.clearLayers();
+  
+  let markersCreated = 0;
+  
+  // Process each pay center location
+  for (const [payCenterId, locationData] of Object.entries(payCenterData)) {
+    const data = locationData as any;
+    
+    if (!data.lng || !data.lat || isNaN(data.lng) || isNaN(data.lat)) {
+      continue;
+    }
+    
+    // Determine marker color based on ebarimt percentage
+    let markerIcon;
+    let colorName;
+    
+    if (data.color === 'green') {
+      markerIcon = greenIcon;
+      colorName = 'Ногоон (100% е-баримт)';
+    } else if (data.color === 'yellow') {
+      markerIcon = yellowIcon; // Using blue icon for yellow since we don't have yellow icon
+      colorName = 'Шар (50-99% е-баримт)';
+    } else {
+      markerIcon = redIcon;
+      colorName = 'Улаан (<50% е-баримт)';
+    }
+    
+    // Create popup content
+    const popupHtml = `<div style='width:280px'>
+      <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
+      <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${data.name || 'Барилга'}</div>
+      <div style='font-size:13px;'>ID: ${data.pay_center_id || ''}</div>
+      <div style='font-size:13px;'>Хаяг: ${data.address || '-'}</div>
+      <div style='font-size:13px;'>Нийт байгууллага: ${data.total_organizations || 0}</div>
+      <div style='font-size:13px;'>Е-баримт гаргадаг: ${data.organizations_with_ebarimt || 0}</div>
+      <div style='font-size:13px;'>Е-баримтын хувь: ${(data.ebarimt_percentage || 0).toFixed(1)}%</div>
+      <div style='font-size:13px; color: ${data.color === 'green' ? '#28a745' : data.color === 'yellow' ? '#ffc107' : '#dc3545'};'>
+        Өнгө: ${colorName}
+      </div>
+      <div style='margin-top:8px;'><a href='/entity?id=${data.pay_center_id}' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a></div>
+    </div>`;
+    
+    // Create marker
+    const leafletMarker = L.marker([data.lat, data.lng], { icon: markerIcon });
+    leafletMarker.bindPopup(popupHtml);
+    
+    markersLayer.value.addLayer(leafletMarker);
+    markersCreated++;
+  }
+  
+  // Ensure markers layer is added to map
+  if (map.value && !map.value.hasLayer(markersLayer.value)) {
+    map.value.addLayer(markersLayer.value);
+  }
+  
+  console.log(`Updated markers with ebarimt colors: ${markersCreated} markers created`);
+}
 </script>

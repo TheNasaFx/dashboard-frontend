@@ -144,9 +144,9 @@ async function fetchActivityTypes(payCenterId: string) {
     // Calculate percentages and create legend data
     const total = values.reduce((sum, val) => sum + val, 0);
     legendData.value = labels.map((label, index) => ({
-      label,
-      value: values[index],
-      percentage: total > 0 ? Math.round((values[index] / total) * 100) : 0,
+      label: label || 'Тодорхойгүй',
+      value: values[index] || 0,
+      percentage: total > 0 ? Math.round(((values[index] || 0) / total) * 100) : 0,
       color: colorPalette[index % colorPalette.length],
       visible: true
     }));
@@ -157,11 +157,12 @@ async function fetchActivityTypes(payCenterId: string) {
     // Fallback data
     const fallbackLabels = ["Үйлчилгээ", "Худалдаа", "Хүнс", "Тээвэр", "Бусад"];
     const fallbackValues = [44, 55, 13, 43, 22];
+    const fallbackTotal = fallbackValues.reduce((a, b) => a + b, 0);
     
     legendData.value = fallbackLabels.map((label, index) => ({
       label,
       value: fallbackValues[index],
-      percentage: Math.round((fallbackValues[index] / fallbackValues.reduce((a, b) => a + b, 0)) * 100),
+      percentage: fallbackTotal > 0 ? Math.round((fallbackValues[index] / fallbackTotal) * 100) : 0,
       color: colorPalette[index % colorPalette.length],
       visible: true
     }));
@@ -176,20 +177,44 @@ function createChart(labels: string[], values: number[]) {
   // Destroy existing chart
   if (chartInstance.value) {
     chartInstance.value.destroy();
+    chartInstance.value = null;
   }
 
   const ctx = chartCanvas.value.getContext('2d');
   if (!ctx) return;
 
+  // Validate data
+  if (!Array.isArray(labels) || !Array.isArray(values) || labels.length !== values.length) {
+    console.error('Invalid chart data');
+    return;
+  }
+
+  // Filter out invalid values
+  const validData = labels.map((label, index) => ({
+    label,
+    value: typeof values[index] === 'number' && !isNaN(values[index]) ? values[index] : 0
+  })).filter(item => item.value > 0);
+
+  if (validData.length === 0) {
+    // Show empty state
+    ctx.font = '16px Arial';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.textAlign = 'center';
+    ctx.fillText('Өгөгдөл байхгүй', ctx.canvas.width / 2, ctx.canvas.height / 2);
+    return;
+  }
+
+  const chartLabels = validData.map(item => item.label);
+  const chartValues = validData.map(item => item.value);
   const gradients = createGradientColors(ctx, colorPalette);
 
   chartInstance.value = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: labels,
+      labels: chartLabels,
       datasets: [{
-        data: values,
-        backgroundColor: gradients.slice(0, labels.length),
+        data: chartValues,
+        backgroundColor: gradients.slice(0, chartLabels.length),
         borderColor: '#ffffff',
         borderWidth: 3,
         hoverBorderWidth: 5,
@@ -206,23 +231,35 @@ function createChart(labels: string[], values: number[]) {
           display: false, // We'll use custom legend
         },
         tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
           titleColor: '#ffffff',
           bodyColor: '#ffffff',
-          borderColor: 'rgba(255, 255, 255, 0.1)',
+          borderColor: 'rgba(255, 255, 255, 0.2)',
           borderWidth: 1,
           cornerRadius: 8,
           displayColors: true,
+          padding: 12,
           callbacks: {
             title: function(context) {
-              return context[0].label || '';
+              return context[0]?.label || '';
             },
             label: function(context) {
-              const label = context.label || '';
               const value = context.parsed;
-              const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+              const total = context.dataset.data.reduce((a: any, b: any) => {
+                const aVal = typeof a === 'number' ? a : 0;
+                const bVal = typeof b === 'number' ? b : 0;
+                return aVal + bVal;
+              }, 0) as number;
               const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-              return `${label}: ${value} түрээслэгч (${percentage}%)`;
+              return `${value} түрээслэгч (${percentage}%)`;
+            },
+            afterBody: function(context) {
+              const total = context[0].dataset.data.reduce((a: any, b: any) => {
+                const aVal = typeof a === 'number' ? a : 0;
+                const bVal = typeof b === 'number' ? b : 0;
+                return aVal + bVal;
+              }, 0) as number;
+              return `Нийт: ${total} түрээслэгч`;
             }
           }
         }
@@ -235,7 +272,12 @@ function createChart(labels: string[], values: number[]) {
       },
       interaction: {
         intersect: false,
-        mode: 'index'
+        mode: 'nearest'
+      },
+      onHover: (event, elements) => {
+        if (chartCanvas.value) {
+          chartCanvas.value.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+        }
       }
     },
     plugins: [{
@@ -245,19 +287,29 @@ function createChart(labels: string[], values: number[]) {
         const dataset = data.datasets[0];
         const meta = chart.getDatasetMeta(0);
         
+        if (!dataset || !dataset.data) return;
+        
         meta.data.forEach((element: any, index: number) => {
           if (element.hidden) return;
           
           const { x, y } = element.tooltipPosition();
           const value = dataset.data[index];
-          const total = dataset.data.reduce((a: number, b: number) => a + b, 0);
+          
+          if (value === null || value === undefined || typeof value !== 'number') return;
+          
+          const total = dataset.data.reduce((a: any, b: any) => {
+            const aVal = typeof a === 'number' ? a : 0;
+            const bVal = typeof b === 'number' ? b : 0;
+            return aVal + bVal;
+          }, 0) as number;
+          
           const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
           
           // Only show label if percentage is greater than 3% to avoid clutter
           if (percentage >= 3) {
             ctx.save();
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 11px Arial';
+            ctx.font = 'bold 12px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
@@ -276,20 +328,23 @@ function createChart(labels: string[], values: number[]) {
 }
 
 function toggleDataset(index: number) {
-  if (!chartInstance.value) return;
+  if (!chartInstance.value || !legendData.value[index]) return;
   
   const meta = chartInstance.value.getDatasetMeta(0);
   const item = legendData.value[index];
   
   if (meta.data[index]) {
-    if (item.visible) {
+    const isCurrentlyHidden = (meta.data[index] as any).hidden;
+    
+    if (!isCurrentlyHidden) {
       (meta.data[index] as any).hidden = true;
       item.visible = false;
     } else {
       (meta.data[index] as any).hidden = false;
       item.visible = true;
     }
-    chartInstance.value.update();
+    
+    chartInstance.value.update('none'); // Smooth update without animation
   }
 }
 

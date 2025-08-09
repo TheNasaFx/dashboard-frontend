@@ -366,7 +366,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useApi } from '../composables/useApi'
-import { useHead } from "@unhead/vue"
 
 // Interfaces
 interface RealEstateStatistics {
@@ -891,15 +890,6 @@ function changePage(page: number) {
 // Lifecycle
 onMounted(async () => {
   await fetchAllData()
-})
-
-// Meta
-useHead({
-  title: 'Үл хөдлөх хөрөнгийн мэдээлэл - МТА-НТГ',
-  script: [
-    { src: "/assets/js/app.js" },
-    { src: "/assets/js/baatars.js" }
-  ]
 })
 </script>
 

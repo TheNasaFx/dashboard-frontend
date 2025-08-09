@@ -352,7 +352,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useApi } from '../composables/useApi'
-import { useHead } from "@unhead/vue"
+import { useCache } from '../composables/useCache'
 
 // Define interfaces
 interface LandData {
@@ -390,6 +390,7 @@ const loading = ref(true)
 const error = ref('')
 const landData = ref<LandData[]>([])
 const paymentData = ref<PaymentData[]>([])
+const landTaxData = ref<any>({}) // Шинэ газрын татвар төлөлтийн өгөгдөл
 const showOtherActivities = ref(false)
 
 // Computed statistics
@@ -406,12 +407,16 @@ const totalAreaM2 = computed(() => {
 
 
 
-// Payment statistics
+// Payment statistics - PAY_MARKET + V_E_TUB_PAYMENTS аас
 const totalLandPayment = computed(() => {
-  return paymentData.value.reduce((sum, item) => sum + (item.amount || 0), 0)
+  // Шинэ land-tax-payments API-аас ирсэн нийт дүнг ашиглана
+  return landTaxData.value?.summary?.total_amount || 0
 })
 
-const totalPaymentCount = computed(() => paymentData.value.length)
+const totalPaymentCount = computed(() => {
+  // Шинэ land-tax-payments API-аас ирсэн нийт тоог ашиглана  
+  return landTaxData.value?.summary?.total_count || 0
+})
 
 // Payment data by district
 const paymentByDistrict = computed(() => {
@@ -636,7 +641,7 @@ function formatNumber(num: number): string {
   return Number(num).toLocaleString('en-US')
 }
 
-// Data fetching
+// Data fetching with caching and optimization
 async function fetchData() {
   loading.value = true
   error.value = ''
@@ -644,35 +649,129 @@ async function fetchData() {
   try {
     console.log('Fetching land data from API...')
     
-    // Land data (required)
-    const landResponse = await useApi('/land-data')
-    console.log('Land API response:', landResponse)
+    // Check cache first
+    const { get, set } = useCache()
+    const landCacheKey = 'land_data_all'
+    const paymentCacheKey = 'land_payment_data_all'
     
-    if (landResponse.success && landResponse.data) {
-      landData.value = Array.isArray(landResponse.data) ? landResponse.data : []
-      console.log('Land data loaded:', landData.value.length, 'records')
+    // Try to get cached land data
+    let cachedLandData = get(landCacheKey)
+    if (cachedLandData && Array.isArray(cachedLandData)) {
+      console.log('Using cached land data:', cachedLandData.length, 'records')
+      landData.value = cachedLandData
     } else {
-      error.value = 'Газрын мэдээлэл авахад алдаа гарлаа'
-      console.error('Land API response error:', landResponse)
-      return
+      // Fetch land data with timeout
+      const landController = new AbortController()
+      const landTimeoutId = setTimeout(() => landController.abort(), 30000) // 30s timeout
+      
+      try {
+        const landResponse = await useApi('/land-data', {}, false) // No caching in useApi, we handle it here
+        clearTimeout(landTimeoutId)
+        
+        if (landResponse.success && landResponse.data) {
+          const landArray = Array.isArray(landResponse.data) ? landResponse.data : []
+          landData.value = landArray
+          
+          // Cache for 10 minutes
+          set(landCacheKey, landArray, 600000)
+          console.log('Land data loaded and cached:', landArray.length, 'records')
+        } else {
+          error.value = 'Газрын мэдээлэл авахад алдаа гарлаа'
+          console.error('Land API response error:', landResponse)
+          return
+        }
+      } catch (landErr) {
+        clearTimeout(landTimeoutId)
+        if (landErr instanceof Error && landErr.name === 'AbortError') {
+          error.value = 'Газрын мэдээлэл ачаалах хугацаа дууслаа. Дахин оролдоно уу.'
+        } else {
+          error.value = 'Газрын мэдээлэл авахад алдаа гарлаа'
+        }
+        console.error('Land API error:', landErr)
+        return
+      }
     }
     
-    // Payment data (optional - don't fail if this fails)
-    try {
-      const paymentResponse = await useApi('/land-payment-data')
-      console.log('Payment API response:', paymentResponse)
-      
-      if (paymentResponse.success && paymentResponse.data) {
-        paymentData.value = Array.isArray(paymentResponse.data) ? paymentResponse.data : []
-        console.log('Payment data loaded:', paymentData.value.length, 'records')
-      } else {
-        console.error('Payment API response error:', paymentResponse)
-        paymentData.value = []
+    // Шинэ газрын татвар төлөлтийн мэдээлэл авах (PAY_MARKET + V_E_TUB_PAYMENTS)
+    const landTaxCacheKey = 'land_tax_payments_summary'
+    let cachedLandTaxData = get(landTaxCacheKey)
+    if (cachedLandTaxData) {
+      console.log('Using cached land tax data:', cachedLandTaxData)
+      landTaxData.value = cachedLandTaxData
+    } else {
+      try {
+        const landTaxController = new AbortController()
+        const landTaxTimeoutId = setTimeout(() => landTaxController.abort(), 15000) // 15s timeout
+        
+        // Зөвхөн summary мэдээлэл авах (хурдан ажиллуулахын тулд limit=1)
+        const landTaxResponse = await useApi('/land-tax-payments?page=1&limit=1', {}, false)
+        clearTimeout(landTaxTimeoutId)
+        
+        if (landTaxResponse.success) {
+          const response = landTaxResponse as any
+          landTaxData.value = {
+            summary: response.summary || {},
+            pagination: response.pagination || {}
+          }
+          
+          // Cache for 15 minutes
+          set(landTaxCacheKey, landTaxData.value, 900000)
+          console.log('Land tax data loaded and cached:', landTaxData.value.summary)
+        } else {
+          console.error('Land tax API response error:', landTaxResponse)
+          landTaxData.value = { summary: { total_amount: 0, total_count: 0 } }
+        }
+      } catch (landTaxErr) {
+        if (landTaxErr instanceof Error && landTaxErr.name === 'AbortError') {
+          console.warn('Land tax data request timed out')
+        } else {
+          console.error('Error fetching land tax data:', landTaxErr)
+        }
+        landTaxData.value = { summary: { total_amount: 0, total_count: 0 } }
       }
-    } catch (paymentErr) {
-      console.error('Error fetching payment data:', paymentErr)
-      paymentData.value = []
-      // Don't fail the whole page for payment data errors
+    }
+    
+    // Try to get cached payment data
+    let cachedPaymentData = get(paymentCacheKey)
+    if (cachedPaymentData && Array.isArray(cachedPaymentData)) {
+      console.log('Using cached payment data:', cachedPaymentData.length, 'records')
+      paymentData.value = cachedPaymentData
+    } else {
+      // Payment data with pagination for better performance
+      try {
+        const paymentController = new AbortController()
+        const paymentTimeoutId = setTimeout(() => paymentController.abort(), 30000) // Reduced timeout
+        
+        // Fetch first page with reasonable limit for dashboard overview
+        const paymentResponse = await useApi('/land-payment-data?page=1&limit=5000', {}, false)
+        clearTimeout(paymentTimeoutId)
+        
+        if (paymentResponse.success && paymentResponse.data) {
+          const paymentArray = Array.isArray(paymentResponse.data) ? paymentResponse.data : []
+          paymentData.value = paymentArray
+          
+          // Cache for 10 minutes
+          set(paymentCacheKey, paymentArray, 600000)
+          console.log('Payment data loaded and cached:', paymentArray.length, 'records')
+          
+          // Log pagination info if available (cast to any to access pagination)
+          const paginatedResponse = paymentResponse as any
+          if (paginatedResponse.pagination) {
+            console.log('Payment pagination:', paginatedResponse.pagination)
+          }
+        } else {
+          console.error('Payment API response error:', paymentResponse)
+          paymentData.value = []
+        }
+      } catch (paymentErr) {
+        if (paymentErr instanceof Error && paymentErr.name === 'AbortError') {
+          console.warn('Payment data request timed out, continuing without payment data')
+        } else {
+          console.error('Error fetching payment data:', paymentErr)
+        }
+        paymentData.value = []
+        // Don't fail the whole page for payment data errors
+      }
     }
     
   } catch (err) {
@@ -686,15 +785,6 @@ async function fetchData() {
 // Lifecycle
 onMounted(() => {
   fetchData()
-})
-
-// Meta
-useHead({
-  title: 'Газрын мэдээлэл - МТА-НТГ',
-  script: [
-    { src: "/assets/js/app.js" },
-    { src: "/assets/js/baatars.js" }
-  ]
 })
 </script>
 
