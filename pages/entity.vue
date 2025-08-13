@@ -183,12 +183,12 @@
                     </div>
                   </div>
                   <div class="small">
-                    <div>1.Бүртгэл</div>
-                    <div>2.И-Баримт</div>
-                    <div>3.Зөвшөөрлийн мэдээ (НӨАТ, НХАТ,ОАТ)</div>
-                    <div>4.Тайлан</div>
-                    <div>5.Төлөлт</div>
-                    <div>6.Өрийн үлдэгдэл</div>
+                    <div>1.Бүртгэл- {{ registrationData?.registered || 0 }}</div>
+                    <div>2.Е-Баримт- {{ mapData?.ebarimt_organizations || 0 }}</div>
+                    <div>3.Зөвшөөрлийн мэдээ (НӨАТ, НХАТ,ОАТ) гаргадаг -{{ permissionData?.registered_permissions || 0 }}</div>
+                    <div>4.Тайлан гаргасан - {{ reportData?.reported_tins || 0 }}</div>
+                    <div>5.Төлөлт- {{ paymentData?.paid_organizations || 0 }}</div>
+                    <div>6.Өрийн үлдэгдэлгүй- {{ debtData?.without_debt_organizations || 0 }}</div>
                     <div>7.Хөрөнгийн мэдээлэл</div>
                     <div>8.Туслан зөвлөх үйлчилгээ</div>
                     <div>9.Зөрчийн мэдээлэл</div>
@@ -209,11 +209,11 @@
                   </div>
                   <div class="small">
                     <div>1.Бүртгэл</div>
-                    <div>2.И-Баримт -5</div>
-                    <div>3.Зөвшөөрлийн мэдээ (НӨАТ, НХАТ,ОАТ)</div>
-                    <div>4.Тайлан -2</div>
+                    <div>2.Е-Баримт</div>
+                    <div>3.Зөвшөөрлийн мэдээ (НӨАТ, НХАТ,ОАТ) гаргадаггүй - {{ permissionData?.not_registered_permissions || 0 }}</div>
+                    <div>4.Тайлан өгөөгүй - {{ reportData?.not_reported_count || 0 }}</div>
                     <div>5.Төлөлт</div>
-                    <div>6.Өрийн үлдэгдэл-3</div>
+                    <div>6.Өрийн үлдэгдэлтэй- {{ debtData?.with_debt_organizations || 0 }}</div>
                     <div>7.Хөрөнгийн мэдээлэл</div>
                     <div>8.Туслан зөвлөх үйлчилгээ</div>
                     <div>9.Зөрчийн мэдээлэл</div>
@@ -234,13 +234,13 @@
                     <i class="fas fa-question-circle fa-lg ms-2"></i>
                   </div>
                   <div class="small">
-                    <div>1.Бүртгэл</div>
-                    <div>2.И-Баримт</div>
-                    <div>3.Зөвшөөрлийн мэдээ (НӨАТ, НХАТ,ОАТ) -5</div>
-                    <div>4.Тайлан -2</div>
-                    <div>5.Төлөлт</div>
-                    <div>6.Өрийн</div>
-                    <div>7.Хөрөнгийн мэдээлэл -3</div>
+                    <div>1.Бүртгэл хийгдээгүй- {{ registrationData?.not_registered || 0 }}</div>
+                    <div>2.Е-Баримт олгодоггүй - {{ Math.max(0, (mapData?.activity_operators || 0) - (mapData?.ebarimt_organizations || 0)) }}</div>
+                    <div>3.Зөвшөөрлийн мэдээ (НӨАТ, НХАТ,ОАТ)</div>
+                    <div>4.Тайлан</div>
+                    <div>5.Татвар төлөөгүй- {{ paymentData?.not_paid_organizations || 0 }}</div>
+                    <div>6.Өрийн үлдэгдэл</div>
+                    <div>7.Хөрөнгийн мэдээлэл</div>
                     <div>8.Туслан зөвлөх үйлчилгээ</div>
                     <div>9.Зөрчийн мэдээлэл</div>
                   </div>
@@ -645,6 +645,21 @@ const showFloorModal = ref(false); // New state for floor modal
 // Map data state
 const mapData = ref<any>(null);
 
+// Registration data state for tax payer classification
+const registrationData = ref<any>(null);
+
+// Report data state for tax payer classification
+const reportData = ref<any>(null);
+
+// Permission data state for tax payer classification
+const permissionData = ref<any>(null);
+
+// Payment data state for tax payer classification
+const paymentData = ref<any>(null);
+
+// Debt data state for tax payer classification
+const debtData = ref<any>(null);
+
 // Import cache composable
 import { useCache } from '../composables/useCache';
 const { get, set, has, getStats } = useCache();
@@ -703,6 +718,198 @@ async function fetchMapData() {
       activity_operators: 0,
       area: 0,
       tenants: 0
+    };
+  }
+}
+
+// Fetch registration data for tax payer classification
+async function fetchRegistrationData() {
+  const buildingId = route.query.id as string;
+  if (!buildingId) return;
+  
+  try {
+    const cacheKey = `registration_stats_${buildingId}`;
+    const cachedData = get(cacheKey);
+    
+    if (cachedData) {
+      registrationData.value = cachedData;
+    } else {
+      const response = await useApi(`/registration-stats/${buildingId}`);
+      if (response.success && response.data) {
+        registrationData.value = response.data;
+        set(cacheKey, response.data, 300000); // Cache for 5 minutes
+      } else {
+        // Fallback data if API fails
+        registrationData.value = {
+          registered: 0,
+          not_registered: 0,
+          total: 0, 
+          registered_percentage: 0,
+          not_registered_percentage: 0
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching registration data:', error);
+    // Fallback data
+    registrationData.value = {
+      registered: 0,
+      not_registered: 0,
+      total: 0,
+      registered_percentage: 0,
+      not_registered_percentage: 0
+    };
+  }
+}
+
+// Fetch report data for tax payer classification
+async function fetchReportData() {
+  const buildingId = route.query.id as string;
+  if (!buildingId) return;
+  
+  try {
+    const cacheKey = `report_data_${buildingId}`;
+    const cachedData = get(cacheKey);
+    
+    if (cachedData) {
+      reportData.value = cachedData;
+    } else {
+      const response = await useApi(`/report-data?pay_center_id=${buildingId}`);
+      if (response.success && response.data) {
+        reportData.value = response.data;
+        set(cacheKey, response.data, 300000); // Cache for 5 minutes
+      } else {
+        // Fallback data if API fails
+        reportData.value = {
+          pay_center_id: parseInt(buildingId),
+          total_organizations: 0,
+          reported_tins: 0,
+          not_reported_count: 0
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching report data:', error);
+    // Fallback data
+    reportData.value = {
+      pay_center_id: parseInt(buildingId),
+      total_organizations: 0,
+      reported_tins: 0,
+      not_reported_count: 0
+    };
+  }
+}
+
+// Fetch permission data for tax payer classification
+async function fetchPermissionData() {
+  const buildingId = route.query.id as string;
+  if (!buildingId) return;
+  
+  try {
+    const cacheKey = `permission_data_${buildingId}`;
+    const cachedData = get(cacheKey);
+    
+    if (cachedData) {
+      permissionData.value = cachedData;
+    } else {
+      const response = await useApi(`/permission-data?pay_center_id=${buildingId}`);
+      if (response.success && response.data) {
+        permissionData.value = response.data;
+        set(cacheKey, response.data, 300000); // Cache for 5 minutes
+      } else {
+        // Fallback data if API fails
+        permissionData.value = {
+          pay_center_id: parseInt(buildingId),
+          total_organizations: 0,
+          registered_permissions: 0,
+          not_registered_permissions: 0
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching permission data:', error);
+    // Fallback data
+    permissionData.value = {
+      pay_center_id: parseInt(buildingId),
+      total_organizations: 0,
+      registered_permissions: 0,
+      not_registered_permissions: 0
+    };
+  }
+}
+
+// Fetch payment data for tax payer classification
+async function fetchPaymentData() {
+  const buildingId = route.query.id as string;
+  if (!buildingId) return;
+  
+  try {
+    const cacheKey = `payment_data_${buildingId}`;
+    const cachedData = get(cacheKey);
+    
+    if (cachedData) {
+      paymentData.value = cachedData;
+    } else {
+      const response = await useApi(`/payment-data?pay_center_id=${buildingId}`);
+      if (response.success && response.data) {
+        paymentData.value = response.data;
+        set(cacheKey, response.data, 300000); // Cache for 5 minutes
+      } else {
+        // Fallback data if API fails
+        paymentData.value = {
+          pay_center_id: parseInt(buildingId),
+          total_organizations: 0,
+          paid_organizations: 0,
+          not_paid_organizations: 0
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching payment data:', error);
+    // Fallback data
+    paymentData.value = {
+      pay_center_id: parseInt(buildingId),
+      total_organizations: 0,
+      paid_organizations: 0,
+      not_paid_organizations: 0
+    };
+  }
+}
+
+// Fetch debt data for tax payer classification
+async function fetchDebtData() {
+  const buildingId = route.query.id as string;
+  if (!buildingId) return;
+  
+  try {
+    const cacheKey = `debt_data_${buildingId}`;
+    const cachedData = get(cacheKey);
+    
+    if (cachedData) {
+      debtData.value = cachedData;
+    } else {
+      const response = await useApi(`/debt-data?pay_center_id=${buildingId}`);
+      if (response.success && response.data) {
+        debtData.value = response.data;
+        set(cacheKey, response.data, 300000); // Cache for 5 minutes
+      } else {
+        // Fallback data if API fails
+        debtData.value = {
+          pay_center_id: parseInt(buildingId),
+          total_organizations: 0,
+          with_debt_organizations: 0,
+          without_debt_organizations: 0
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching debt data:', error);
+    // Fallback data
+    debtData.value = {
+      pay_center_id: parseInt(buildingId),
+      total_organizations: 0,
+      with_debt_organizations: 0,
+      without_debt_organizations: 0
     };
   }
 }
@@ -985,6 +1192,11 @@ onMounted(() => {
   fetchEntity();
   fetchFloors();
   fetchMapData(); // Call fetchMapData here
+  fetchRegistrationData(); // Fetch registration data for tax payer classification
+  fetchReportData(); // Fetch report data for tax payer classification
+  fetchPermissionData(); // Fetch permission data for tax payer classification
+  fetchPaymentData(); // Fetch payment data for tax payer classification
+  fetchDebtData(); // Fetch debt data for tax payer classification
   
   // Dropdown-г гаднаас дарж хаах
   document.addEventListener('click', handleClickOutside);

@@ -102,7 +102,7 @@ async function fetchActivityTypes(payCenterId: string) {
       }
     }
 
-    // OP_TYPE_NAME-ууд тоолох
+    // OP_TYPE_NAME-ууд тоолох - бүх entry-г тоолох
     const activityTypes: { [key: string]: number } = {};
     
     organizations.forEach((org: any) => {
