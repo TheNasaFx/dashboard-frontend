@@ -221,6 +221,7 @@
                           :payCenter="payCenter || []"
                           :mapType="mapType"
                           :selectedAddress="selectedCategory"
+                          :selectedDistrictName="selectedDistrictName"
                         />
                       </client-only>
                     </div>
@@ -278,7 +279,7 @@
                               <div class="col-6">
                                 <div class="bg-light rounded p-2 text-center">
                                   <div class="fs-6 fw-bold text-success">{{ formatNumber(landStatistics.mappedLandsCount) }}</div>
-                                  <div class="small text-muted">Map дээрх газар</div>
+                                  <div class="small text-muted">{{ selectedDistrictName !== 'Дүүрэг' ? selectedDistrictName + ' дэх газар' : 'Map дээрх газар' }}</div>
                                 </div>
                               </div>
                             </div>
@@ -299,7 +300,7 @@
                           <div class="mb-4">
                             <h6 class="text-warning mb-3">
                               <i class="las la-money-bill me-1"></i>
-                              Газрын төлөлт
+                              {{ selectedDistrictName !== 'Дүүрэг' ? selectedDistrictName + '-ийн газрын төлөлт' : 'Газрын төлөлт' }}
                             </h6>
                             <div class="row g-2">
                               <div class="col-12">
@@ -347,11 +348,11 @@
                       <div class="mb-4">
                         <h6 class="text-danger mb-3">
                           <i class="las la-exclamation-triangle me-1"></i>
-                          Газрын өр
+                          {{ selectedDistrictName !== 'Дүүрэг' ? selectedDistrictName + '-ийн газрын өр' : 'Газрын өр' }}
                         </h6>
                         <div class="bg-light rounded p-3 text-center">
                           <div class="fs-5 fw-bold text-danger">{{ formatNumber(landDebtTotal) }}₮</div>
-                          <div class="small text-muted">Нийт газрын өр</div>
+                          <div class="small text-muted">{{ selectedDistrictName !== 'Дүүрэг' ? selectedDistrictName + '-ийн нийт өр' : 'Нийт газрын өр' }}</div>
                           <div class="mt-2">
                             <span class="badge bg-warning">{{ landDebtDistribution.length }} дүүрэг</span>
                           </div>
@@ -1764,6 +1765,12 @@ function selectDistrict(val: string, name: string) {
   selectedDistrict.value = val;
   selectedDistrictName.value = name;
   filterOrganizations();
+  
+  // Дүүрэг сонгоход land panel-ийн мэдээллүүдийг шинэчлэх
+  if (mapType.value === 'land' && showLandSidebar.value) {
+    console.log('Updating land data for district:', name, 'code:', val);
+    fetchLandDataForDistrict(val);
+  }
 }
 function selectKhoroo(val: string, name: string) {
   selectedKhoroo.value = val;
@@ -2033,6 +2040,120 @@ async function loadPayCenterData() {
 }
 
 // Land data fetch functions
+// Land data fetch functions with district filtering
+async function fetchLandDataForDistrict(districtCode: string) {
+  if (!districtCode) {
+    // Хэрэв дүүрэг сонгоогүй бол ерөнхий мэдээллийг авах
+    await fetchLandData();
+    return;
+  }
+  
+  try {
+    console.log('Fetching land data for district:', districtCode);
+    landDataLoading.value = true;
+    
+    // Дүүрэг дээр суурилсан мэдээлэл авах
+    await Promise.all([
+      fetchLandStatisticsForDistrict(districtCode),
+      fetchLandPaymentsForDistrict(districtCode),
+      fetchLandDebtDataForDistrict(districtCode)
+    ]);
+    
+    // Map дээрх pin point тоог тооцоолох
+    await updateMappedLandsForDistrict(districtCode);
+    
+  } catch (err) {
+    console.error('Error fetching district land data:', err);
+  } finally {
+    landDataLoading.value = false;
+  }
+}
+
+async function fetchLandStatisticsForDistrict(districtCode: string) {
+  try {
+    const response = await useApi(`/land/statistics?district=${districtCode}`);
+    if (response.success && response.data) {
+      const data = response.data as any;
+      landStatistics.value = {
+        totalUniqueLands: data.totalUniqueLands || 0,
+        mappedLandsCount: data.mappedLandsCount || 0,
+        mappedPercentage: data.mappedPercentage || 0
+      };
+    }
+  } catch (err) {
+    console.error('Error fetching district land statistics:', err);
+  }
+}
+
+async function fetchLandPaymentsForDistrict(districtCode: string) {
+  try {
+    const response = await useApi(`/land/payments?district=${districtCode}`);
+    if (response.success && response.data) {
+      const data = response.data as any;
+      landPayments.value = {
+        totalPaymentCount: data.totalPaymentCount || 0,
+        totalPaymentAmount: data.totalPaymentAmount || 0
+      };
+    }
+  } catch (err) {
+    console.error('Error fetching district land payments:', err);
+  }
+}
+
+async function fetchLandDebtDataForDistrict(districtCode: string) {
+  try {
+    const response = await useApi(`/land/debt?district=${districtCode}`);
+    if (response.success && response.data) {
+      const data = response.data as any;
+      landDebtTotal.value = data.totalDebt || 0;
+      landDebtDistribution.value = (data.distribution || []).map((item: any) => ({
+        branchId: '',
+        districtName: item.districtName,
+        debtAmount: Number(item.debtAmount) || 0,
+        recordCount: 0
+      }));
+    }
+  } catch (err) {
+    console.error('Error fetching district land debt data:', err);
+  }
+}
+
+async function updateMappedLandsForDistrict(districtCode: string) {
+  // Map дээр харагдаж буй pin point-уудийг тоолох
+  if (organizations.value && Array.isArray(organizations.value)) {
+    let filteredOrgs = organizations.value;
+    
+    // Дүүрэгээр шүүх
+    if (districtCode) {
+      filteredOrgs = filteredOrgs.filter(org => org.office_code === districtCode);
+    }
+    
+    // Coordinate байгаа эсэхийг шалгах
+    const mappedCount = filteredOrgs.filter(org => {
+      const lat = parseFloat(org.lat);
+      const lng = parseFloat(org.lng);
+      return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+    }).length;
+    
+    // Map дээрх газрын тоог шинэчлэх
+    landStatistics.value.mappedLandsCount = mappedCount;
+    
+    // Харьцааг дахин тооцоолох
+    if (landStatistics.value.totalUniqueLands > 0) {
+      landStatistics.value.mappedPercentage = 
+        (landStatistics.value.mappedLandsCount / landStatistics.value.totalUniqueLands) * 100;
+    } else {
+      landStatistics.value.mappedPercentage = 0;
+    }
+    
+    console.log('Updated mapped lands for district:', {
+      district: districtCode,
+      mappedCount: mappedCount,
+      percentage: landStatistics.value.mappedPercentage.toFixed(1) + '%'
+    });
+  }
+}
+
 async function fetchLandStatistics() {
   try {
     const response = await useApi('/land/statistics');

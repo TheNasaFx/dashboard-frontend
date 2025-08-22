@@ -179,7 +179,6 @@
                     <i class="fas fa-smile fa-2x me-2"></i>
                     <div>
                       <h6 class="card-title mb-0">Сайн татвар төлөгч</h6>
-                      <small class="opacity-75">TTToo-10</small>
                     </div>
                   </div>
                   <div class="small">
@@ -189,9 +188,6 @@
                     <div>4.Тайлан гаргасан - {{ reportData?.reported_tins || 0 }}</div>
                     <div>5.Төлөлт- {{ paymentData?.paid_organizations || 0 }}</div>
                     <div>6.Өрийн үлдэгдэлгүй- {{ debtData?.without_debt_organizations || 0 }}</div>
-                    <div>7.Хөрөнгийн мэдээлэл</div>
-                    <div>8.Туслан зөвлөх үйлчилгээ</div>
-                    <div>9.Зөрчийн мэдээлэл</div>
                   </div>
                 </div>
               </div>
@@ -204,7 +200,6 @@
                     <i class="fas fa-meh fa-2x me-2"></i>
                     <div>
                       <h6 class="card-title mb-0">Тусламж хэрэгтэй татвар төлөгч</h6>
-                      <small class="opacity-75">TTToo-10</small>
                     </div>
                   </div>
                   <div class="small">
@@ -214,9 +209,6 @@
                     <div>4.Тайлан өгөөгүй - {{ reportData?.not_reported_count || 0 }}</div>
                     <div>5.Төлөлт</div>
                     <div>6.Өрийн үлдэгдэлтэй- {{ debtData?.with_debt_organizations || 0 }}</div>
-                    <div>7.Хөрөнгийн мэдээлэл</div>
-                    <div>8.Туслан зөвлөх үйлчилгээ</div>
-                    <div>9.Зөрчийн мэдээлэл</div>
                   </div>
                 </div>
               </div>
@@ -229,7 +221,6 @@
                     <i class="fas fa-frown fa-2x me-2"></i>
                     <div>
                       <h6 class="card-title mb-0">Асуудалтай татвар төлөгч</h6>
-                      <small class="opacity-75">TTToo-10</small>
                     </div>
                     <i class="fas fa-question-circle fa-lg ms-2"></i>
                   </div>
@@ -240,9 +231,6 @@
                     <div>4.Тайлан</div>
                     <div>5.Татвар төлөөгүй- {{ paymentData?.not_paid_organizations || 0 }}</div>
                     <div>6.Өрийн үлдэгдэл</div>
-                    <div>7.Хөрөнгийн мэдээлэл</div>
-                    <div>8.Туслан зөвлөх үйлчилгээ</div>
-                    <div>9.Зөрчийн мэдээлэл</div>
                   </div>
                 </div>
               </div>
@@ -555,20 +543,6 @@
                 </div>
                 <div class="card-body pt-0">
                   <client-only><EntityPieTypeChart /></client-only>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6 col-lg-6">
-              <div class="card">
-                <div class="card-header">
-                  <div class="row align-items-center">
-                    <div class="col">
-                      <h4 class="card-title">Зөвлөгөө өгөх явц</h4>
-                    </div>
-                  </div>
-                </div>
-                <div class="card-body pt-0">
-                  <client-only><EntityRadarChart /></client-only>
                 </div>
               </div>
             </div>
