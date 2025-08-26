@@ -217,11 +217,13 @@
                     <div class="card-body">
                       <client-only>
                         <MapView
+                          ref="mapViewRef"
                           :organizations="organizations || []"
                           :payCenter="payCenter || []"
                           :mapType="mapType"
                           :selectedAddress="selectedCategory"
                           :selectedDistrictName="selectedDistrictName"
+                          :selectedKhorooName="selectedKhorooName"
                         />
                       </client-only>
                     </div>
@@ -479,6 +481,60 @@
                               <div class="progress-bar bg-success" 
                                    :style="{ width: ebarimtStatistics.ebarimtPercentage + '%' }">
                               </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Map Marker Statistics -->
+                        <div class="mb-4">
+                          <h6 class="text-info mb-3">
+                            <i class="las la-map-marker-alt me-1"></i>
+                            Map дээрх Pin Point-ын статистик
+                          </h6>
+                          <div class="row g-2">
+                            <div class="col-6">
+                              <div class="bg-light rounded p-2 text-center">
+                                <div class="fs-6 fw-bold text-danger">{{ formatNumber(ebarimtMarkerStats.redMarkers) }}</div>
+                                <div class="small text-muted">Улаан Pin</div>
+                                <div class="tiny text-muted">&lt; 50% е-баримт</div>
+                              </div>
+                            </div>
+                            <div class="col-6">
+                              <div class="bg-light rounded p-2 text-center">
+                                <div class="fs-6 fw-bold text-warning">{{ formatNumber(ebarimtMarkerStats.yellowMarkers) }}</div>
+                                <div class="small text-muted">Шар Pin</div>
+                                <div class="tiny text-muted">50-99% е-баримт</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="row g-2 mt-2">
+                            <div class="col-6">
+                              <div class="bg-light rounded p-2 text-center">
+                                <div class="fs-6 fw-bold text-success">{{ formatNumber(ebarimtMarkerStats.greenMarkers) }}</div>
+                                <div class="small text-muted">Ногоон Pin</div>
+                                <div class="tiny text-muted">100% е-баримт</div>
+                              </div>
+                            </div>
+                            <div class="col-6">
+                              <div class="bg-light rounded p-2 text-center">
+                                <div class="fs-6 fw-bold text-primary">{{ formatNumber(ebarimtMarkerStats.totalMarkers) }}</div>
+                                <div class="small text-muted">Нийт Pin</div>
+                                <div class="tiny text-muted">Map дээрх</div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <!-- Marker Statistics Chart -->
+                          <div class="mt-3">
+                            <div class="chart-container" style="height: 200px;">
+                              <client-only>
+                                <apexchart
+                                  type="pie"
+                                  height="200"
+                                  :options="ebarimtMarkerStatsChart.options"
+                                  :series="ebarimtMarkerStatsChart.series"
+                                />
+                              </client-only>
                             </div>
                           </div>
                         </div>
@@ -995,6 +1051,9 @@ const showLandSidebar = ref(false); // New state for sidebar visibility
 const showEbarimtSidebar = ref(false); // New state for ebarimt sidebar visibility
 const showRealEstateSidebar = ref(false); // New state for real estate sidebar visibility
 
+// MapView reference to access ebarimt statistics
+const mapViewRef = ref<any>(null);
+
 // Land data states
 const landStatistics = ref<LandStatistics>({
   totalUniqueLands: 0,
@@ -1022,6 +1081,16 @@ const ebarimtStatistics = ref<EbarimtStatistics>({
   organizationsWithoutEbarimt: 0,
   totalEbarimtRecords: 0,
   ebarimtPercentage: 0
+});
+
+// Computed property to get ebarimt marker statistics from MapView
+const ebarimtMarkerStats = computed(() => {
+  return mapViewRef.value?.ebarimtStats || {
+    redMarkers: 0,
+    yellowMarkers: 0,
+    greenMarkers: 0,
+    totalMarkers: 0
+  };
 });
 
 // Real estate data states
@@ -1721,6 +1790,66 @@ const ebarimtTopMerchantRegnosChart = computed(() => ({
   }
 }));
 
+// Computed chart configuration for ebarimt marker statistics
+const ebarimtMarkerStatsChart = computed(() => ({
+  series: [
+    ebarimtMarkerStats.value.redMarkers,
+    ebarimtMarkerStats.value.yellowMarkers,
+    ebarimtMarkerStats.value.greenMarkers
+  ],
+  options: {
+    chart: {
+      type: 'pie',
+      height: 200,
+      animations: { enabled: true, easing: 'easeinout', speed: 800 }
+    },
+    labels: ['Улаан Pin (<50%)', 'Шар Pin (50-99%)', 'Ногоон Pin (100%)'],
+    colors: ['#dc3545', '#ffc107', '#28a745'],
+    dataLabels: {
+      enabled: true,
+      formatter: function(val: number, opts: any) {
+        const seriesIndex = opts.seriesIndex;
+        const labels = ['Улаан', 'Шар', 'Ногоон'];
+        const values = [
+          ebarimtMarkerStats.value.redMarkers,
+          ebarimtMarkerStats.value.yellowMarkers,
+          ebarimtMarkerStats.value.greenMarkers
+        ];
+        return labels[seriesIndex] + '\n' + values[seriesIndex];
+      },
+      style: {
+        fontSize: '11px',
+        fontWeight: 'bold',
+        colors: ['#fff']
+      }
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '40%'
+        }
+      }
+    },
+    legend: {
+      position: 'bottom',
+      horizontalAlign: 'center',
+      fontSize: '10px',
+      markers: {
+        width: 8,
+        height: 8,
+        radius: 4
+      }
+    },
+    tooltip: {
+      y: {
+        formatter: function(val: number) {
+          return val + ' pin point';
+        }
+      }
+    }
+  }
+}));
+
 // Helper function for number formatting
 function formatNumber(num: number | null | undefined): string {
   if (num === undefined || num === null || isNaN(num)) return '0'
@@ -1764,6 +1893,14 @@ const khorooList = ref([
 function selectDistrict(val: string, name: string) {
   selectedDistrict.value = val;
   selectedDistrictName.value = name;
+  
+  // Reset khoroo selection when district changes
+  selectedKhoroo.value = '';
+  selectedKhorooName.value = 'Хороо';
+  
+  // Load khoroos for the selected district
+  loadKhoroosForDistrict(name);
+  
   filterOrganizations();
   
   // Дүүрэг сонгоход land panel-ийн мэдээллүүдийг шинэчлэх
@@ -1772,10 +1909,88 @@ function selectDistrict(val: string, name: string) {
     fetchLandDataForDistrict(val);
   }
 }
+
 function selectKhoroo(val: string, name: string) {
   selectedKhoroo.value = val;
   selectedKhorooName.value = name;
   filterOrganizations();
+}
+
+// Function to load khoroos for selected district
+async function loadKhoroosForDistrict(districtName: string) {
+  if (!districtName || districtName === 'Бүгд' || districtName === 'Дүүрэг') {
+    // Reset to default khoroos if no district selected
+    khorooList.value = [
+      { code: "01", name: "1-р хороо" },
+      { code: "02", name: "2-р хороо" },
+      { code: "03", name: "3-р хороо" },
+      // ... add more default khoroos
+    ];
+    return;
+  }
+  
+  try {
+    // Load KML file to extract khoroos for the district
+    const response = await fetch('/duureg.kml');
+    const kmlText = await response.text();
+    const parser = new DOMParser();
+    const kmlDoc = parser.parseFromString(kmlText, 'text/xml');
+    
+    // Parse the KML to find khoroos for this district
+    const kmlString = new XMLSerializer().serializeToString(kmlDoc);
+    const lines = kmlString.split('\n');
+    
+    let isInTargetDistrict = false;
+    const districtKhoroos: {code: string, name: string}[] = [];
+    
+    console.log('Loading khoroos for district:', districtName);
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Check if this line contains our target district comment
+      if (line.includes(`<!-- ${districtName} дүүрэгийн хороонууд`)) {
+        console.log('Found target district comment:', line);
+        isInTargetDistrict = true;
+        continue;
+      }
+      
+      // Check if we hit another district comment (end of our target district)
+      if (isInTargetDistrict && line.includes('<!-- ') && line.includes(' дүүрэгийн хороонууд')) {
+        console.log('Found end of target district, stopping:', line);
+        isInTargetDistrict = false;
+        break;
+      }
+      
+      // If we're in the target district and find a name tag, extract khoroo name
+      if (isInTargetDistrict && line.includes('<name>') && line.includes('</name>')) {
+        const nameMatch = line.match(/<name>(.*?)<\/name>/);
+        if (nameMatch && nameMatch[1]) {
+          const khorooName = nameMatch[1].trim();
+          // Generate a simple code based on the name
+          const khorooCode = districtKhoroos.length + 1;
+          districtKhoroos.push({
+            code: khorooCode.toString().padStart(2, '0'),
+            name: khorooName
+          });
+          console.log('Found khoroo:', khorooName);
+        }
+      }
+    }
+    
+    if (districtKhoroos.length > 0) {
+      khorooList.value = districtKhoroos;
+      console.log(`Loaded ${districtKhoroos.length} khoroos for ${districtName}:`, districtKhoroos);
+    } else {
+      // Fallback to empty list if no khoroos found
+      khorooList.value = [];
+      console.log('No khoroos found for district:', districtName);
+    }
+    
+  } catch (error) {
+    console.error('Error loading khoroos for district:', error);
+    khorooList.value = [];
+  }
 }
 function selectCategory(val: string, name: string) {
   selectedCategory.value = val;
@@ -1820,8 +2035,8 @@ async function selectMapType(type: string) {
     showEbarimtSidebar.value = true;
     ebarimtDataLoading.value = true;
     
-    // Load ebarimt data in background
-    loadEbarimtStatistics().finally(() => {
+    // Load ebarimt data and pay center data in background
+    Promise.all([loadEbarimtStatistics(), loadPayCenterData()]).finally(() => {
       ebarimtDataLoading.value = false;
     });
   } else if (type === 'real_estate') {
@@ -2007,26 +2222,39 @@ async function loadRealEstateStatistics() {
 }
 
 async function loadPayCenterData() {
-  // Check if we have cached data first
-  const cacheKey = 'pay_center_data_cache';
+  // Check if we have cached data first - different cache for different map types
+  const cacheKey = mapType.value === 'ebarimt' ? 'pay_center_ebarimt_cache' : 'pay_center_data_cache';
   const cachedData = get(cacheKey);
   
   if (cachedData && !payCenter.value) {
-    console.log('Using cached pay center data');
+    console.log('Using cached pay center data for mapType:', mapType.value);
     payCenter.value = cachedData;
     return;
   }
 
   try {
-    console.log('Loading fresh pay center data...');
-    const res = await useApi("/pay-center-locations?grouped=true");
+    console.log('Loading fresh pay center data for mapType:', mapType.value);
+    
+    // Different API endpoints based on map type
+    let apiEndpoint = "/pay-center-locations?grouped=true";
+    
+    if (mapType.value === 'ebarimt') {
+      // For ebarimt mode, use the API with color information
+      apiEndpoint = "/pay-center-locations?with_ebarimt_colors=true";
+    }
+    
+    const res = await useApi(apiEndpoint);
     if (res.success && res.data) {
-      payCenter.value = res.data as any; // This will be a grouped object now
+      payCenter.value = res.data as any;
       
       // Cache the data for 10 minutes
       set(cacheKey, payCenter.value, 600);
       
-      console.log('Pay center data loaded (grouped):', Object.keys(payCenter.value || {}).length, 'groups');
+      console.log('Pay center data loaded:', 
+        mapType.value === 'ebarimt' ? 
+          'with ebarimt colors: ' + Object.keys(payCenter.value || {}).length + ' locations' :
+          'grouped: ' + Object.keys(payCenter.value || {}).length + ' groups'
+      );
     } else {
       console.error('Failed to fetch pay center data:', res);
       payCenter.value = null;

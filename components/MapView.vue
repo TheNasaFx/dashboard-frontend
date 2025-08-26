@@ -159,12 +159,22 @@ const props = defineProps<{
   mapType?: string;
   selectedAddress?: string;
   selectedDistrictName?: string;
+  selectedKhorooName?: string;
 }>();
 
 const map = ref<any>(null);
 const markersLayer = ref<any>(null);
 const polygonLayer = ref<any>(null); // Polygon-уудад зориулсан тусдаа layer
 const kmlLayer = ref<any>(null);
+
+// Ebarimt marker statistics
+const ebarimtStats = ref({
+  redMarkers: 0,
+  yellowMarkers: 0,
+  greenMarkers: 0,
+  totalMarkers: 0
+});
+
 let L: any = null;
 let markerClusterGroup: any = null;
 let redIcon: any = null;
@@ -434,7 +444,7 @@ function updateDistrictCounts(districtGroups: { [key: string]: any[] }) {
 async function applyDistrictFilter() {
   if (!map.value) return;
   
-  console.log('Applying district filter...', 'district:', props.district);
+  console.log('Applying district filter...', 'selectedDistrictName:', props.selectedDistrictName, 'selectedKhorooName:', props.selectedKhorooName);
   
   // Remove existing KML layer if it exists
   if (kmlLayer.value) {
@@ -455,14 +465,14 @@ async function applyDistrictFilter() {
     const parser = new DOMParser();
     const kmlDoc = parser.parseFromString(kmlText, 'text/xml');
     
-    // Create a new KML string with only selected district or all districts
+    // Create a new KML string with filtered content
     let filteredKML = '';
     
     if (!props.selectedDistrictName || props.selectedDistrictName === '' || props.selectedDistrictName === 'Дүүрэг' || props.selectedDistrictName === 'Бүгд') {
-      // Show all districts - use original KML
+      // Show all districts and khoroos - use original KML
       filteredKML = kmlText;
     } else {
-      // Filter for specific district
+      // Filter for specific district and optionally specific khoroo
       const placemarks = kmlDoc.querySelectorAll('Placemark');
       const kmlHeader = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
@@ -495,25 +505,102 @@ async function applyDistrictFilter() {
 </kml>`;
 
       let selectedPlacemarks = '';
+      let isInTargetDistrict = false;
+      let foundTargetDistrict = false;
+      let currentDistrictName = '';
       
-      placemarks.forEach(placemark => {
-        const nameElement = placemark.querySelector('name');
-        if (nameElement) {
-          const districtName = nameElement.textContent?.trim();
-          console.log('Found district in KML:', districtName, 'Looking for:', props.selectedDistrictName);
+      // Convert KML to string to work with comments
+      const kmlString = new XMLSerializer().serializeToString(kmlDoc);
+      const lines = kmlString.split('\n');
+      
+      console.log('Looking for district comment:', `<!-- ${props.selectedDistrictName} дүүрэгийн хороонууд`);
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // Check if this line contains our target district comment
+        if (line.includes(`<!-- ${props.selectedDistrictName} дүүрэгийн хороонууд`)) {
+          console.log('Found target district comment:', line);
+          isInTargetDistrict = true;
+          foundTargetDistrict = true;
+          currentDistrictName = props.selectedDistrictName;
+          continue;
+        }
+        
+        // Check if we hit another district comment (end of our target district)
+        if (isInTargetDistrict && line.includes('<!-- ') && line.includes(' дүүрэгийн хороонууд')) {
+          console.log('Found end of target district, stopping:', line);
+          isInTargetDistrict = false;
+          break;
+        }
+        
+        // If we're in the target district, collect placemarks
+        if (isInTargetDistrict && line.includes('<Placemark')) {
+          // Start collecting placemark
+          let placemarkContent = '';
+          let j = i;
+          let depth = 0;
           
-          // Match district names exactly
-          if (districtName === props.selectedDistrictName) {
-            selectedPlacemarks += new XMLSerializer().serializeToString(placemark);
-            console.log('Match found! Adding district to filtered KML:', districtName);
+          while (j < lines.length) {
+            const currentLine = lines[j];
+            placemarkContent += currentLine + '\n';
+            
+            if (currentLine.includes('<Placemark')) depth++;
+            if (currentLine.includes('</Placemark>')) {
+              depth--;
+              if (depth === 0) {
+                // Complete placemark found
+                const tempDoc = parser.parseFromString(`<root>${placemarkContent}</root>`, 'text/xml');
+                const placemark = tempDoc.querySelector('Placemark');
+                
+                if (placemark) {
+                  const nameElement = placemark.querySelector('name');
+                  const khorooName = nameElement?.textContent?.trim();
+                  
+                  console.log('Found khoroo in target district:', khorooName);
+                  
+                  // If specific khoroo is selected, filter by khoroo name
+                  if (!props.selectedKhorooName || props.selectedKhorooName === '' || props.selectedKhorooName === 'Хороо' || props.selectedKhorooName === 'Бүгд') {
+                    // Show all khoroos in the district
+                    selectedPlacemarks += placemarkContent;
+                  } else {
+                    // Show only the selected khoroo
+                    if (khorooName === props.selectedKhorooName) {
+                      selectedPlacemarks += placemarkContent;
+                      console.log('Match found! Adding khoroo to filtered KML:', khorooName);
+                    }
+                  }
+                }
+                
+                i = j; // Skip to end of this placemark
+                break;
+              }
+            }
+            j++;
           }
         }
-      });
+      }
+      
+      if (!foundTargetDistrict) {
+        // Fallback: try to find district by name in placemark names
+        console.log('District comment not found, trying fallback method...');
+        placemarks.forEach(placemark => {
+          const nameElement = placemark.querySelector('name');
+          if (nameElement) {
+            const districtName = nameElement.textContent?.trim();
+            if (districtName === props.selectedDistrictName) {
+              selectedPlacemarks += new XMLSerializer().serializeToString(placemark);
+              console.log('Fallback: Match found! Adding district to filtered KML:', districtName);
+            }
+          }
+        });
+      }
       
       if (selectedPlacemarks) {
         filteredKML = kmlHeader + selectedPlacemarks + kmlFooter;
+        console.log('Created filtered KML with', selectedPlacemarks.split('<Placemark').length - 1, 'placemarks');
       } else {
-        console.log('No matching district found, showing all districts');
+        console.log('No matching district/khoroo found, showing all');
         filteredKML = kmlText; // Fallback to show all if no match
       }
     }
@@ -522,7 +609,7 @@ async function applyDistrictFilter() {
     const blob = new Blob([filteredKML], { type: 'application/vnd.google-earth.kml+xml' });
     const url = URL.createObjectURL(blob);
     
-    // District colors mapping for visual distinction
+    // District and Khoroo colors mapping for visual distinction
     const districtColors = {
       'Багануур': { color: '#FF6B6B', fillColor: '#FF6B6B' },      // Red
       'Багахангай': { color: '#4ECDC4', fillColor: '#4ECDC4' },     // Teal
@@ -535,25 +622,103 @@ async function applyDistrictFilter() {
       'Чингэлтэй': { color: '#00D2D3', fillColor: '#00D2D3' }      // Cyan
     };
 
+    // Generate unique colors for khoroos within each district
+    const khorooColors = [
+      '#FFB6C1', '#87CEEB', '#98FB98', '#F0E68C', '#DDA0DD',
+      '#F4A460', '#B0E0E6', '#FF69B4', '#32CD32', '#FFD700',
+      '#FF7F50', '#6495ED', '#9370DB', '#3CB371', '#FFA500'
+    ];
+
+    // Advanced function to determine which district a khoroo belongs to by parsing KML
+    async function getDistrictForKhorooFromKML(khorooName: string): Promise<string> {
+      try {
+        // Load KML file
+        const response = await fetch('/duureg.kml');
+        const kmlText = await response.text();
+        
+        // Parse KML string to find the khoroo and its district
+        const lines = kmlText.split('\n');
+        let currentDistrict = '';
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          
+          // Check if this line contains a district comment
+          const districtMatch = line.match(/<!-- (.*?) дүүрэгийн хороонууд/);
+          if (districtMatch) {
+            currentDistrict = districtMatch[1];
+            console.log('Found district section:', currentDistrict);
+            continue;
+          }
+          
+          // Check if we found our target khoroo in this district section
+          if (currentDistrict && line.includes(`<name>${khorooName}</name>`)) {
+            console.log(`Found khoroo "${khorooName}" in district "${currentDistrict}"`);
+            return currentDistrict;
+          }
+        }
+        
+        console.log(`Could not find district for khoroo: ${khorooName}`);
+        return 'Тодорхойгүй дүүрэг';
+      } catch (error) {
+        console.error('Error finding district for khoroo:', error);
+        return 'Тодорхойгүй дүүрэг';
+      }
+    }
+
+    // Function to determine which district a khoroo belongs to
+    async function getDistrictForKhoroo(khorooName: string): Promise<string> {
+      // If we have a currently selected district, use that
+      if (props.selectedDistrictName && props.selectedDistrictName !== 'Дүүрэг' && props.selectedDistrictName !== 'Бүгд') {
+        return props.selectedDistrictName;
+      }
+      
+      // Otherwise, try to determine from KML structure
+      return await getDistrictForKhorooFromKML(khorooName);
+    }
+
     // Use omnivore to parse the filtered KML
     kmlLayer.value = omnivore.kml(url)
-      .on('ready', function() {
+      .on('ready', async function() {
         console.log('Filtered KML layer loaded successfully');
         
-        // Style each district with different colors
+        // Style each district/khoroo with different colors
+        let khorooIndex = 0;
+        const layers: any[] = [];
+        
+        // Collect all layers first
         this.eachLayer(function(layer: any) {
+          layers.push(layer);
+        });
+        
+        // Process each layer
+        for (const layer of layers) {
           if (layer.setStyle && layer.feature && layer.feature.properties && layer.feature.properties.name) {
-            const districtName = layer.feature.properties.name.trim();
-            console.log('Styling district:', districtName);
+            const placeName = layer.feature.properties.name.trim();
+            console.log('Styling placemark:', placeName);
             
-            // Get color for this district, fallback to default orange
-            const districtColor = districtColors[districtName] || { color: '#ff7800', fillColor: '#ff7800' };
+            let styleColor = { color: '#ff7800', fillColor: '#ff7800' }; // Default
+            let isDistrict = false;
+            
+            // Check if this is a district (matches our district names)
+            if (districtColors[placeName]) {
+              styleColor = districtColors[placeName];
+              isDistrict = true;
+              console.log('Applied district color for:', placeName);
+            } else {
+              // This is likely a khoroo, use rotating khoroo colors
+              const colorIndex = khorooIndex % khorooColors.length;
+              const khorooColor = khorooColors[colorIndex];
+              styleColor = { color: khorooColor, fillColor: khorooColor };
+              khorooIndex++;
+              console.log('Applied khoroo color for:', placeName, 'color:', khorooColor);
+            }
             
             layer.setStyle({
-              color: districtColor.color,
+              color: styleColor.color,
               weight: 2,
               opacity: 0.8,
-              fillColor: districtColor.fillColor,
+              fillColor: styleColor.fillColor,
               fillOpacity: 0.3
             });
             
@@ -568,13 +733,42 @@ async function applyDistrictFilter() {
             
             layer.on('mouseout', function(e: any) {
               e.target.setStyle({
-                color: districtColor.color,
+                color: styleColor.color,
                 weight: 2,
                 opacity: 0.8,
-                fillColor: districtColor.fillColor,
+                fillColor: styleColor.fillColor,
                 fillOpacity: 0.3
               });
             });
+            
+            // Enhanced popup with district and khoroo info
+            if (isDistrict) {
+              const popupContent = `
+                <div style="text-align: center;">
+                  <h4 style="margin: 5px 0; color: ${styleColor.color};">${placeName}</h4>
+                  <div style="font-size: 12px; color: #666;">
+                    Улаанбаатар хотын дүүрэг
+                  </div>
+                </div>
+              `;
+              layer.bindPopup(popupContent);
+            } else {
+              // This is a khoroo - find its district asynchronously
+              const districtName = await getDistrictForKhoroo(placeName);
+              const popupContent = `
+                <div style="text-align: center;">
+                  <h4 style="margin: 5px 0; color: ${styleColor.color};">${placeName}</h4>
+                  <div style="font-size: 14px; font-weight: bold; color: #333; margin: 5px 0;">
+                    ${districtName} дүүрэг
+                  </div>
+                  <div style="font-size: 12px; color: #666;">
+                    Улаанбаатар хот
+                  </div>
+                </div>
+              `;
+              layer.bindPopup(popupContent);
+            }
+            
           } else {
             // Fallback for layers without proper feature properties
             layer.setStyle({
@@ -585,7 +779,7 @@ async function applyDistrictFilter() {
               fillOpacity: 0.3
             });
           }
-        });
+        }
         
         // Fit bounds to the filtered content
         if (map.value && this.getBounds().isValid()) {
@@ -612,6 +806,14 @@ function reRenderMarkersOnZoom() {
   
   const currentZoom = map.value.getZoom();
   const ZOOM_THRESHOLD = 16; // Match the threshold in createDistrictClusters
+  
+  console.log(`Re-rendering markers based on zoom level ${currentZoom}, mapType: ${props.mapType}`);
+  
+  // Special handling for ebarimt mode - don't interfere with ebarimt markers
+  if (props.mapType === 'ebarimt') {
+    console.log('Ebarimt mode detected, skipping zoom-based re-render to preserve ebarimt colors');
+    return;
+  }
   
   // Get stored individual markers
   const storedMarkers = map.value._individualMarkers || [];
@@ -775,10 +977,13 @@ async function fetchAndRenderMarkers() {
   }
   
   // Use simple layer group for custom district-based clustering
-  // Бид дүүрэг тус бүрээр кластер хийх тул energy layerGroup ашиглана
-  markersLayer.value = L.layerGroup();
-  
-  console.log('Created simple layerGroup for district clustering');
+  // Clear but keep the existing markersLayer if it exists
+  if (!markersLayer.value) {
+    markersLayer.value = L.layerGroup();
+    console.log('Created simple layerGroup for district clustering');
+  } else {
+    console.log('Using existing markersLayer for district clustering');
+  }
   
   // Store individual markers for clustering later
   const individualMarkers: any[] = [];  if (props.mapType === 'land') {
@@ -943,8 +1148,8 @@ async function fetchAndRenderMarkers() {
       // If district data not loaded, add individual markers normally
       console.log('District data not loaded, adding individual markers...');
       
-      // Store individual markers on map object even when not clustering
-      if (map.value) {
+      // Store individual markers on map object even when not clustering (except for ebarimt mode)
+      if (map.value && props.mapType !== 'ebarimt') {
         map.value._individualMarkers = individualMarkers;
       }
       
@@ -960,7 +1165,13 @@ async function fetchAndRenderMarkers() {
   // 2. Е-баримт button дээр дарахад е-баримтын өнгөтэй marker-ууд харуулах
   if (props.mapType === 'ebarimt') {
     console.log('Processing ebarimt mode...');
-    await fetchEbarimtColorData();
+    console.log('PayCenter data for ebarimt:', props.payCenter);
+    
+    if (props.payCenter && Object.keys(props.payCenter).length > 0) {
+      updateMarkersWithEbarimtColors(props.payCenter);
+    } else {
+      console.log('No payCenter data available for ebarimt mode');
+    }
     return; // Е-баримт mode-д organization marker-уудыг харуулахгүй
   }
   
@@ -1144,39 +1355,39 @@ async function fetchAndRenderMarkers() {
         markersLayer.value.clearLayers();
       } catch (e) {}
     }
-    // Fallback хэсэгт ч markerClusterGroup ашиглана
-    markersLayer.value = L.markerClusterGroup({
-      maxClusterRadius: 60,
-      disableClusteringAtZoom: 18,
-      spiderfyOnMaxZoom: true, // Spider эффект идэвхтэй
-      showCoverageOnHover: false,
-      zoomToBoundsOnClick: true, // Click дээр zoom эсвэл spiderfy
-      spiderfyDistanceMultiplier: 2, // Spider задралтын зай
-      removeOutsideVisibleBounds: true,
-      animate: true, // Animation идэвхтэй болгох
-      animateAddingMarkers: false,
-      chunkedLoading: true,
-      chunkDelay: 50,
-      iconCreateFunction: function(cluster) {
-        const count = cluster.getChildCount();
-        let className = 'marker-cluster-small';
-        
-        if (count < 10) {
-          className = 'marker-cluster-small';
-        } else if (count < 100) {
-          className = 'marker-cluster-medium';
-        } else {
-          className = 'marker-cluster-large';
-        }
-        
-        return L.divIcon({
-          html: `<div><span>${count}</span></div>`,
-          className: `marker-cluster ${className}`,
-          iconSize: L.point(40, 40),
-          iconAnchor: [20, 20]
-        });
-      }
-    });
+    
+    // Only create new markerClusterGroup if we don't have markersLayer or if it's not compatible
+    if (!markersLayer.value || typeof markersLayer.value.addLayer !== 'function') {
+      // Fallback хэсэгт ч markerClusterGroup ашиглана
+      markersLayer.value = L.markerClusterGroup({
+        maxClusterRadius: 60,
+        disableClusteringAtZoom: 18,
+        spiderfyOnMaxZoom: true, // Spider эффект идэвхтэй
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true, // Click дээр zoom эсвэл spiderfy
+        iconCreateFunction: function(cluster: any) {
+          const count = cluster.getChildCount();
+          let className = 'marker-cluster-small';
+          if (count > 50) {
+            className = 'marker-cluster-large';
+          } else if (count > 10) {
+            className = 'marker-cluster-medium';
+          }
+          return L.divIcon({
+            html: `<div><span>${count}</span></div>`,
+            className: className,
+            iconSize: [36, 36]
+          });
+        },
+        spiderfyDistanceMultiplier: 2, // Spider задралтын зай
+        removeOutsideVisibleBounds: true,
+        animate: true, // Animation идэвхтэй болгох
+        animateAddingMarkers: false,
+        chunkedLoading: true,
+        chunkDelay: 50
+      });
+    }
+    
     markersData.forEach((marker: LandData) => {
       const lat = parseFloat(marker.COORD_Y?.String || marker.COORD_Y);
       const lng = parseFloat(marker.COORD_X?.String || marker.COORD_X);
@@ -1548,7 +1759,7 @@ onMounted(async () => {
 });
 
 watch(
-  () => [props.district, props.khoroo, props.category, props.searchLand, props.organizations, props.payCenter, props.mapType, props.selectedAddress, props.selectedDistrictName],
+  () => [props.district, props.khoroo, props.category, props.searchLand, props.organizations, props.payCenter, props.mapType, props.selectedAddress, props.selectedDistrictName, props.selectedKhorooName],
   async (newValues, oldValues) => {
     console.log('=== MapView watch triggered ===');
     console.log('New values:', newValues);
@@ -1560,10 +1771,12 @@ watch(
     console.log('Current mapType:', newValues[6]);
     console.log('SelectedDistrictName changed:', newValues[8] !== oldValues?.[8]);
     console.log('Current selectedDistrictName:', newValues[8]);
+    console.log('SelectedKhorooName changed:', newValues[9] !== oldValues?.[9]);
+    console.log('Current selectedKhorooName:', newValues[9]);
     
-    // Handle district filter change for KML layer
-    if (newValues[8] !== oldValues?.[8]) {
-      console.log('District filter changed, updating KML layer...');
+    // Handle district or khoroo filter change for KML layer
+    if (newValues[8] !== oldValues?.[8] || newValues[9] !== oldValues?.[9]) {
+      console.log('District or Khoroo filter changed, updating KML layer...');
       await applyDistrictFilter();
     }
     
@@ -1636,11 +1849,21 @@ function updateMarkersWithEbarimtColors(payCenterData: any) {
   
   console.log('Updating markers with ebarimt colors...', payCenterData);
   
-  // Clear existing markers
+  // Clear existing markers but keep the layer on the map
   markersLayer.value.clearLayers();
   
-  // Reset to simple layer group for ebarimt mode
-  markersLayer.value = L.layerGroup();
+  // Clear stored individual markers to prevent interference with zoom events
+  if (map.value._individualMarkers) {
+    map.value._individualMarkers = [];
+  }
+  
+  // Reset statistics
+  ebarimtStats.value = {
+    redMarkers: 0,
+    yellowMarkers: 0,
+    greenMarkers: 0,
+    totalMarkers: 0
+  };
   
   let markersCreated = 0;
   
@@ -1665,13 +1888,19 @@ function updateMarkersWithEbarimtColors(payCenterData: any) {
     if (data.color === 'green') {
       markerIcon = greenIcon;
       colorName = 'Ногоон (100% е-баримт)';
+      ebarimtStats.value.greenMarkers++;
     } else if (data.color === 'yellow') {
       markerIcon = yellowIcon;
       colorName = 'Шар (50-99% е-баримт)';
+      ebarimtStats.value.yellowMarkers++;
     } else {
       markerIcon = redIcon;
       colorName = 'Улаан (<50% е-баримт)';
+      ebarimtStats.value.redMarkers++;
     }
+    
+    // Increment total markers count
+    ebarimtStats.value.totalMarkers++;
     
     // Create popup content
     const popupHtml = `<div style='width:280px'>
@@ -1704,4 +1933,9 @@ function updateMarkersWithEbarimtColors(payCenterData: any) {
   
   console.log(`✅ Updated markers with ebarimt colors: ${markersCreated} markers created`);
 }
+
+// Expose ebarimt statistics to parent component
+defineExpose({
+  ebarimtStats
+});
 </script>
