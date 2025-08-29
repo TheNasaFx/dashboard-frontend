@@ -54,9 +54,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuth } from '../composables/useAuth';
 
 const searchRegno = ref('');
 const router = useRouter();
+const { requireAuth } = useAuth();
+
+// Authentication check
+onMounted(() => {
+  requireAuth()
+})
 
 function searchTaxpayer() {
   if (searchRegno.value.trim()) {
@@ -70,9 +77,5 @@ const cards = [
   { title: 'Хөрөнгийн бүртгэл', icon: 'bi-gear' },
   { title: 'Ажлын тэмдэглэл', icon: 'bi-journal-plus' }
 ]
-</script>
-
-<script lang="ts">
-export const middleware = 'auth';
 </script>
 

@@ -17,11 +17,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useAuth } from '../composables/useAuth';
 
 const loading = ref(false);
 const diagnosticData = ref(null);
 const error = ref('');
+const { requireAuth } = useAuth();
+
+// Authentication check
+onMounted(() => {
+  requireAuth();
+});
 
 async function runDiagnostic() {
   loading.value = true;

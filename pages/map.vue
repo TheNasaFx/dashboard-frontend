@@ -961,6 +961,7 @@ import { ref, onMounted, computed } from "vue";
 import { useCache } from "../composables/useCache";
 import { useApi } from "../composables/useApi";
 import { useRealEstateDebtApi } from "../composables/useRealEstateDebtApi";
+import { useAuth } from "../composables/useAuth";
 
 // Interfaces for land data
 interface LandStatistics {
@@ -1033,8 +1034,9 @@ interface RealEstatePaymentDistribution {
 }
 
 const { get, set } = useCache();
+const { requireAuth } = useAuth();
 const selectedDistrict = ref("");
-const selectedDistrictName = ref("Дүүрэг");
+const selectedDistrictName = ref("Бүгд");
 const selectedKhoroo = ref("");
 const selectedKhorooName = ref("Хороо");
 const selectedCategory = ref("");
@@ -2499,6 +2501,9 @@ async function fetchLandData() {
 
 // Fetch organizations and pay center data on page load
 onMounted(async () => {
+  // Check authentication first
+  if (!requireAuth()) return;
+  
   // Load organizations
   const cacheKey = 'organizations_list';
   const cachedData = get(cacheKey);

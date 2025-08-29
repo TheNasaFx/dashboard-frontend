@@ -482,7 +482,7 @@ async function applyDistrictFilter() {
     </Snippet>
     <Style id="PolyStyle00">
       <LineStyle>
-        <color>ff000000</color>
+        <color>ff808080</color>
         <width>2</width>
       </LineStyle>
       <PolyStyle>
@@ -515,93 +515,245 @@ async function applyDistrictFilter() {
       
       console.log('Looking for district comment:', `<!-- ${props.selectedDistrictName} дүүрэгийн хороонууд`);
       
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        
-        // Check if this line contains our target district comment
-        if (line.includes(`<!-- ${props.selectedDistrictName} дүүрэгийн хороонууд`)) {
-          console.log('Found target district comment:', line);
-          isInTargetDistrict = true;
-          foundTargetDistrict = true;
-          currentDistrictName = props.selectedDistrictName;
-          continue;
-        }
-        
-        // Check if we hit another district comment (end of our target district)
-        if (isInTargetDistrict && line.includes('<!-- ') && line.includes(' дүүрэгийн хороонууд')) {
-          console.log('Found end of target district, stopping:', line);
-          isInTargetDistrict = false;
-          break;
-        }
-        
-        // If we're in the target district, collect placemarks
-        if (isInTargetDistrict && line.includes('<Placemark')) {
-          // Start collecting placemark
-          let placemarkContent = '';
-          let j = i;
-          let depth = 0;
-          
-          while (j < lines.length) {
-            const currentLine = lines[j];
-            placemarkContent += currentLine + '\n';
-            
-            if (currentLine.includes('<Placemark')) depth++;
-            if (currentLine.includes('</Placemark>')) {
-              depth--;
-              if (depth === 0) {
-                // Complete placemark found
-                const tempDoc = parser.parseFromString(`<root>${placemarkContent}</root>`, 'text/xml');
-                const placemark = tempDoc.querySelector('Placemark');
-                
-                if (placemark) {
-                  const nameElement = placemark.querySelector('name');
-                  const khorooName = nameElement?.textContent?.trim();
-                  
-                  console.log('Found khoroo in target district:', khorooName);
-                  
-                  // If specific khoroo is selected, filter by khoroo name
-                  if (!props.selectedKhorooName || props.selectedKhorooName === '' || props.selectedKhorooName === 'Хороо' || props.selectedKhorooName === 'Бүгд') {
-                    // Show all khoroos in the district
-                    selectedPlacemarks += placemarkContent;
-                  } else {
-                    // Show only the selected khoroo
-                    if (khorooName === props.selectedKhorooName) {
-                      selectedPlacemarks += placemarkContent;
-                      console.log('Match found! Adding khoroo to filtered KML:', khorooName);
-                    }
-                  }
-                }
-                
-                i = j; // Skip to end of this placemark
-                break;
-              }
-            }
-            j++;
-          }
-        }
+      // Special handling for Хан-Уул district (KML uses "Хануул")
+      let searchDistrictName = props.selectedDistrictName;
+      if (props.selectedDistrictName === 'Хан-Уул') {
+        searchDistrictName = 'Хануул';
       }
       
-      if (!foundTargetDistrict) {
-        // Fallback: try to find district by name in placemark names
-        console.log('District comment not found, trying fallback method...');
+      // Special handling for districts that need both district and khoroo polygons
+      if (props.selectedDistrictName === 'Налайх') {
+        console.log('Special handling for Налайх - showing district + khoroo polygons');
+        
+        // First, find and add the district polygon
         placemarks.forEach(placemark => {
           const nameElement = placemark.querySelector('name');
-          if (nameElement) {
-            const districtName = nameElement.textContent?.trim();
-            if (districtName === props.selectedDistrictName) {
-              selectedPlacemarks += new XMLSerializer().serializeToString(placemark);
-              console.log('Fallback: Match found! Adding district to filtered KML:', districtName);
-            }
+          if (nameElement && nameElement.textContent?.trim() === 'Налайх') {
+            selectedPlacemarks += new XMLSerializer().serializeToString(placemark);
+            console.log('Added Налайх district polygon');
           }
         });
+        
+        // Then, find and add all khoroo polygons for Налайх
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          
+          if (line.includes('<!-- Налайх дүүргийн хороонууд -->')) {
+            console.log('Found Налайх khoroos section');
+            isInTargetDistrict = true;
+            foundTargetDistrict = true;
+            continue;
+          }
+          
+          // Stop when we hit another district comment
+          if (isInTargetDistrict && line.includes('<!--') && line.includes('дүүрэгийн хороонууд') && !line.includes('Налайх')) {
+            console.log('Found end of Налайх khoroos section');
+            isInTargetDistrict = false;
+            break;
+          }
+          
+          // Also check for end of document
+          if (isInTargetDistrict && (line.includes('</Document>') || line.includes('</kml>'))) {
+            console.log('Found end of document, stopping Налайх parsing');
+            isInTargetDistrict = false;
+            break;
+          }
+          
+          // Collect khoroo placemarks
+          if (isInTargetDistrict && line.includes('<Placemark')) {
+            let placemarkContent = '';
+            let j = i;
+            let depth = 0;
+            
+            while (j < lines.length) {
+              const currentLine = lines[j];
+              placemarkContent += currentLine + '\n';
+              
+              if (currentLine.includes('<Placemark')) depth++;
+              if (currentLine.includes('</Placemark>')) {
+                depth--;
+                if (depth === 0) {
+                  selectedPlacemarks += placemarkContent;
+                  i = j;
+                  break;
+                }
+              }
+              j++;
+            }
+          }
+        }
+      } else if (props.selectedDistrictName === 'Багахангай') {
+        console.log('Special handling for Багахангай - only district polygon exists');
+        
+        // Only find and add the district polygon (no khoroos exist)
+        placemarks.forEach(placemark => {
+          const nameElement = placemark.querySelector('name');
+          if (nameElement && nameElement.textContent?.trim() === 'Багахангай') {
+            selectedPlacemarks += new XMLSerializer().serializeToString(placemark);
+            console.log('Added Багахангай district polygon');
+            foundTargetDistrict = true;
+          }
+        });
+      } else if (props.selectedDistrictName === 'Хан-Уул') {
+        console.log('Special handling for Хан-Уул (Хануул) - precise parsing needed');
+        
+        // Find Хануул khoroos section specifically
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          
+          if (line.includes('<!-- Хануул дүүрэгийн хороонууд-->')) {
+            console.log('Found Хануул khoroos section');
+            isInTargetDistrict = true;
+            foundTargetDistrict = true;
+            continue;
+          }
+          
+          // Stop when we hit Баянзүрх (which comes right after Хануул)
+          if (isInTargetDistrict && line.includes('<!-- Баянзүрх дүүрэгийн хороонууд')) {
+            console.log('Found end of Хануул khoroos section (Баянзүрх starts)');
+            isInTargetDistrict = false;
+            break;
+          }
+          
+          // Also check for end of document
+          if (isInTargetDistrict && (line.includes('</Document>') || line.includes('</kml>'))) {
+            console.log('Found end of document, stopping Хануул parsing');
+            isInTargetDistrict = false;
+            break;
+          }
+          
+          // Collect khoroo placemarks
+          if (isInTargetDistrict && line.includes('<Placemark')) {
+            let placemarkContent = '';
+            let j = i;
+            let depth = 0;
+            
+            while (j < lines.length) {
+              const currentLine = lines[j];
+              placemarkContent += currentLine + '\n';
+              
+              if (currentLine.includes('<Placemark')) depth++;
+              if (currentLine.includes('</Placemark>')) {
+                depth--;
+                if (depth === 0) {
+                  // Complete placemark found
+                  const tempDoc = parser.parseFromString(`<root>${placemarkContent}</root>`, 'text/xml');
+                  const placemark = tempDoc.querySelector('Placemark');
+                  
+                  if (placemark) {
+                    const nameElement = placemark.querySelector('name');
+                    const khorooName = nameElement?.textContent?.trim();
+                    
+                    console.log('Found khoroo in Хануул district:', khorooName);
+                    
+                    // If specific khoroo is selected, filter by khoroo name
+                    if (!props.selectedKhorooName || props.selectedKhorooName === '' || props.selectedKhorooName === 'Хороо' || props.selectedKhorooName === 'Бүгд') {
+                      // Show all khoroos in the district
+                      selectedPlacemarks += placemarkContent;
+                    } else {
+                      // Show only the selected khoroo
+                      if (khorooName === props.selectedKhorooName) {
+                        selectedPlacemarks += placemarkContent;
+                        console.log('Match found! Adding khoroo to filtered KML:', khorooName);
+                      }
+                    }
+                  }
+                  
+                  i = j; // Skip to end of this placemark
+                  break;
+                }
+              }
+              j++;
+            }
+          }
+        }
+      } else {
+        // Normal processing for other districts
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          
+          // Check if this line contains our target district comment
+          if (line.includes(`<!-- ${searchDistrictName} дүүрэгийн хороонууд`)) {
+            console.log('Found target district comment:', line);
+            isInTargetDistrict = true;
+            foundTargetDistrict = true;
+            currentDistrictName = props.selectedDistrictName;
+            continue;
+          }
+          
+          // Check if we hit another district comment (end of our target district)
+          // More robust check for district comment endings
+          if (isInTargetDistrict && line.includes('<!--') && line.includes('дүүрэгийн хороонууд')) {
+            // Make sure it's not the same district comment we just started with
+            if (!line.includes(`${searchDistrictName} дүүрэгийн хороонууд`)) {
+              console.log('Found end of target district, stopping:', line);
+              isInTargetDistrict = false;
+              break;
+            }
+          }
+          
+          // Also check for end of document or other major sections
+          if (isInTargetDistrict && (line.includes('</Document>') || line.includes('</kml>'))) {
+            console.log('Found end of document, stopping parsing');
+            isInTargetDistrict = false;
+            break;
+          }
+          
+          // If we're in the target district, collect placemarks
+          if (isInTargetDistrict && line.includes('<Placemark')) {
+            // Start collecting placemark
+            let placemarkContent = '';
+            let j = i;
+            let depth = 0;
+            
+            while (j < lines.length) {
+              const currentLine = lines[j];
+              placemarkContent += currentLine + '\n';
+              
+              if (currentLine.includes('<Placemark')) depth++;
+              if (currentLine.includes('</Placemark>')) {
+                depth--;
+                if (depth === 0) {
+                  // Complete placemark found
+                  const tempDoc = parser.parseFromString(`<root>${placemarkContent}</root>`, 'text/xml');
+                  const placemark = tempDoc.querySelector('Placemark');
+                  
+                  if (placemark) {
+                    const nameElement = placemark.querySelector('name');
+                    const khorooName = nameElement?.textContent?.trim();
+                    
+                    console.log('Found khoroo in target district:', khorooName);
+                    
+                    // If specific khoroo is selected, filter by khoroo name
+                    if (!props.selectedKhorooName || props.selectedKhorooName === '' || props.selectedKhorooName === 'Хороо' || props.selectedKhorooName === 'Бүгд') {
+                      // Show all khoroos in the district
+                      selectedPlacemarks += placemarkContent;
+                    } else {
+                      // Show only the selected khoroo
+                      if (khorooName === props.selectedKhorooName) {
+                        selectedPlacemarks += placemarkContent;
+                        console.log('Match found! Adding khoroo to filtered KML:', khorooName);
+                      }
+                    }
+                  }
+                  
+                  i = j; // Skip to end of this placemark
+                  break;
+                }
+              }
+              j++;
+            }
+          }
+        }
       }
       
       if (selectedPlacemarks) {
         filteredKML = kmlHeader + selectedPlacemarks + kmlFooter;
         console.log('Created filtered KML with', selectedPlacemarks.split('<Placemark').length - 1, 'placemarks');
       } else {
-        console.log('No matching district/khoroo found, showing all');
-        filteredKML = kmlText; // Fallback to show all if no match
+        console.log('No matching district/khoroo found, creating empty KML');
+        // Show empty KML instead of all data when no match is found
+        filteredKML = kmlHeader + kmlFooter;
       }
     }
     
@@ -715,7 +867,7 @@ async function applyDistrictFilter() {
             }
             
             layer.setStyle({
-              color: styleColor.color,
+              color: '#808080',        // Gray border
               weight: 2,
               opacity: 0.8,
               fillColor: styleColor.fillColor,
@@ -725,6 +877,7 @@ async function applyDistrictFilter() {
             // Add hover effect
             layer.on('mouseover', function(e: any) {
               e.target.setStyle({
+                color: '#505050',        // Darker gray on hover
                 weight: 3,
                 opacity: 1,
                 fillOpacity: 0.5
@@ -733,7 +886,7 @@ async function applyDistrictFilter() {
             
             layer.on('mouseout', function(e: any) {
               e.target.setStyle({
-                color: styleColor.color,
+                color: '#808080',        // Gray border
                 weight: 2,
                 opacity: 0.8,
                 fillColor: styleColor.fillColor,

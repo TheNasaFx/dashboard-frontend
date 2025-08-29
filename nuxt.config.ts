@@ -1,6 +1,7 @@
 import { defineNuxtConfig } from 'nuxt/config';
 
 export default defineNuxtConfig({
+  ssr: false, // Disable server-side rendering for client-only app
   app: {
     head: {
       title: "MTA | Нийслэлийн татварын газар",

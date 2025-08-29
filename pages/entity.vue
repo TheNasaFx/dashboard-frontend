@@ -565,6 +565,7 @@
 import { ref, defineAsyncComponent, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import { useApi } from '../composables/useApi';
+import { useAuth } from '../composables/useAuth';
 
 const EntityLineChart = defineAsyncComponent(
   () => import("../components/EntityLineChart.vue")
@@ -637,6 +638,7 @@ const debtData = ref<any>(null);
 // Import cache composable
 import { useCache } from '../composables/useCache';
 const { get, set, has, getStats } = useCache();
+const { requireAuth } = useAuth();
 
 // Function to get cache key
 function getEntityCacheKey(id: string, floor: number) {
@@ -1163,6 +1165,8 @@ function handleKeydown(e: KeyboardEvent) {
 }
 
 onMounted(() => {
+  if (!requireAuth()) return;
+  
   fetchEntity();
   fetchFloors();
   fetchMapData(); // Call fetchMapData here

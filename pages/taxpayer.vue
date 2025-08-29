@@ -260,9 +260,11 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCache } from '../composables/useCache'
 import { useApi } from '../composables/useApi'
+import { useAuth } from '../composables/useAuth'
 
 const route = useRoute()
 const { get, set } = useCache()
+const { requireAuth } = useAuth()
 const taxpayer = ref<any>(null)
 const loading = ref(false)
 const error = ref('')
@@ -509,5 +511,8 @@ watch(() => route.query.regno, (newRegno, oldRegno) => {
   }
 });
 
-onMounted(fetchTaxpayer)
+onMounted(() => {
+  if (!requireAuth()) return;
+  fetchTaxpayer();
+})
 </script> 

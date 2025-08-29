@@ -353,6 +353,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useApi } from '../composables/useApi'
 import { useCache } from '../composables/useCache'
+import { useAuth } from '../composables/useAuth'
 
 // Define interfaces
 interface LandData {
@@ -388,6 +389,7 @@ interface PaymentData {
 // Reactive data
 const loading = ref(true)
 const error = ref('')
+const { requireAuth } = useAuth()
 const landData = ref<LandData[]>([])
 const paymentData = ref<PaymentData[]>([])
 const landTaxData = ref<any>({}) // Шинэ газрын татвар төлөлтийн өгөгдөл
@@ -784,6 +786,7 @@ async function fetchData() {
 
 // Lifecycle
 onMounted(() => {
+  if (!requireAuth()) return;
   fetchData()
 })
 </script>

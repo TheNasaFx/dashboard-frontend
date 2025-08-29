@@ -146,6 +146,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
+import { useAuth } from '../composables/useAuth';
 
 interface ReportData {
   op_type_name: string;
@@ -168,6 +169,7 @@ const loading = ref(true);
 const error = ref('');
 const reportData = ref<ReportData[]>([]);
 const totalCount = ref(0);
+const { requireAuth } = useAuth();
 
 // District columns (based on DIST_CODE mapping)
 const districtColumns = ref<DistrictColumn[]>([
@@ -245,6 +247,7 @@ async function fetchReports() {
 }
 
 onMounted(() => {
+  if (!requireAuth()) return;
   fetchReports();
 });
 </script>

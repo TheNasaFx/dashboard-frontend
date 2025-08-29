@@ -170,7 +170,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
+import { useAuth } from '../composables/useAuth';
+
+const { requireAuth } = useAuth();
 
 const users = [
   {
@@ -313,8 +316,12 @@ function goToPage(p: number) {
 }
 
 // Watchers to reset page if search or perPage changes
-import { watch } from "vue";
 watch([search, perPage], () => {
   page.value = 1;
+});
+
+//  Authentication check
+onMounted(() => {
+  requireAuth();
 });
 </script>

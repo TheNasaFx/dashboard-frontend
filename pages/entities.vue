@@ -253,6 +253,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useApi } from '../composables/useApi';
+import { useAuth } from '../composables/useAuth';
 
 interface Building {
   id: number;
@@ -272,6 +273,7 @@ const centers = ref<any[]>([]);
 const buildings = ref<Building[]>([]);
 const error = ref('');
 const router = useRouter();
+const { requireAuth } = useAuth();
 
 const selectedDistrict = ref("");
 const selectedDistrictName = ref("Дүүрэг");
@@ -384,6 +386,9 @@ const filteredBuildings = computed(() => {
 });
 
 onMounted(async () => {
+  // Check authentication first
+  if (!requireAuth()) return;
+  
   const resCenters = await useApi('/centers');
   if (resCenters.success) {
     centers.value = Array.isArray(resCenters.data) ? resCenters.data : [];

@@ -366,6 +366,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useApi } from '../composables/useApi'
+import { useAuth } from '../composables/useAuth'
 
 // Interfaces
 interface RealEstateStatistics {
@@ -416,6 +417,7 @@ interface PaymentDistribution {
 const statisticsLoading = ref(true)
 const dataLoading = ref(false)
 const error = ref('')
+const { requireAuth } = useAuth()
 const searchTerm = ref('')
 const currentPage = ref(1)
 const searchDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null)
@@ -889,6 +891,9 @@ function changePage(page: number) {
 
 // Lifecycle
 onMounted(async () => {
+  const { requireAuth } = useAuth()
+  if (!requireAuth()) return
+
   await fetchAllData()
 })
 </script>
