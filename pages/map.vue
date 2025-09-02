@@ -25,34 +25,77 @@
               <div class="card">
                 <div class="card-body">
                   <!-- Map Type Selection Buttons -->
-                  <div class="d-flex gap-2 mb-3">
-                    <button
-                      type="button"
-                      class="btn"
-                      :class="mapType === 'land' ? 'btn-success' : 'btn-outline-success'"
-                      @click="selectMapType('land')"
-                    >
-                      <i class="las la-map-marked-alt me-1"></i>
-                      Газар
-                    </button>
-                    <button
-                      type="button"
-                      class="btn"
-                      :class="mapType === 'real_estate' ? 'btn-info' : 'btn-outline-info'"
-                      @click="selectMapType('real_estate')"
-                    >
-                      <i class="las la-building me-1"></i>
-                      Үл хөдлөх хөрөнгө
-                    </button>
-                    <button
-                      type="button"
-                      class="btn"
-                      :class="mapType === 'ebarimt' ? 'btn-warning' : 'btn-outline-warning'"
-                      @click="selectMapType('ebarimt')"
-                    >
-                      <i class="las la-receipt me-1"></i>
-                      Е-баримт
-                    </button>
+                  <div class="d-flex flex-wrap gap-2 mb-3">
+                    <!-- Үндсэн map type button-ууд -->
+                    <div class="d-flex gap-2 mb-2 mb-md-0">
+                      <button
+                        type="button"
+                        class="btn"
+                        :class="mapType === 'land' ? 'btn-success' : 'btn-outline-success'"
+                        @click="selectMapType('land')"
+                      >
+                        <i class="las la-map-marked-alt me-1"></i>
+                        Газар
+                      </button>
+                      <button
+                        type="button"
+                        class="btn"
+                        :class="mapType === 'real_estate' ? 'btn-info' : 'btn-outline-info'"
+                        @click="selectMapType('real_estate')"
+                      >
+                        <i class="las la-building me-1"></i>
+                        Үл хөдлөх хөрөнгө
+                      </button>
+                      <button
+                        type="button"
+                        class="btn"
+                        :class="mapType === 'ebarimt' ? 'btn-warning' : 'btn-outline-warning'"
+                        @click="selectMapType('ebarimt')"
+                      >
+                        <i class="las la-receipt me-1"></i>
+                        Е-баримт
+                      </button>
+                    </div>
+                    
+                    <!-- Шинэ татварын мэдээллийн button-ууд -->
+                    <div class="d-flex gap-2">
+                      <button
+                        type="button"
+                        class="btn"
+                        :class="mapType === 'reports' ? 'btn-secondary' : 'btn-outline-secondary'"
+                        @click="selectMapType('reports')"
+                      >
+                        <i class="las la-file-alt me-1"></i>
+                        Тайлан
+                      </button>
+                      <button
+                        type="button"
+                        class="btn"
+                        :class="mapType === 'debt' ? 'btn-danger' : 'btn-outline-danger'"
+                        @click="selectMapType('debt')"
+                      >
+                        <i class="las la-credit-card me-1"></i>
+                        Өр
+                      </button>
+                      <button
+                        type="button"
+                        class="btn"
+                        :class="mapType === 'payments' ? 'btn-warning' : 'btn-outline-warning'"
+                        @click="selectMapType('payments')"
+                      >
+                        <i class="las la-money-bill-wave me-1"></i>
+                        Төлөлт
+                      </button>
+                      <button
+                        type="button"
+                        class="btn"
+                        :class="mapType === 'permissions' ? 'btn-dark' : 'btn-outline-dark'"
+                        @click="selectMapType('permissions')"
+                      >
+                        <i class="las la-file-contract me-1"></i>
+                        Зөвшөөрөл
+                      </button>
+                    </div>
                   </div>
 
                   <div class="d-flex flex-wrap gap-2 align-items-center">
@@ -233,88 +276,104 @@
                   <!-- Land Information Sidebar -->
                   <div 
                     v-show="showLandSidebar" 
-                    class="land-sidebar"
+                    class="land-sidebar enhanced-sidebar"
                     :class="{ 'show': showLandSidebar }"
                   >
-                    <div class="card h-100">
-                      <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
+                    <div class="card h-100 shadow-lg border-0">
+                      <div class="card-header gradient-header-land d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 text-white">
                           <i class="las la-map-marked-alt me-2"></i>
                           Газрын мэдээлэл
                         </h5>
                         <button 
-                          class="btn btn-sm btn-outline-secondary"
+                          class="btn btn-sm btn-light btn-close-custom"
                           @click="showLandSidebar = false"
                         >
                           <i class="las la-times"></i>
                         </button>
                       </div>
-                      <div class="card-body p-3 land-scrollable-content">
+                      <div class="card-body p-4 enhanced-scrollable-content">
                         <!-- Loading State -->
-                        <div v-if="landDataLoading" class="text-center py-4">
-                          <div class="spinner-border spinner-border-sm text-primary" role="status">
-                            <span class="visually-hidden">Ачаалж байна...</span>
+                        <div v-if="landDataLoading" class="text-center py-5">
+                          <div class="loading-animation">
+                            <div class="spinner-border spinner-border-lg text-primary" role="status">
+                              <span class="visually-hidden">Ачаалж байна...</span>
+                            </div>
                           </div>
-                          <p class="mt-2 small text-muted loading-text">Газрын мэдээлэл татаж байна...</p>
-                          <div class="mt-3">
-                            <div class="progress" style="height: 6px;">
-                              <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: 100%"></div>
+                          <p class="mt-3 loading-text-enhanced">Газрын мэдээлэл татаж байна...</p>
+                          <div class="mt-4">
+                            <div class="progress enhanced-progress">
+                              <div class="progress-bar progress-bar-striped progress-bar-animated bg-gradient-primary" style="width: 100%"></div>
                             </div>
                           </div>
                         </div>
 
                         <!-- Land Statistics -->
-                        <div v-else>
+                        <div v-else class="enhanced-content">
                           <!-- Land Count Statistics -->
-                          <div class="mb-4">
-                            <h6 class="text-primary mb-3">
-                              <i class="las la-map-marked-alt me-1"></i>
+                          <div class="mb-4 stat-section">
+                            <h6 class="section-title text-primary mb-3">
+                              <i class="las la-map-marked-alt me-2"></i>
                               Газрын статистик
                             </h6>
-                            <div class="row g-2">
+                            <div class="row g-3">
                               <div class="col-6">
-                                <div class="bg-light rounded p-2 text-center">
-                                  <div class="fs-6 fw-bold text-primary">{{ formatNumber(landStatistics.totalUniqueLands) }}</div>
-                                  <div class="small text-muted">Нийт газар</div>
+                                <div class="stat-card primary-card">
+                                  <div class="stat-icon">
+                                    <i class="las la-map"></i>
+                                  </div>
+                                  <div class="stat-value">{{ formatNumber(landStatistics.totalUniqueLands) }}</div>
+                                  <div class="stat-label">Нийт газар</div>
                                 </div>
                               </div>
                               <div class="col-6">
-                                <div class="bg-light rounded p-2 text-center">
-                                  <div class="fs-6 fw-bold text-success">{{ formatNumber(landStatistics.mappedLandsCount) }}</div>
-                                  <div class="small text-muted">{{ selectedDistrictName !== 'Дүүрэг' ? selectedDistrictName + ' дэх газар' : 'Map дээрх газар' }}</div>
+                                <div class="stat-card success-card">
+                                  <div class="stat-icon">
+                                    <i class="las la-map-marker"></i>
+                                  </div>
+                                  <div class="stat-value">{{ formatNumber(landStatistics.mappedLandsCount) }}</div>
+                                  <div class="stat-label">Map дээрх газар</div>
                                 </div>
                               </div>
                             </div>
-                            <div class="mt-2">
-                              <div class="d-flex justify-content-between align-items-center">
-                                <span class="small text-muted">Харьцаа:</span>
-                                <span class="fw-bold text-success">{{ landStatistics.mappedPercentage.toFixed(1) }}%</span>
-                              </div>
-                              <div class="progress mt-1" style="height: 8px;">
-                                <div class="progress-bar bg-success" 
-                                     :style="{ width: landStatistics.mappedPercentage + '%' }">
+                            <div class="mt-3">
+                              <div class="progress-section">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                  <span class="progress-label">Харьцаа:</span>
+                                  <span class="progress-value">{{ landStatistics.mappedPercentage.toFixed(1) }}%</span>
+                                </div>
+                                <div class="enhanced-progress-bar">
+                                  <div class="progress-fill" 
+                                       :style="{ width: landStatistics.mappedPercentage + '%' }">
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
 
                           <!-- Payment Statistics -->
-                          <div class="mb-4">
-                            <h6 class="text-warning mb-3">
-                              <i class="las la-money-bill me-1"></i>
+                          <div class="mb-4 stat-section">
+                            <h6 class="section-title text-warning mb-3">
+                              <i class="las la-money-bill me-2"></i>
                               {{ selectedDistrictName !== 'Дүүрэг' ? selectedDistrictName + '-ийн газрын төлөлт' : 'Газрын төлөлт' }}
                             </h6>
-                            <div class="row g-2">
-                              <div class="col-12">
-                                <div class="bg-light rounded p-2">
-                                  <div class="d-flex justify-content-between">
-                                    <span class="small text-muted">Нийт дүн:</span>
-                                    <span class="fw-bold text-warning">{{ formatNumber(landPayments.totalPaymentAmount) }}₮</span>
+                            <div class="row g-3">
+                              <div class="col-6">
+                                <div class="stat-card warning-card">
+                                  <div class="stat-icon">
+                                    <i class="las la-money-bill"></i>
                                   </div>
-                                  <div class="d-flex justify-content-between mt-1">
-                                    <span class="small text-muted">Төлөлтийн тоо:</span>
-                                    <span class="fw-bold text-info">{{ formatNumber(landPayments.totalPaymentCount) }}</span>
+                                  <div class="stat-value">{{ formatNumber(landPayments.totalPaymentCount) }}</div>
+                                  <div class="stat-label">Төлөлтийн тоо</div>
+                                </div>
+                              </div>
+                              <div class="col-6">
+                                <div class="stat-card success-card">
+                                  <div class="stat-icon">
+                                    <i class="las la-dollar-sign"></i>
                                   </div>
+                                  <div class="stat-value">{{ formatNumber(landPayments.totalPaymentAmount) }}₮</div>
+                                  <div class="stat-label">Нийт дүн</div>
                                 </div>
                               </div>
                             </div>
@@ -420,106 +479,128 @@
                 <!-- E-Barimt Information Sidebar -->
                 <div 
                   v-show="showEbarimtSidebar" 
-                  class="ebarimt-sidebar"
+                  class="ebarimt-sidebar enhanced-sidebar"
                   :class="{ 'show': showEbarimtSidebar }"
                 >
-                  <div class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                      <h5 class="mb-0">
+                  <div class="card h-100 shadow-lg border-0">
+                    <div class="card-header gradient-header d-flex justify-content-between align-items-center">
+                      <h5 class="mb-0 text-white">
                         <i class="las la-receipt me-2"></i>
                         Е-баримтын статистик
                       </h5>
                       <button 
-                        class="btn btn-sm btn-outline-secondary"
+                        class="btn btn-sm btn-light btn-close-custom"
                         @click="showEbarimtSidebar = false"
                       >
                         <i class="las la-times"></i>
                       </button>
                     </div>
-                    <div class="card-body p-3 ebarimt-scrollable-content">
+                    <div class="card-body p-4 enhanced-scrollable-content">
                       <!-- Loading State -->
-                      <div v-if="ebarimtDataLoading" class="text-center py-4">
-                        <div class="spinner-border spinner-border-sm text-warning" role="status">
-                          <span class="visually-hidden">Ачаалж байна...</span>
+                      <div v-if="ebarimtDataLoading" class="text-center py-5">
+                        <div class="loading-animation">
+                          <div class="spinner-border spinner-border-lg text-warning" role="status">
+                            <span class="visually-hidden">Ачаалж байна...</span>
+                          </div>
                         </div>
-                        <p class="mt-2 small text-muted loading-text">Е-баримтын мэдээлэл татаж байна...</p>
-                        <div class="mt-3">
-                          <div class="progress" style="height: 6px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" style="width: 100%"></div>
+                        <p class="mt-3 loading-text-enhanced">Е-баримтын мэдээлэл татаж байна...</p>
+                        <div class="mt-4">
+                          <div class="progress enhanced-progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-gradient-warning" style="width: 100%"></div>
                           </div>
                         </div>
                       </div>
 
                       <!-- E-Barimt Statistics -->
-                      <div v-else>
+                      <div v-else class="enhanced-content">
                         <!-- Organization Count Statistics -->
-                        <div class="mb-4">
-                          <h6 class="text-primary mb-3">
-                            <i class="las la-building me-1"></i>
+                        <div class="mb-4 stat-section">
+                          <h6 class="section-title text-primary mb-3">
+                            <i class="las la-building me-2"></i>
                             Байгууллагын статистик
                           </h6>
-                          <div class="row g-2">
+                          <div class="row g-3">
                             <div class="col-6">
-                              <div class="bg-light rounded p-2 text-center">
-                                <div class="fs-6 fw-bold text-primary">{{ formatNumber(ebarimtStatistics.totalOrganizations) }}</div>
-                                <div class="small text-muted">Нийт байгууллага</div>
+                              <div class="stat-card primary-card">
+                                <div class="stat-icon">
+                                  <i class="las la-building"></i>
+                                </div>
+                                <div class="stat-value">{{ formatNumber(ebarimtStatistics.totalOrganizations) }}</div>
+                                <div class="stat-label">Нийт байгууллага</div>
                               </div>
                             </div>
                             <div class="col-6">
-                              <div class="bg-light rounded p-2 text-center">
-                                <div class="fs-6 fw-bold text-success">{{ formatNumber(ebarimtStatistics.organizationsWithEbarimt) }}</div>
-                                <div class="small text-muted">Е-баримт гаргадаг</div>
+                              <div class="stat-card success-card">
+                                <div class="stat-icon">
+                                  <i class="las la-check-circle"></i>
+                                </div>
+                                <div class="stat-value">{{ formatNumber(ebarimtStatistics.organizationsWithEbarimt) }}</div>
+                                <div class="stat-label">Е-баримт гаргадаг</div>
                               </div>
                             </div>
                           </div>
-                          <div class="mt-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                              <span class="small text-muted">Харьцаа:</span>
-                              <span class="fw-bold text-success">{{ ebarimtStatistics.ebarimtPercentage.toFixed(1) }}%</span>
-                            </div>
-                            <div class="progress mt-1" style="height: 8px;">
-                              <div class="progress-bar bg-success" 
-                                   :style="{ width: ebarimtStatistics.ebarimtPercentage + '%' }">
+                          <div class="mt-3">
+                            <div class="progress-section">
+                              <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="progress-label">Харьцаа:</span>
+                                <span class="progress-value">{{ ebarimtStatistics.ebarimtPercentage.toFixed(1) }}%</span>
+                              </div>
+                              <div class="enhanced-progress-bar">
+                                <div class="progress-fill" 
+                                     :style="{ width: ebarimtStatistics.ebarimtPercentage + '%' }">
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
 
                         <!-- Map Marker Statistics -->
-                        <div class="mb-4">
-                          <h6 class="text-info mb-3">
-                            <i class="las la-map-marker-alt me-1"></i>
+                        <div class="mb-4 stat-section">
+                          <h6 class="section-title text-info mb-3">
+                            <i class="las la-map-marker-alt me-2"></i>
                             Map дээрх Pin Point-ын статистик
                           </h6>
-                          <div class="row g-2">
+                          <div class="row g-3">
                             <div class="col-6">
-                              <div class="bg-light rounded p-2 text-center">
-                                <div class="fs-6 fw-bold text-danger">{{ formatNumber(ebarimtMarkerStats.redMarkers) }}</div>
-                                <div class="small text-muted">Улаан Pin</div>
-                                <div class="tiny text-muted">&lt; 50% е-баримт</div>
+                              <div class="stat-card danger-card">
+                                <div class="stat-icon">
+                                  <i class="las la-map-marker"></i>
+                                </div>
+                                <div class="stat-value">{{ formatNumber(ebarimtMarkerStats.redMarkers) }}</div>
+                                <div class="stat-label">Улаан Pin</div>
+                                <div class="stat-desc">&lt; 50% е-баримт</div>
                               </div>
                             </div>
                             <div class="col-6">
-                              <div class="bg-light rounded p-2 text-center">
-                                <div class="fs-6 fw-bold text-warning">{{ formatNumber(ebarimtMarkerStats.yellowMarkers) }}</div>
-                                <div class="small text-muted">Шар Pin</div>
-                                <div class="tiny text-muted">50-99% е-баримт</div>
+                              <div class="stat-card warning-card">
+                                <div class="stat-icon">
+                                  <i class="las la-map-marker"></i>
+                                </div>
+                                <div class="stat-value">{{ formatNumber(ebarimtMarkerStats.yellowMarkers) }}</div>
+                                <div class="stat-label">Шар Pin</div>
+                                <div class="stat-desc">50-99% е-баримт</div>
                               </div>
                             </div>
                           </div>
-                          <div class="row g-2 mt-2">
+                          <div class="row g-3 mt-2">
                             <div class="col-6">
-                              <div class="bg-light rounded p-2 text-center">
-                                <div class="fs-6 fw-bold text-success">{{ formatNumber(ebarimtMarkerStats.greenMarkers) }}</div>
-                                <div class="small text-muted">Ногоон Pin</div>
-                                <div class="tiny text-muted">100% е-баримт</div>
+                              <div class="stat-card success-card">
+                                <div class="stat-icon">
+                                  <i class="las la-map-marker"></i>
+                                </div>
+                                <div class="stat-value">{{ formatNumber(ebarimtMarkerStats.greenMarkers) }}</div>
+                                <div class="stat-label">Ногоон Pin</div>
+                                <div class="stat-desc">100% е-баримт</div>
                               </div>
                             </div>
                             <div class="col-6">
-                              <div class="bg-light rounded p-2 text-center">
-                                <div class="fs-6 fw-bold text-primary">{{ formatNumber(ebarimtMarkerStats.totalMarkers) }}</div>
-                                <div class="small text-muted">Нийт Pin</div>
-                                <div class="tiny text-muted">Map дээрх</div>
+                              <div class="stat-card info-card">
+                                <div class="stat-icon">
+                                  <i class="las la-map"></i>
+                                </div>
+                                <div class="stat-value">{{ formatNumber(ebarimtMarkerStats.totalMarkers) }}</div>
+                                <div class="stat-label">Нийт Pin</div>
+                                <div class="stat-desc">Map дээрх</div>
                               </div>
                             </div>
                           </div>
@@ -755,66 +836,76 @@
                 <!-- Real Estate Information Sidebar -->
                 <div 
                   v-show="showRealEstateSidebar" 
-                  class="real-estate-sidebar"
+                  class="real-estate-sidebar enhanced-sidebar"
                   :class="{ 'show': showRealEstateSidebar }"
                 >
-                  <div class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                      <h5 class="mb-0">
+                  <div class="card h-100 shadow-lg border-0">
+                    <div class="card-header gradient-header-realestate d-flex justify-content-between align-items-center">
+                      <h5 class="mb-0 text-white">
                         <i class="las la-building me-2"></i>
                         Үл хөдлөх статистик
                       </h5>
                       <button 
-                        class="btn btn-sm btn-outline-secondary"
+                        class="btn btn-sm btn-light btn-close-custom"
                         @click="showRealEstateSidebar = false"
                       >
                         <i class="las la-times"></i>
                       </button>
                     </div>
-                    <div class="card-body p-3 real-estate-scrollable-content">
+                    <div class="card-body p-4 enhanced-scrollable-content">
                       <!-- Loading State -->
-                      <div v-if="realEstateDataLoading" class="text-center py-4">
-                        <div class="spinner-border spinner-border-sm text-info" role="status">
-                          <span class="visually-hidden">Ачаалж байна...</span>
+                      <div v-if="realEstateDataLoading" class="text-center py-5">
+                        <div class="loading-animation">
+                          <div class="spinner-border spinner-border-lg text-info" role="status">
+                            <span class="visually-hidden">Ачаалж байна...</span>
+                          </div>
                         </div>
-                        <p class="mt-2 small text-muted loading-text">Үл хөдлөх мэдээлэл татаж байна...</p>
-                        <div class="mt-3">
-                          <div class="progress" style="height: 6px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width: 100%"></div>
+                        <p class="mt-3 loading-text-enhanced">Үл хөдлөх мэдээлэл татаж байна...</p>
+                        <div class="mt-4">
+                          <div class="progress enhanced-progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-gradient-info" style="width: 100%"></div>
                           </div>
                         </div>
                       </div>
 
                       <!-- Real Estate Statistics -->
-                      <div v-else>
+                      <div v-else class="enhanced-content">
                         <!-- Real Estate Count Statistics -->
-                        <div class="mb-4">
-                          <h6 class="text-info mb-3">
-                            <i class="las la-building me-1"></i>
+                        <div class="mb-4 stat-section">
+                          <h6 class="section-title text-info mb-3">
+                            <i class="las la-building me-2"></i>
                             Үл хөдлөх статистик
                           </h6>
-                          <div class="row g-2">
+                          <div class="row g-3">
                             <div class="col-6">
-                              <div class="bg-light rounded p-2 text-center">
-                                <div class="fs-6 fw-bold text-info">{{ formatNumber(realEstateStatistics.totalRealEstateCount) }}</div>
-                                <div class="small text-muted">Нийт Үл хөдлөхийн тоо</div>
+                              <div class="stat-card info-card">
+                                <div class="stat-icon">
+                                  <i class="las la-building"></i>
+                                </div>
+                                <div class="stat-value">{{ formatNumber(realEstateStatistics.totalRealEstateCount) }}</div>
+                                <div class="stat-label">Нийт Үл хөдлөх</div>
                               </div>
                             </div>
                             <div class="col-6">
-                              <div class="bg-light rounded p-2 text-center">
-                                <div class="fs-6 fw-bold text-success">{{ formatNumber(realEstateStatistics.realEstateOnMap) }}</div>
-                                <div class="small text-muted">Map дээрх үл хөдлөх</div>
+                              <div class="stat-card success-card">
+                                <div class="stat-icon">
+                                  <i class="las la-map-marker"></i>
+                                </div>
+                                <div class="stat-value">{{ formatNumber(realEstateStatistics.realEstateOnMap) }}</div>
+                                <div class="stat-label">Map дээрх үл хөдлөх</div>
                               </div>
                             </div>
                           </div>
-                          <div class="mt-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                              <span class="small text-muted">Харьцаа:</span>
-                              <span class="fw-bold text-success">{{ realEstateStatistics.ratio.toFixed(1) }}%</span>
-                            </div>
-                            <div class="progress mt-1" style="height: 8px;">
-                              <div class="progress-bar bg-success" 
-                                   :style="{ width: realEstateStatistics.ratio + '%' }">
+                          <div class="mt-3">
+                            <div class="progress-section">
+                              <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="progress-label">Харьцаа:</span>
+                                <span class="progress-value">{{ realEstateStatistics.ratio.toFixed(1) }}%</span>
+                              </div>
+                              <div class="enhanced-progress-bar">
+                                <div class="progress-fill" 
+                                     :style="{ width: realEstateStatistics.ratio + '%' }">
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -939,6 +1030,162 @@
                     </div>
                   </div>
                 </div>
+                
+                <!-- Reports Sidebar -->
+                <div 
+                  v-show="showReportsSidebar" 
+                  class="land-sidebar"
+                  :class="{ 'show': showReportsSidebar }"
+                >
+                  <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <h5 class="mb-0 text-secondary">
+                        <i class="las la-file-alt me-2"></i>
+                        Тайлангийн мэдээлэл
+                      </h5>
+                      <button 
+                        class="btn btn-sm btn-outline-secondary"
+                        @click="showReportsSidebar = false"
+                      >
+                        <i class="las la-times"></i>
+                      </button>
+                    </div>
+                    
+                    <div class="card-body">
+                      <div class="border-bottom pb-3 mb-3">
+                        <h6 class="text-secondary mb-3">
+                          <i class="las la-chart-bar me-1"></i>
+                          Тайлангийн статистик
+                        </h6>
+                        <div class="text-center py-4">
+                          <i class="las la-file-alt text-secondary" style="font-size: 3rem;"></i>
+                          <h4 class="mt-3 mb-0">Тайлангийн систем</h4>
+                          <p class="text-muted">Татвар төлөгчдийн тайлангийн мэдээлэл энд харагдана</p>
+                          <div class="alert alert-info mt-3">
+                            <small>Тайлангийн өгөгдөл ачаалах систем боловсруулагдаж байна...</small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Debt Sidebar -->
+                <div 
+                  v-show="showDebtSidebar" 
+                  class="land-sidebar"
+                  :class="{ 'show': showDebtSidebar }"
+                >
+                  <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <h5 class="mb-0 text-danger">
+                        <i class="las la-credit-card me-2"></i>
+                        Өрийн мэдээлэл
+                      </h5>
+                      <button 
+                        class="btn btn-sm btn-outline-secondary"
+                        @click="showDebtSidebar = false"
+                      >
+                        <i class="las la-times"></i>
+                      </button>
+                    </div>
+                    
+                    <div class="card-body">
+                      <div class="border-bottom pb-3 mb-3">
+                        <h6 class="text-danger mb-3">
+                          <i class="las la-exclamation-triangle me-1"></i>
+                          Өрийн статистик
+                        </h6>
+                        <div class="text-center py-4">
+                          <i class="las la-credit-card text-danger" style="font-size: 3rem;"></i>
+                          <h4 class="mt-3 mb-0">Өрийн систем</h4>
+                          <p class="text-muted">Татвар төлөгчдийн өрийн мэдээлэл энд харагдана</p>
+                          <div class="alert alert-warning mt-3">
+                            <small>Өрийн өгөгдөл ачаалах систем боловсруулагдаж байна...</small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Payments Sidebar -->
+                <div 
+                  v-show="showPaymentsSidebar" 
+                  class="land-sidebar"
+                  :class="{ 'show': showPaymentsSidebar }"
+                >
+                  <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <h5 class="mb-0 text-warning">
+                        <i class="las la-money-bill-wave me-2"></i>
+                        Төлөлтийн мэдээлэл
+                      </h5>
+                      <button 
+                        class="btn btn-sm btn-outline-secondary"
+                        @click="showPaymentsSidebar = false"
+                      >
+                        <i class="las la-times"></i>
+                      </button>
+                    </div>
+                    
+                    <div class="card-body">
+                      <div class="border-bottom pb-3 mb-3">
+                        <h6 class="text-warning mb-3">
+                          <i class="las la-wallet me-1"></i>
+                          Төлөлтийн статистик
+                        </h6>
+                        <div class="text-center py-4">
+                          <i class="las la-money-bill-wave text-warning" style="font-size: 3rem;"></i>
+                          <h4 class="mt-3 mb-0">Төлөлтийн систем</h4>
+                          <p class="text-muted">Татвар төлөгчдийн төлөлтийн мэдээлэл энд харагдана</p>
+                          <div class="alert alert-success mt-3">
+                            <small>Төлөлтийн өгөгдөл ачаалах систем боловсруулагдаж байна...</small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Permissions Sidebar -->
+                <div 
+                  v-show="showPermissionsSidebar" 
+                  class="land-sidebar"
+                  :class="{ 'show': showPermissionsSidebar }"
+                >
+                  <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <h5 class="mb-0 text-dark">
+                        <i class="las la-file-contract me-2"></i>
+                        Зөвшөөрлийн мэдээлэл
+                      </h5>
+                      <button 
+                        class="btn btn-sm btn-outline-secondary"
+                        @click="showPermissionsSidebar = false"
+                      >
+                        <i class="las la-times"></i>
+                      </button>
+                    </div>
+                    
+                    <div class="card-body">
+                      <div class="border-bottom pb-3 mb-3">
+                        <h6 class="text-dark mb-3">
+                          <i class="las la-certificate me-1"></i>
+                          Зөвшөөрлийн статистик
+                        </h6>
+                        <div class="text-center py-4">
+                          <i class="las la-file-contract text-dark" style="font-size: 3rem;"></i>
+                          <h4 class="mt-3 mb-0">Зөвшөөрлийн систем</h4>
+                          <p class="text-muted">НӨАТ, НХАТ, ОАТ зөвшөөрлийн мэдээлэл энд харагдана</p>
+                          <div class="alert alert-secondary mt-3">
+                            <small>Зөвшөөрлийн өгөгдөл ачаалах систем боловсруулагдаж байна...</small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -962,6 +1209,41 @@ import { useCache } from "../composables/useCache";
 import { useApi } from "../composables/useApi";
 import { useRealEstateDebtApi } from "../composables/useRealEstateDebtApi";
 import { useAuth } from "../composables/useAuth";
+
+// Theme detection composable
+const isDarkMode = computed(() => {
+  if (process.client) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  return false;
+});
+
+// Helper function to get chart theme configuration
+const getChartTheme = () => ({
+  theme: {
+    mode: isDarkMode.value ? 'dark' : 'light'
+  },
+  chart: {
+    background: 'transparent',
+    foreColor: isDarkMode.value ? '#ecf0f1' : '#2c3e50'
+  },
+  grid: {
+    borderColor: isDarkMode.value ? '#34495e' : '#e9ecef'
+  },
+  tooltip: {
+    theme: isDarkMode.value ? 'dark' : 'light'
+  },
+  legend: {
+    labels: {
+      colors: isDarkMode.value ? '#ecf0f1' : '#2c3e50'
+    }
+  },
+  dataLabels: {
+    style: {
+      colors: [isDarkMode.value ? '#2c3e50' : '#fff']
+    }
+  }
+});
 
 // Interfaces for land data
 interface LandStatistics {
@@ -1047,11 +1329,15 @@ const searchName = ref("");
 const searchRegno = ref("");
 const searchedLand = ref<any[] | null>(null);
 const organizations = ref<any[] | null>(null);
-const mapType = ref(""); // Current map type: 'land', 'real_estate', or 'ebarimt'
+const mapType = ref(""); // Current map type: 'land', 'real_estate', 'ebarimt', 'reports', 'debt', 'payments', 'permissions'
 const payCenter = ref<any[] | null>(null);
 const showLandSidebar = ref(false); // New state for sidebar visibility
 const showEbarimtSidebar = ref(false); // New state for ebarimt sidebar visibility
 const showRealEstateSidebar = ref(false); // New state for real estate sidebar visibility
+const showReportsSidebar = ref(false); // New state for reports sidebar visibility
+const showDebtSidebar = ref(false); // New state for debt sidebar visibility
+const showPaymentsSidebar = ref(false); // New state for payments sidebar visibility
+const showPermissionsSidebar = ref(false); // New state for permissions sidebar visibility
 
 // MapView reference to access ebarimt statistics
 const mapViewRef = ref<any>(null);
@@ -1254,12 +1540,15 @@ const ebarimtActivityTypes3DaysChart = computed(() => ({
     data: activityTypes3Days.value.map(item => item.total_count)
   }],
   options: {
+    ...getChartTheme(),
     chart: {
       type: 'bar',
       height: 280,
       toolbar: {
         show: false
       },
+      background: 'transparent',
+      foreColor: isDarkMode.value ? '#ecf0f1' : '#2c3e50',
       animations: {
         enabled: true,
         easing: 'easeinout',
@@ -1293,7 +1582,7 @@ const ebarimtActivityTypes3DaysChart = computed(() => ({
       style: {
         fontSize: '11px',
         fontWeight: 'bold',
-        colors: ['#fff']
+        colors: [isDarkMode.value ? '#2c3e50' : '#ffffff']
       },
       offsetX: 0
     },
@@ -1309,7 +1598,8 @@ const ebarimtActivityTypes3DaysChart = computed(() => ({
       labels: {
         style: {
           fontSize: '10px',
-          fontWeight: '500'
+          fontWeight: '500',
+          colors: isDarkMode.value ? '#ecf0f1' : '#2c3e50'
         },
         maxHeight: 60
       },
@@ -1800,10 +2090,13 @@ const ebarimtMarkerStatsChart = computed(() => ({
     ebarimtMarkerStats.value.greenMarkers
   ],
   options: {
+    ...getChartTheme(),
     chart: {
       type: 'pie',
       height: 200,
-      animations: { enabled: true, easing: 'easeinout', speed: 800 }
+      animations: { enabled: true, easing: 'easeinout', speed: 800 },
+      background: 'transparent',
+      foreColor: isDarkMode.value ? '#ecf0f1' : '#2c3e50'
     },
     labels: ['Улаан Pin (<50%)', 'Шар Pin (50-99%)', 'Ногоон Pin (100%)'],
     colors: ['#dc3545', '#ffc107', '#28a745'],
@@ -1820,9 +2113,9 @@ const ebarimtMarkerStatsChart = computed(() => ({
         return labels[seriesIndex] + '\n' + values[seriesIndex];
       },
       style: {
-        fontSize: '11px',
+        fontSize: '12px',
         fontWeight: 'bold',
-        colors: ['#fff']
+        colors: [isDarkMode.value ? '#2c3e50' : '#ffffff']
       }
     },
     plotOptions: {
@@ -1835,7 +2128,10 @@ const ebarimtMarkerStatsChart = computed(() => ({
     legend: {
       position: 'bottom',
       horizontalAlign: 'center',
-      fontSize: '10px',
+      fontSize: '11px',
+      labels: {
+        colors: isDarkMode.value ? '#ecf0f1' : '#2c3e50'
+      },
       markers: {
         width: 8,
         height: 8,
@@ -1843,6 +2139,7 @@ const ebarimtMarkerStatsChart = computed(() => ({
       }
     },
     tooltip: {
+      theme: isDarkMode.value ? 'dark' : 'light',
       y: {
         formatter: function(val: number) {
           return val + ' pin point';
@@ -2007,6 +2304,10 @@ async function selectMapType(type: string) {
     showLandSidebar.value = false;
     showEbarimtSidebar.value = false;
     showRealEstateSidebar.value = false;
+    showReportsSidebar.value = false;
+    showDebtSidebar.value = false;
+    showPaymentsSidebar.value = false;
+    showPermissionsSidebar.value = false;
     // Clear payCenter data when toggling off land mode to hide PAY_CENTER_LOCATION data
     if (type === 'land') {
       payCenter.value = null;
@@ -2017,10 +2318,14 @@ async function selectMapType(type: string) {
   // Set the new map type
   mapType.value = type;
   
-  // Close other sidebars
+  // Close all sidebars
   showLandSidebar.value = false;
   showEbarimtSidebar.value = false;
   showRealEstateSidebar.value = false;
+  showReportsSidebar.value = false;
+  showDebtSidebar.value = false;
+  showPaymentsSidebar.value = false;
+  showPermissionsSidebar.value = false;
 
   // Handle specific map type logic
   if (type === 'land') {
@@ -2050,6 +2355,26 @@ async function selectMapType(type: string) {
     loadRealEstateStatistics().finally(() => {
       realEstateDataLoading.value = false;
     });
+  } else if (type === 'reports') {
+    // Тайлангийн мэдээлэл харуулах
+    showReportsSidebar.value = true;
+    console.log('Reports map type selected');
+    // Энд тайлангийн өгөгдөл ачаалах логик нэмж болно
+  } else if (type === 'debt') {
+    // Өрийн мэдээлэл харуулах
+    showDebtSidebar.value = true;
+    console.log('Debt map type selected');
+    // Энд өрийн өгөгдөл ачаалах логик нэмж болно
+  } else if (type === 'payments') {
+    // Төлөлтийн мэдээлэл харуулах
+    showPaymentsSidebar.value = true;
+    console.log('Payments map type selected');
+    // Энд төлөлтийн өгөгдөл ачаалах логик нэмж болно
+  } else if (type === 'permissions') {
+    // Зөвшөөрлийн мэдээлэл харуулах
+    showPermissionsSidebar.value = true;
+    console.log('Permissions map type selected');
+    // Энд зөвшөөрлийн өгөгдөл ачаалах логик нэмж болно
   } else {
     // Reset to default - show organizations only
     payCenter.value = null;
@@ -2781,6 +3106,408 @@ async function resetFilters() {
 
 .ebarimt-scrollable-content::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* Enhanced sidebar styles */
+.enhanced-sidebar {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.gradient-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  position: relative;
+}
+
+.gradient-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ffeaa7, #fdcb6e, #e17055);
+}
+
+.btn-close-custom {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-close-custom:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: white;
+  transform: scale(1.05);
+}
+
+.enhanced-scrollable-content {
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #667eea #f8f9fa;
+  background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+}
+
+.enhanced-scrollable-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.enhanced-scrollable-content::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.enhanced-scrollable-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #667eea, #764ba2);
+  border-radius: 4px;
+}
+
+.enhanced-scrollable-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #5a6fd8, #6a4190);
+}
+
+.enhanced-content {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.loading-animation {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.loading-text-enhanced {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bs-gray-600);
+  margin: 0;
+}
+
+.enhanced-progress {
+  height: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.bg-gradient-warning {
+  background: linear-gradient(45deg, #ffeaa7, #fdcb6e) !important;
+}
+
+.stat-section {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+}
+
+.stat-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.section-title i {
+  font-size: 20px;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  transition: all 0.3s ease;
+}
+
+.primary-card::before {
+  background: linear-gradient(90deg, #007bff, #0056b3);
+}
+
+.success-card::before {
+  background: linear-gradient(90deg, #28a745, #1e7e34);
+}
+
+.danger-card::before {
+  background: linear-gradient(90deg, #dc3545, #c82333);
+}
+
+.warning-card::before {
+  background: linear-gradient(90deg, #ffc107, #e0a800);
+}
+
+.info-card::before {
+  background: linear-gradient(90deg, #17a2b8, #138496);
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+  opacity: 0.8;
+}
+
+.primary-card .stat-icon {
+  color: #007bff;
+}
+
+.success-card .stat-icon {
+  color: #28a745;
+}
+
+.danger-card .stat-icon {
+  color: #dc3545;
+}
+
+.warning-card .stat-icon {
+  color: #ffc107;
+}
+
+.info-card .stat-icon {
+  color: #17a2b8;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--bs-dark);
+}
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bs-gray-700);
+  margin-bottom: 2px;
+}
+
+.stat-desc {
+  font-size: 10px;
+  color: var(--bs-gray-600);
+  font-style: italic;
+}
+
+.progress-section {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.progress-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bs-gray-700);
+}
+
+.progress-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #28a745;
+}
+
+.enhanced-progress-bar {
+  height: 10px;
+  background: #e9ecef;
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745, #20c997);
+  border-radius: 5px;
+  transition: width 1s ease-in-out;
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.gradient-header-land {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border: none;
+  position: relative;
+}
+
+.gradient-header-land::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #20c997, #28a745, #6f42c1);
+}
+
+.gradient-header-realestate {
+  background: linear-gradient(135deg, #17a2b8 0%, #6610f2 100%);
+  border: none;
+  position: relative;
+}
+
+.gradient-header-realestate::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #17a2b8, #6610f2, #e83e8c);
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(45deg, #007bff, #6610f2) !important;
+}
+
+.bg-gradient-info {
+  background: linear-gradient(45deg, #17a2b8, #6f42c1) !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .enhanced-scrollable-content {
+    background: linear-gradient(to bottom, #2c3e50 0%, #34495e 100%);
+  }
+  
+  .stat-section {
+    background: rgba(52, 73, 94, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .stat-card {
+    background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .progress-section {
+    background: rgba(52, 73, 94, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .stat-value {
+    color: #ecf0f1;
+  }
+  
+  .stat-label {
+    color: #bdc3c7;
+  }
+  
+  .stat-desc {
+    color: #95a5a6;
+  }
+  
+  .progress-label {
+    color: #bdc3c7;
+  }
+  
+  .section-title {
+    color: #ecf0f1;
+  }
+  
+  .loading-text-enhanced {
+    color: #bdc3c7;
+  }
+  
+  /* Chart dark mode overrides */
+  .apexcharts-text {
+    fill: #ecf0f1 !important;
+  }
+  
+  .apexcharts-legend-text {
+    color: #ecf0f1 !important;
+  }
+  
+  .apexcharts-datalabel {
+    fill: #2c3e50 !important;
+  }
+  
+  .apexcharts-tooltip {
+    background: #34495e !important;
+    border: 1px solid #7f8c8d !important;
+    color: #ecf0f1 !important;
+  }
+  
+  .apexcharts-tooltip-title {
+    background: #2c3e50 !important;
+    border-bottom: 1px solid #7f8c8d !important;
+    color: #ecf0f1 !important;
+  }
+  
+  .apexcharts-gridline {
+    stroke: #34495e !important;
+  }
+  
+  .apexcharts-xaxis-label,
+  .apexcharts-yaxis-label {
+    fill: #ecf0f1 !important;
+  }
+  
+  .apexcharts-xaxis-title-text,
+  .apexcharts-yaxis-title-text {
+    fill: #ecf0f1 !important;
+  }
 }
 
 /* Real estate sidebar styles */

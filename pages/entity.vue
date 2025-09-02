@@ -110,35 +110,84 @@
                   <p class="card-text"></p>
                 </div>
                 <div class="card-footer">
-                  <a
-                    class="btn btn-icon btn-warning btn-sm"
-                    :href="entity.mapUrl"
-                    ><i class="fa fa-map-pin"></i
-                  ></a>
-                  <button
-                    type="button"
-                    class="btn btn-success btn-sm ms-2"
-                    :class="{ active: activeTab === 'ebarimt' }"
-                    @click="setActiveTab('ebarimt')"
-                  >
-                    Байгууллагууд
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-info btn-sm ms-2"
-                    :class="{ active: activeTab === 'rent' }"
-                    @click="setActiveTab('rent')"
-                  >
-                    Түрээс
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-primary btn-sm ms-2"
-                    :class="{ active: activeTab === 'reports' }"
-                    @click="setActiveTab('reports')"
-                  >
-                    Чиглэлийн бүртгэл
-                  </button>
+                  <div class="row g-2">
+                    <div class="col-12 d-flex align-items-center mb-2">
+                      <a
+                        class="btn btn-icon btn-warning btn-sm me-2"
+                        :href="entity.mapUrl"
+                        ><i class="fa fa-map-pin"></i
+                      ></a>
+                      <span class="text-muted small">Үйлчилгээний цэс:</span>
+                    </div>
+                    
+                    <!-- Эхний мөр: Үндсэн tab-ууд -->
+                    <div class="col-12 mb-2">
+                      <div class="d-flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          class="btn btn-success btn-sm"
+                          :class="{ active: activeTab === 'ebarimt' }"
+                          @click="setActiveTab('ebarimt')"
+                        >
+                          <i class="fas fa-building me-1"></i>Байгууллагууд
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-info btn-sm"
+                          :class="{ active: activeTab === 'rent' }"
+                          @click="setActiveTab('rent')"
+                        >
+                          <i class="fas fa-home me-1"></i>Түрээс
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-primary btn-sm"
+                          :class="{ active: activeTab === 'reports' }"
+                          @click="setActiveTab('reports')"
+                        >
+                          <i class="fas fa-chart-bar me-1"></i>Чиглэлийн бүртгэл
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <!-- Хоёр дахь мөр: Татварын мэдээлэл -->
+                    <div class="col-12">
+                      <div class="d-flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-sm"
+                          :class="{ active: activeTab === 'tails' }"
+                          @click="setActiveTab('tails')"
+                        >
+                          <i class="fas fa-file-alt me-1"></i>Тайлан
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-danger btn-sm"
+                          :class="{ active: activeTab === 'debt' }"
+                          @click="setActiveTab('debt')"
+                        >
+                          <i class="fas fa-credit-card me-1"></i>Өр
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-warning btn-sm"
+                          :class="{ active: activeTab === 'payments' }"
+                          @click="setActiveTab('payments')"
+                        >
+                          <i class="fas fa-money-bill-wave me-1"></i>Төлөлт
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-dark btn-sm"
+                          :class="{ active: activeTab === 'permissions' }"
+                          @click="setActiveTab('permissions')"
+                        >
+                          <i class="fas fa-file-contract me-1"></i>Зөвшөөрөл
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -462,6 +511,150 @@
                             <h5 class="text-success mb-1">{{ entityReportsTotal }}</h5>
                             <small class="text-muted">Нийт татвар төлөгч</small>
                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Тайлангийн хүснэгт -->
+          <div class="row justify-content-center mt-2" v-if="activeTab === 'tails'">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header d-flex align-items-center">
+                  <h5 class="card-title mb-0 me-3">📋 Тайлангийн мэдээлэл</h5>
+                  <div class="ms-auto">
+                    <span class="badge bg-secondary px-3 py-2">
+                      Нийт: {{ reportData?.reported_tins || 0 }}
+                    </span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="text-center py-4">
+                    <i class="fas fa-file-alt fs-1 mb-3 text-secondary"></i>
+                    <h5>Тайлангийн мэдээлэл</h5>
+                    <div class="row mt-4">
+                      <div class="col-md-6">
+                        <div class="border rounded p-3 mb-3">
+                          <h3 class="text-success">{{ reportData?.reported_tins || 0 }}</h3>
+                          <p class="text-muted mb-0">Тайлан гаргасан байгууллага</p>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="border rounded p-3 mb-3">
+                          <h3 class="text-danger">{{ reportData?.not_reported_count || 0 }}</h3>
+                          <p class="text-muted mb-0">Тайлан гаргаагүй байгууллага</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Өрийн хүснэгт -->
+          <div class="row justify-content-center mt-2" v-if="activeTab === 'debt'">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header d-flex align-items-center">
+                  <h5 class="card-title mb-0 me-3">💰 Өрийн мэдээлэл</h5>
+                  <div class="ms-auto">
+                    <span class="badge bg-danger px-3 py-2">
+                      Өртэй: {{ debtData?.with_debt_organizations || 0 }}
+                    </span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="text-center py-4">
+                    <i class="fas fa-credit-card fs-1 mb-3 text-danger"></i>
+                    <h5>Өрийн мэдээлэл</h5>
+                    <div class="row mt-4">
+                      <div class="col-md-6">
+                        <div class="border rounded p-3 mb-3">
+                          <h3 class="text-success">{{ debtData?.without_debt_organizations || 0 }}</h3>
+                          <p class="text-muted mb-0">Өрийн үлдэгдэлгүй байгууллага</p>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="border rounded p-3 mb-3">
+                          <h3 class="text-danger">{{ debtData?.with_debt_organizations || 0 }}</h3>
+                          <p class="text-muted mb-0">Өрийн үлдэгдэлтэй байгууллага</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Төлөлтийн хүснэгт -->
+          <div class="row justify-content-center mt-2" v-if="activeTab === 'payments'">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header d-flex align-items-center">
+                  <h5 class="card-title mb-0 me-3">💳 Төлөлтийн мэдээлэл</h5>
+                  <div class="ms-auto">
+                    <span class="badge bg-warning px-3 py-2">
+                      Нийт: {{ paymentData?.paid_organizations || 0 }}
+                    </span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="text-center py-4">
+                    <i class="fas fa-money-bill-wave fs-1 mb-3 text-warning"></i>
+                    <h5>Төлөлтийн мэдээлэл</h5>
+                    <div class="row mt-4">
+                      <div class="col-md-6">
+                        <div class="border rounded p-3 mb-3">
+                          <h3 class="text-success">{{ paymentData?.paid_organizations || 0 }}</h3>
+                          <p class="text-muted mb-0">Төлбөр төлсөн байгууллага</p>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="border rounded p-3 mb-3">
+                          <h3 class="text-danger">{{ paymentData?.not_paid_organizations || 0 }}</h3>
+                          <p class="text-muted mb-0">Төлбөр төлөөгүй байгууллага</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Зөвшөөрлийн мэдээ хүснэгт -->
+          <div class="row justify-content-center mt-2" v-if="activeTab === 'permissions'">
+            <div class="col-12">
+              <div class="card mb-3">
+                <div class="card-header d-flex align-items-center">
+                  <h5 class="card-title mb-0 me-3">📝 Зөвшөөрлийн мэдээлэл</h5>
+                  <div class="ms-auto">
+                    <span class="badge bg-dark px-3 py-2">
+                      Нийт: {{ permissionData?.registered_permissions || 0 }}
+                    </span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="text-center py-4">
+                    <i class="fas fa-file-contract fs-1 mb-3 text-dark"></i>
+                    <h5>Зөвшөөрлийн мэдээлэл (НӨАТ, НХАТ, ОАТ)</h5>
+                    <div class="row mt-4">
+                      <div class="col-md-6">
+                        <div class="border rounded p-3 mb-3">
+                          <h3 class="text-success">{{ permissionData?.registered_permissions || 0 }}</h3>
+                          <p class="text-muted mb-0">Зөвшөөрлийн мэдээ гаргадаг байгууллага</p>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="border rounded p-3 mb-3">
+                          <h3 class="text-danger">{{ permissionData?.not_registered_permissions || 0 }}</h3>
+                          <p class="text-muted mb-0">Зөвшөөрлийн мэдээ гаргадаггүй байгууллага</p>
                         </div>
                       </div>
                     </div>
@@ -1046,7 +1239,7 @@ function selectFloor(floor: number) {
   fetchOrganizations();
 }
 
-async function setActiveTab(tab: 'ebarimt' | 'rent' | 'reports') {
+async function setActiveTab(tab: 'ebarimt' | 'rent' | 'reports' | 'tails' | 'debt' | 'payments' | 'permissions') {
   if (activeTab.value === tab) {
     activeTab.value = '';
     return;
@@ -1060,6 +1253,22 @@ async function setActiveTab(tab: 'ebarimt' | 'rent' | 'reports') {
   }
   if (tab === 'reports') {
     await fetchEntityReports();
+  }
+  if (tab === 'tails') {
+    // Тайлангийн өгөгдөл аль хэдийн reportData-д ачаалагдсан байгаа
+    console.log('Displaying report data:', reportData.value);
+  }
+  if (tab === 'debt') {
+    // Өрийн өгөгдөл аль хэдийн debtData-д ачаалагдсан байгаа
+    console.log('Displaying debt data:', debtData.value);
+  }
+  if (tab === 'payments') {
+    // Төлөлтийн өгөгдөл аль хэдийн paymentData-д ачаалагдсан байгаа
+    console.log('Displaying payment data:', paymentData.value);
+  }
+  if (tab === 'permissions') {
+    // Зөвшөөрлийн өгөгдөл аль хэдийн permissionData-д ачаалагдсан байгаа
+    console.log('Displaying permission data:', permissionData.value);
   }
 }
 

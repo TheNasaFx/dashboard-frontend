@@ -133,6 +133,112 @@
   50% { transform: scale(1.2); }
   100% { transform: scale(1); }
 }
+
+/* Ebarimt cluster specific styles */
+.ebarimt-cluster-marker {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.ebarimt-cluster-marker:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+.ebarimt-cluster-city {
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+}
+
+.ebarimt-cluster-district {
+  filter: drop-shadow(0 3px 8px rgba(0,0,0,0.4));
+}
+
+.ebarimt-cluster-area {
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+}
+
+/* Smooth transitions for marker clustering */
+.leaflet-marker-icon {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.leaflet-marker-icon.leaflet-interactive {
+  cursor: pointer;
+}
+
+/* Enhanced cluster popup styles */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Enhanced standard cluster styles */
+.enhanced-cluster-marker {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.enhanced-cluster-marker:hover {
+  transform: scale(1.08);
+  transition: transform 0.2s ease;
+}
+
+.standard-cluster-city {
+  filter: drop-shadow(0 4px 12px rgba(59, 130, 246, 0.4));
+}
+
+.standard-cluster-district {
+  filter: drop-shadow(0 3px 8px rgba(168, 85, 247, 0.4));
+}
+
+.standard-cluster-area {
+  filter: drop-shadow(0 2px 6px rgba(34, 197, 94, 0.3));
+}
+
+/* Improved marker cluster animations */
+.marker-cluster-small:hover,
+.marker-cluster-medium:hover,
+.marker-cluster-large:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+/* Loading animation for clusters */
+@keyframes clusterAppear {
+  0% { 
+    opacity: 0; 
+    transform: scale(0.8); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: scale(1); 
+  }
+}
+
+.leaflet-marker-icon {
+  animation: clusterAppear 0.3s ease-out;
+}
+
+/* Pulse animation for active clusters */
+@keyframes clusterPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.marker-cluster-clicked {
+  animation: clusterPulse 0.3s ease-out;
+}
+
+/* Enhanced hover effects */
+.leaflet-marker-icon:hover {
+  filter: brightness(1.1);
+  z-index: 1000 !important;
+}
 </style>
 
 <script setup lang="ts">
@@ -183,7 +289,7 @@ let blueIcon: any = null;
 let yellowIcon: any = null;
 
 // Debounce timer for zoom events
-let zoomDebounceTimer: NodeJS.Timeout | null = null;
+let zoomDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 // District boundaries loaded from KML for custom clustering
 let districtPolygons: { [key: string]: any } = {};
@@ -201,6 +307,131 @@ const DISTRICTS = {
   'Хан Уул': { lat: 47.8000, lng: 106.9667 }, // Note: space in name
   'Чингэлтэй': { lat: 47.9500, lng: 106.9333 }
 };
+
+// Function to determine district name from khoroo name
+// Enhanced function to determine district from khoroo name based on actual KML structure
+async function getDistrictForKhorooName(khorooName: string): Promise<string> {
+  console.log('🔍 getDistrictForKhorooName called with:', khorooName);
+  
+  try {
+    // Load KML file and parse the structure to find the correct district
+    const response = await fetch('/duureg.kml');
+    const kmlText = await response.text();
+    
+    // Parse KML string to find which district section this khoroo belongs to
+    const lines = kmlText.split('\n');
+    let currentDistrict = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Check if this line contains a district comment
+      const districtMatch = line.match(/<!-- (.*?) дүүрэгийн хороонууд/);
+      if (districtMatch) {
+        currentDistrict = districtMatch[1];
+        // Handle special cases for district name variations
+        if (currentDistrict === 'Хануул') {
+          currentDistrict = 'Хан Уул';
+        }
+        console.log('� Found district section:', currentDistrict);
+        continue;
+      }
+      
+      // Check if we found our target khoroo in this district section
+      if (currentDistrict && line.includes(`<name>${khorooName}</name>`)) {
+        console.log(`✅ Found khoroo "${khorooName}" in district "${currentDistrict}"`);
+        return currentDistrict;
+      }
+    }
+    
+    console.log(`❌ Could not find district for khoroo in KML: ${khorooName}`);
+    
+    // Fallback to static mapping if KML parsing fails
+    return getDistrictForKhorooNameStatic(khorooName);
+    
+  } catch (error) {
+    console.error('❌ Error parsing KML for district mapping:', error);
+    // Fallback to static mapping
+    return getDistrictForKhorooNameStatic(khorooName);
+  }
+}
+
+// Static fallback mapping function
+function getDistrictForKhorooNameStatic(khorooName: string): string {
+  console.log('🔄 Using static fallback mapping for:', khorooName);
+  
+  // Direct mapping based on known khoroo-district relationships
+  const khorooDistrictMap: { [key: string]: string } = {
+    // Хан Уул дүүрэг (1-4-р хороо)
+    '1-р хороо': 'Хан Уул',
+    '2-р хороо': 'Хан Уул', 
+    '3-р хороо': 'Хан Уул',
+    '4-р хороо': 'Хан Уул',
+    
+    // Чингэлтэй дүүрэг (5-19-р хороо)
+    '5-р хороо': 'Чингэлтэй',
+    '6-р хороо': 'Чингэлтэй',
+    '7-р хороо': 'Чингэлтэй',
+    '8-р хороо': 'Чингэлтэй',
+    '9-р хороо': 'Чингэлтэй',
+    '10-р хороо': 'Чингэлтэй',
+    '11-р хороо': 'Чингэлтэй',
+    '12-р хороо': 'Чингэлтэй',
+    '13-р хороо': 'Чингэлтэй',
+    '14-р хороо': 'Чингэлтэй',
+    '15-р хороо': 'Чингэлтэй',
+    '16-р хороо': 'Чингэлтэй',
+    '17-р хороо': 'Чингэлтэй',
+    '18-р хороо': 'Чингэлтэй',
+    '19-р хороо': 'Чингэлтэй',
+    
+    // Сүхбаатар дүүрэг (20-23-р хороо)
+    '20-р хороо': 'Сүхбаатар',
+    '21-р хороо': 'Сүхбаатар',
+    '22-р хороо': 'Сүхбаатар',
+    '23-р хороо': 'Сүхбаатар',
+    
+    // Баянзүрх дүүрэг (24-28-р хороо)
+    '24-р хороо': 'Баянзүрх',
+    '25-р хороо': 'Баянзүрх',
+    '26-р хороо': 'Баянзүрх',
+    '27-р хороо': 'Баянзүрх',
+    '28-р хороо': 'Баянзүрх',
+    
+    // Баянгол дүүрэг (29-32-р хороо)
+    '29-р хороо': 'Баянгол',
+    '30-р хороо': 'Баянгол',
+    '31-р хороо': 'Баянгол',
+    '32-р хороо': 'Баянгол',
+    
+    // Сонгинохайрхан дүүрэг (33-38-р хороо)
+    '33-р хороо': 'Сонгинохайрхан',
+    '34-р хороо': 'Сонгинохайрхан',
+    '35-р хороо': 'Сонгинохайрхан',
+    '36-р хороо': 'Сонгинохайрхан',
+    '37-р хороо': 'Сонгинохайрхан',
+    '38-р хороо': 'Сонгинохайрхан',
+  };
+  
+  // Check direct mapping first
+  if (khorooDistrictMap[khorooName]) {
+    console.log('✅ Static mapping found:', khorooName, '->', khorooDistrictMap[khorooName]);
+    return khorooDistrictMap[khorooName];
+  }
+  
+  // If no direct mapping, try to extract district name from khoroo name patterns
+  const districts = ['Багануур', 'Багахангай', 'Баянгол', 'Баянзүрх', 'Налайх', 'Сонгинохайрхан', 'Сүхбаатар', 'Хан Уул', 'Чингэлтэй'];
+  
+  for (const district of districts) {
+    if (khorooName.includes(district)) {
+      console.log('✅ District name found in khoroo name:', khorooName, '->', district);
+      return district;
+    }
+  }
+  
+  console.log('❌ No mapping found for:', khorooName);
+  return 'Тодорхойгүй дүүрэг';
+}
 
 // Function to load district boundaries from KML
 async function loadDistrictBoundaries() {
@@ -292,50 +523,149 @@ function isPointInPolygon(lat: number, lng: number, polygon: [number, number][])
 // Function to create district-based clusters
 function createDistrictClusters(markers: any[]): any[] {
   if (!isDistrictDataLoaded || Object.keys(districtPolygons).length === 0) {
-    console.log('District data not loaded, using default clustering');
-    return markers;
+    console.log('District data not loaded, using enhanced standard clustering');
+    return createEnhancedStandardClusters(markers);
   }
 
   // Check current zoom level to decide clustering behavior
   const currentZoom = map.value ? map.value.getZoom() : 8;
-  const ZOOM_THRESHOLD = 12; // Higher threshold - only show individual markers at very high zoom
+  const DISTRICT_ZOOM_THRESHOLD = 11;   // Show district clusters
+  const AREA_ZOOM_THRESHOLD = 13;       // Show area clusters  
+  const INDIVIDUAL_ZOOM_THRESHOLD = 15; // Show individual markers
   
-  if (currentZoom >= ZOOM_THRESHOLD) {
-    console.log(`Zoom level ${currentZoom} >= ${ZOOM_THRESHOLD}, showing individual markers with standard clustering`);
-    
-    // At high zoom, use standard MarkerClusterGroup for nearby markers
-    const standardClusterGroup = L.markerClusterGroup({
-      maxClusterRadius: 40, // Smaller radius for high zoom
-      disableClusteringAtZoom: 19, // Disable clustering at max zoom
-      spiderfyOnMaxZoom: true,
-      showCoverageOnHover: false,
-      zoomToBoundsOnClick: false,
-      spiderfyDistanceMultiplier: 1.5,
-      iconCreateFunction: function(cluster) {
-        const count = cluster.getChildCount();
-        return L.divIcon({
-          html: `<div style="background-color: rgba(34, 197, 94, 0.9); border-radius: 20px; color: white; font-weight: bold; text-align: center; line-height: 30px; width: 30px; height: 30px; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"><span>${count}</span></div>`,
-          className: 'standard-cluster-marker',
-          iconSize: [34, 34],
-          iconAnchor: [17, 17]
-        });
-      }
-    });
-    
-    // Add all markers to standard cluster group
-    markers.forEach(marker => {
-      standardClusterGroup.addLayer(marker);
-    });
-    
-    return [standardClusterGroup]; // Return as array containing the cluster group
+  console.log(`Creating district clusters at zoom level ${currentZoom}`);
+
+  // At very high zoom, show individual markers with minimal clustering
+  if (currentZoom >= INDIVIDUAL_ZOOM_THRESHOLD) {
+    console.log('High zoom: Using enhanced standard clustering for individual markers');
+    return createEnhancedStandardClusters(markers);
   }
 
-  console.log(`Zoom level ${currentZoom} < ${ZOOM_THRESHOLD}, applying district clustering`);
+  // At medium zoom, create area-based clusters
+  if (currentZoom >= AREA_ZOOM_THRESHOLD) {
+    console.log('Medium zoom: Creating area-based clusters');
+    return createStandardAreaClusters(markers, currentZoom);
+  }
 
-  // Group markers by district
+  // At low zoom, create district-based clusters
+  if (currentZoom >= DISTRICT_ZOOM_THRESHOLD) {
+    console.log('Low zoom: Creating district-based clusters');
+    return createDistrictStandardClusters(markers);
+  }
+
+  // At very low zoom, create city-wide cluster
+  console.log('Very low zoom: Creating city-wide cluster');
+  return createCityWideStandardCluster(markers);
+}
+
+// Enhanced standard clustering function
+function createEnhancedStandardClusters(markers: any[]): any[] {
+  if (markers.length === 0) return [];
+  
+  const currentZoom = map.value ? map.value.getZoom() : 15;
+  const dynamicClusterRadius = Math.max(20, 80 - (currentZoom * 3)); // Smoother radius calculation
+  
+  const standardClusterGroup = L.markerClusterGroup({
+    maxClusterRadius: dynamicClusterRadius,
+    disableClusteringAtZoom: 18, // Always allow some clustering until max zoom
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    spiderfyDistanceMultiplier: 1.3,
+    animate: true,
+    animateAddingMarkers: true,
+    removeOutsideVisibleBounds: true, // Performance optimization
+    iconCreateFunction: function(cluster) {
+      const count = cluster.getChildCount();
+      let size = 'small';
+      let colorClass = 'marker-cluster-small';
+      
+      if (count < 10) {
+        size = 'small';
+        colorClass = 'marker-cluster-small';
+      } else if (count < 100) {
+        size = 'medium'; 
+        colorClass = 'marker-cluster-medium';
+      } else {
+        size = 'large';
+        colorClass = 'marker-cluster-large';
+      }
+      
+      const iconSize = size === 'small' ? 32 : size === 'medium' ? 36 : 40;
+      
+      return L.divIcon({
+        html: `<div style="background-color: rgba(34, 197, 94, 0.9); border-radius: 50%; color: white; font-weight: bold; text-align: center; line-height: ${iconSize}px; width: ${iconSize}px; height: ${iconSize}px; border: 2px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.3); transition: all 0.3s ease; font-size: ${iconSize > 36 ? '14px' : '12px'};"><span>${count}</span></div>`,
+        className: `${colorClass} enhanced-cluster-marker`,
+        iconSize: [iconSize + 4, iconSize + 4],
+        iconAnchor: [(iconSize + 4) / 2, (iconSize + 4) / 2]
+      });
+    }
+  });
+  
+  // Add all markers to standard cluster group
+  markers.forEach(marker => {
+    standardClusterGroup.addLayer(marker);
+  });
+  
+  return [standardClusterGroup];
+}
+
+// Function to create area-based clusters for standard markers
+function createStandardAreaClusters(markers: any[], zoom: number): any[] {
+  const clusters: any[] = [];
+  const processed = new Set();
+  const clusterRadius = Math.max(0.003, 0.015 - (zoom * 0.0008));
+  const clusterRadiusMeters = clusterRadius * 111000;
+  
+  // Sort markers by latitude for optimization
+  const sortedMarkers = [...markers].sort((a, b) => a.getLatLng().lat - b.getLatLng().lat);
+  
+  sortedMarkers.forEach((marker, index) => {
+    if (processed.has(index)) return;
+    
+    const markerLatLng = marker.getLatLng();
+    const nearbyMarkers = [marker];
+    processed.add(index);
+    
+    // Find nearby markers
+    for (let i = index + 1; i < sortedMarkers.length; i++) {
+      if (processed.has(i)) continue;
+      
+      const otherMarker = sortedMarkers[i];
+      const otherLatLng = otherMarker.getLatLng();
+      
+      // Quick latitude check
+      const latDiff = Math.abs(markerLatLng.lat - otherLatLng.lat);
+      if (latDiff > clusterRadius) break;
+      
+      const distance = markerLatLng.distanceTo(otherLatLng);
+      
+      if (distance < clusterRadiusMeters) {
+        nearbyMarkers.push(otherMarker);
+        processed.add(i);
+        
+        if (nearbyMarkers.length >= 25) break; // Limit for performance
+      }
+    }
+    
+    if (nearbyMarkers.length > 1) {
+      const clusterMarker = createStandardClusterMarker(nearbyMarkers, 'area');
+      clusters.push(clusterMarker);
+    } else {
+      clusters.push(marker);
+    }
+  });
+  
+  console.log(`Created ${clusters.length} standard area clusters from ${markers.length} markers`);
+  return clusters;
+}
+
+// Function to create district-based standard clusters
+function createDistrictStandardClusters(markers: any[]): any[] {
   const districtGroups: { [key: string]: any[] } = {};
   const ungroupedMarkers: any[] = [];
 
+  // Group markers by district
   markers.forEach(marker => {
     const latLng = marker.getLatLng();
     const district = getDistrictForPoint(latLng.lat, latLng.lng);
@@ -350,73 +680,121 @@ function createDistrictClusters(markers: any[]): any[] {
     }
   });
 
-  // Create cluster markers for each district
   const clusterMarkers: any[] = [];
 
+  // Create cluster for each district
   Object.entries(districtGroups).forEach(([districtName, districtMarkers]) => {
     if (districtMarkers.length > 1) {
-      // Create a cluster marker for this district
-      const districtData = districtPolygons[districtName];
-      const clusterCenter = districtData.center;
-      
-      const clusterIcon = L.divIcon({
-        html: `<div style="background-color: rgba(34, 197, 94, 0.9); border-radius: 20px; color: white; font-weight: bold; text-align: center; line-height: 36px; width: 36px; height: 36px; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s ease; cursor: pointer;"><span>${districtMarkers.length}</span></div>`,
-        className: 'district-cluster-marker',
-        iconSize: [40, 40],
-        iconAnchor: [20, 20]
-      });
-
-      const clusterMarker = L.marker([clusterCenter.lat, clusterCenter.lng], { 
-        icon: clusterIcon 
-      });
-
-      // Create popup content for district cluster
-      const popupContent = `
-        <div style="width: 240px; font-family: 'Segoe UI', sans-serif;">
-          <div style="font-weight: bold; font-size: 18px; margin: 8px 0 4px 0; color: #22c55e;">
-            ${districtName} дүүрэг
-          </div>
-          <div style="font-size: 14px; margin-bottom: 8px;">
-            Нийт газар: ${districtMarkers.length} ширхэг
-          </div>
-          <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
-            Дэлгэрэнгүй харахын тулд дарна уу
-          </div>
-        </div>
-      `;
-
-      clusterMarker.bindPopup(popupContent);
-
-      // When cluster is clicked, zoom to district with smooth transition
-      clusterMarker.on('click', function() {
-        if (map.value && districtData.bounds) {
-          // Smooth zoom to the district center with appropriate zoom level
-          const targetZoom = Math.min(17, Math.max(14, map.value.getZoom() + 3));
-          map.value.flyTo(districtData.center, targetZoom, {
-            duration: 1.0, // 1 second smooth animation
-            easeLinearity: 0.25
-          });
-          
-          console.log(`Flying to district ${districtName} at zoom level ${targetZoom}`);
-        }
-      });
-
+      const clusterMarker = createStandardClusterMarker(districtMarkers, 'district', districtName);
       clusterMarkers.push(clusterMarker);
     } else if (districtMarkers.length === 1) {
-      // Single marker, add as-is
       clusterMarkers.push(districtMarkers[0]);
     }
   });
 
-  // Add ungrouped markers
   clusterMarkers.push(...ungroupedMarkers);
-
   console.log(`Created ${Object.keys(districtGroups).length} district clusters`);
   
   // Update KML layer popup counts
   updateDistrictCounts(districtGroups);
   
   return clusterMarkers;
+}
+
+// Function to create city-wide standard cluster
+function createCityWideStandardCluster(markers: any[]): any[] {
+  if (markers.length <= 1) return markers;
+  
+  const clusterMarker = createStandardClusterMarker(markers, 'city');
+  return [clusterMarker];
+}
+
+// Function to create standard cluster marker
+function createStandardClusterMarker(markers: any[], type: 'area' | 'district' | 'city', districtName?: string): any {
+  const totalCount = markers.length;
+  
+  // Determine cluster position
+  let clusterPosition;
+  if (type === 'district' && districtName && districtPolygons[districtName]) {
+    clusterPosition = districtPolygons[districtName].center;
+  } else if (type === 'city') {
+    clusterPosition = { lat: 47.9184, lng: 106.9177 }; // Ulaanbaatar center
+  } else {
+    // Calculate centroid for area clusters
+    let latSum = 0, lngSum = 0;
+    for (const marker of markers) {
+      const latLng = marker.getLatLng();
+      latSum += latLng.lat;
+      lngSum += latLng.lng;
+    }
+    clusterPosition = { lat: latSum / markers.length, lng: lngSum / markers.length };
+  }
+  
+  // Size and color based on count and type
+  let iconSize = 36;
+  let backgroundColor = 'rgba(34, 197, 94, 0.9)'; // Green
+  
+  if (type === 'city') {
+    iconSize = 55;
+    backgroundColor = 'rgba(59, 130, 246, 0.9)'; // Blue for city
+  } else if (type === 'district') {
+    iconSize = 46;
+    backgroundColor = 'rgba(168, 85, 247, 0.9)'; // Purple for district
+  } else if (totalCount > 15) {
+    iconSize = 42;
+    backgroundColor = 'rgba(245, 158, 11, 0.9)'; // Orange for large areas
+  }
+  
+  const clusterIcon = L.divIcon({
+    html: `<div style="background-color: ${backgroundColor}; border-radius: 50%; color: white; font-weight: bold; text-align: center; line-height: ${iconSize}px; width: ${iconSize}px; height: ${iconSize}px; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.4); transition: all 0.3s ease; cursor: pointer; font-size: ${iconSize > 42 ? '14px' : '12px'};"><span>${totalCount}</span></div>`,
+    className: `standard-cluster-marker standard-cluster-${type}`,
+    iconSize: [iconSize + 6, iconSize + 6],
+    iconAnchor: [(iconSize + 6) / 2, (iconSize + 6) / 2]
+  });
+
+  const clusterMarker = L.marker([clusterPosition.lat, clusterPosition.lng], { 
+    icon: clusterIcon 
+  });
+
+  // Create popup content
+  const typeLabel = type === 'district' ? 'дүүрэг' : type === 'city' ? 'хот' : 'бүс';
+  
+  const popupContent = `<div style="width: 240px; font-family: 'Segoe UI', sans-serif;">
+<div style="font-weight: bold; font-size: 18px; margin: 8px 0 4px 0; color: ${backgroundColor};">
+${districtName ? `${districtName} ${typeLabel}` : `${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} кластер`}
+</div>
+<div style="font-size: 14px; margin-bottom: 8px;">Нийт цэг: ${totalCount} ширхэг</div>
+<div style="font-size: 12px; color: #666; margin-top: 8px;">Дэлгэрэнгүй харахын тулд дарна уу</div>
+</div>`;
+
+  clusterMarker.bindPopup(popupContent);
+
+  // Click handler for smooth zoom
+  clusterMarker.on('click', function() {
+    if (map.value) {
+      const currentZoom = map.value.getZoom();
+      let targetZoom = Math.min(18, currentZoom + 3);
+      
+      if (type === 'city') targetZoom = 12;
+      else if (type === 'district') targetZoom = 15;
+      
+      map.value.flyTo([clusterPosition.lat, clusterPosition.lng], targetZoom, {
+        duration: 1.0,
+        easeLinearity: 0.25
+      });
+      
+      // Add click animation
+      const element = this._icon;
+      if (element) {
+        element.classList.add('marker-cluster-clicked');
+        setTimeout(() => {
+          element.classList.remove('marker-cluster-clicked');
+        }, 300);
+      }
+    }
+  });
+
+  return clusterMarker;
 }
 
 // Function to update district counts in KML layer popups
@@ -962,12 +1340,6 @@ function reRenderMarkersOnZoom() {
   
   console.log(`Re-rendering markers based on zoom level ${currentZoom}, mapType: ${props.mapType}`);
   
-  // Special handling for ebarimt mode - don't interfere with ebarimt markers
-  if (props.mapType === 'ebarimt') {
-    console.log('Ebarimt mode detected, skipping zoom-based re-render to preserve ebarimt colors');
-    return;
-  }
-  
   // Get stored individual markers
   const storedMarkers = map.value._individualMarkers || [];
   if (storedMarkers.length === 0) return;
@@ -985,8 +1357,15 @@ function reRenderMarkersOnZoom() {
   // Clear current markers with fade effect
   markersLayer.value.clearLayers();
   
-  // Apply clustering based on current zoom
-  const clusteredMarkers = createDistrictClusters(storedMarkers);
+  // Apply clustering based on map type and current zoom
+  let clusteredMarkers;
+  if (props.mapType === 'ebarimt') {
+    // Use ebarimt-specific clustering
+    clusteredMarkers = createEbarimtClusters(storedMarkers);
+  } else {
+    // Use standard district clustering
+    clusteredMarkers = createDistrictClusters(storedMarkers);
+  }
   
   // Add clustered markers to the map with smooth transition
   setTimeout(() => {
@@ -995,8 +1374,8 @@ function reRenderMarkersOnZoom() {
     });
   }, 50); // Small delay for smooth transition
   
-  // Update district counts only when clustered
-  if (currentZoom < ZOOM_THRESHOLD) {
+  // Update district counts only when clustered and not in ebarimt mode
+  if (currentZoom < ZOOM_THRESHOLD && props.mapType !== 'ebarimt') {
     const districtGroups: { [key: string]: any[] } = {};
     storedMarkers.forEach(marker => {
       const latLng = marker.getLatLng();
@@ -1277,9 +1656,9 @@ async function fetchAndRenderMarkers() {
       }
     }
     
-    // Apply district-based clustering to organization markers
-    if (isDistrictDataLoaded && Object.keys(districtPolygons).length > 0 && individualMarkers.length > 0) {
-      console.log('Applying district-based clustering...');
+    // Apply enhanced district-based clustering to organization markers
+    if (individualMarkers.length > 0) {
+      console.log('Applying enhanced district-based clustering...');
       console.log(`Total markers to cluster: ${individualMarkers.length}`);
       
       // Store individual markers on map object for zoom-based re-rendering
@@ -1287,16 +1666,18 @@ async function fetchAndRenderMarkers() {
         map.value._individualMarkers = individualMarkers;
       }
       
-      // Create district clusters
+      // Create enhanced district clusters
       const clusteredMarkers = createDistrictClusters(individualMarkers);
       console.log(`Clustered into: ${clusteredMarkers.length} markers/clusters`);
       
-      // Add clustered markers to the map
-      clusteredMarkers.forEach(marker => {
-        markersLayer.value.addLayer(marker);
-      });
+      // Add clustered markers to the map with smooth transition
+      setTimeout(() => {
+        clusteredMarkers.forEach(marker => {
+          markersLayer.value.addLayer(marker);
+        });
+      }, 50); // Small delay for smooth rendering
       
-      console.log('✅ District-based clustering applied');
+      console.log('✅ Enhanced district-based clustering applied');
     } else {
       // If district data not loaded, add individual markers normally
       console.log('District data not loaded, adding individual markers...');
@@ -1404,7 +1785,7 @@ async function fetchAndRenderMarkers() {
           weight: 2
         }).bindPopup(`
           <div style="width:240px; font-family: 'Segoe UI', sans-serif;">
-            <div style="font-weight:bold; font-size:18px; margin:8px 0 4px 0; color:${groupColor};">Газрын талбай ${payCenterID}</div>
+            <div style="font-weight:bold; font-size:18px; margin: 8px 0 4px 0; color:${groupColor};">Газрын талбай ${payCenterID}</div>
             <div style="font-size:13px; margin-bottom:4px;">PAY_CENTER_ID: ${payCenterID}</div>
           </div>
         `);
@@ -1502,44 +1883,17 @@ async function fetchAndRenderMarkers() {
       markersData = [];
     }
 
-    // Маркеруудыг шинэчлэх - fallback markers ч clustering хийх
+    // Маркеруудыг шинэчлэх - fallback markers ч enhanced clustering хийх
     if (markersLayer.value) {
       try {
         markersLayer.value.clearLayers();
       } catch (e) {}
     }
     
-    // Only create new markerClusterGroup if we don't have markersLayer or if it's not compatible
-    if (!markersLayer.value || typeof markersLayer.value.addLayer !== 'function') {
-      // Fallback хэсэгт ч markerClusterGroup ашиглана
-      markersLayer.value = L.markerClusterGroup({
-        maxClusterRadius: 60,
-        disableClusteringAtZoom: 18,
-        spiderfyOnMaxZoom: true, // Spider эффект идэвхтэй
-        showCoverageOnHover: false,
-        zoomToBoundsOnClick: true, // Click дээр zoom эсвэл spiderfy
-        iconCreateFunction: function(cluster: any) {
-          const count = cluster.getChildCount();
-          let className = 'marker-cluster-small';
-          if (count > 50) {
-            className = 'marker-cluster-large';
-          } else if (count > 10) {
-            className = 'marker-cluster-medium';
-          }
-          return L.divIcon({
-            html: `<div><span>${count}</span></div>`,
-            className: className,
-            iconSize: [36, 36]
-          });
-        },
-        spiderfyDistanceMultiplier: 2, // Spider задралтын зай
-        removeOutsideVisibleBounds: true,
-        animate: true, // Animation идэвхтэй болгох
-        animateAddingMarkers: false,
-        chunkedLoading: true,
-        chunkDelay: 50
-      });
-    }
+    // Use simple LayerGroup for fallback markers to apply custom clustering
+    markersLayer.value = L.layerGroup();
+    
+    const individualMarkers: any[] = [];
     
     markersData.forEach((marker: LandData) => {
       const lat = parseFloat(marker.COORD_Y?.String || marker.COORD_Y);
@@ -1548,30 +1902,36 @@ async function fetchAndRenderMarkers() {
         // all_barimt_ok утгаар өнгө сонгоно
         let icon = greenIcon;
         const leafletMarker = L.marker([lat, lng], { icon });
-        const popupHtml = `
-          <div style='width:240px'>
-            <img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
-            <div style='text-align:center;'>
-              <div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${
-                marker.NAME?.String || marker.NAME || 'Газрын нэр'
-              }</div>
-            </div>
-            <div style='font-size:13px;'>ID: ${marker.ID || ''}</div>
-            <div style='font-size:13px;'>Нэгж талбарын дугаар: ${marker.PARCEL_ID || '-'}</div>
-            <div style='font-size:13px;margin-bottom:8px;'>${
-              marker.COORD_Y?.String || marker.COORD_Y || ""
-            }</div>
-            <div style='display:flex;align-items:center;gap:6px;'>
-              <a href='/entity?id=${
-                marker.ID
-              }' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a>
-              <span style='font-size:12px;color:#888;'>(2025/06/21 нд шинчлэгдсэн)</span>
-            </div>
-          </div>
-        `;
+        const popupHtml = `<div style='width:240px'>
+<img src='/uploads/go.market.jpeg' style='width:100%;border-radius:8px 8px 0 0;' />
+<div style='text-align:center;'>
+<div style='font-weight:bold;font-size:18px;margin:8px 0 4px 0;'>${marker.NAME?.String || marker.NAME || 'Газрын нэр'}</div>
+</div>
+<div style='font-size:13px;'>ID: ${marker.ID || ''}</div>
+<div style='font-size:13px;'>Нэгж талбарын дугаар: ${marker.PARCEL_ID || '-'}</div>
+<div style='font-size:13px;margin-bottom:8px;'>${marker.COORD_Y?.String || marker.COORD_Y || ""}</div>
+<div style='display:flex;align-items:center;gap:6px;'>
+<a href='/entity?id=${marker.ID}' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a>
+<span style='font-size:12px;color:#888;'>(2025/06/21 нд шинчлэгдсэн)</span>
+</div>
+</div>`;
+        
         leafletMarker.bindPopup(popupHtml);
-        markersLayer.value.addLayer(leafletMarker);
+        individualMarkers.push(leafletMarker);
       }
+    });
+    
+    // Store individual markers for zoom-based clustering
+    if (map.value) {
+      map.value._individualMarkers = individualMarkers;
+    }
+    
+    // Apply enhanced clustering to fallback markers
+    const clusteredMarkers = createDistrictClusters(individualMarkers);
+    
+    // Add clustered markers to the map
+    clusteredMarkers.forEach(marker => {
+      markersLayer.value.addLayer(marker);
     });
   }
   
@@ -1753,14 +2113,37 @@ onMounted(async () => {
         clearTimeout(zoomDebounceTimer);
       }
       
-      // Set new timer with shorter debounce delay for smoother experience
+      // Set new timer with adaptive debounce delay based on map type
+      const debounceDelay = props.mapType === 'ebarimt' ? 150 : 100; // Slightly longer for ebarimt due to more complex clustering
+      
       zoomDebounceTimer = setTimeout(() => {
-        console.log(`Executing zoom-based re-render at zoom ${currentZoom}`);
+        console.log(`Executing zoom-based re-render at zoom ${currentZoom} for ${props.mapType} mode`);
         reRenderMarkersOnZoom();
         zoomDebounceTimer = null;
-      }, 100); // Reduced to 100ms for smoother experience
+      }, debounceDelay);
     });
-    console.log('Zoom event listener added with smooth debounce');
+    
+    // Add move event for better performance during panning
+    map.value.on('moveend', function() {
+      // Only re-cluster if we're in a clustered zoom level and have many markers
+      const currentZoom = map.value.getZoom();
+      const storedMarkers = map.value._individualMarkers || [];
+      
+      if (storedMarkers.length > 50 && currentZoom < 13) {
+        // Clear previous timer
+        if (zoomDebounceTimer) {
+          clearTimeout(zoomDebounceTimer);
+        }
+        
+        zoomDebounceTimer = setTimeout(() => {
+          console.log(`Re-clustering after pan at zoom ${currentZoom}`);
+          reRenderMarkersOnZoom();
+          zoomDebounceTimer = null;
+        }, 200); // Longer delay for move events
+      }
+    });
+    
+    console.log('Zoom and move event listeners added with adaptive smooth debounce');
     
     // Wait for the next tick to ensure map is fully initialized
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -1809,78 +2192,198 @@ onMounted(async () => {
        'Чингэлтэй': '#BB8FCE'      // Light Purple
      };
     
-         kmlLayer.value = omnivore
-       .kml("/duureg.kml")
-       .on("ready", function () {
-         console.log('KML layer ready, bounds:', kmlLayer.value.getBounds());
-         console.log('District polygons loaded for clustering:', Object.keys(districtPolygons));
-         
-                  // Style each district with different colors
-          this.eachLayer(function(layer: any) {
-            if (layer.feature && layer.feature.properties) {
-              // Get district name from KML properties
-              let districtName = null;
+    kmlLayer.value = omnivore
+      .kml("/duureg.kml")
+      .on("ready", async function () {
+        console.log('🎉 KML layer ready, bounds:', kmlLayer.value.getBounds());
+        console.log('📊 District polygons loaded for clustering:', Object.keys(districtPolygons));
+        console.log('🔍 Total layers loaded:', this.getLayers().length);
+        
+        // Collect all layers first
+        const layers: any[] = [];
+        this.eachLayer(function(layer: any) {
+          layers.push(layer);
+        });
+        
+        // Process each layer with async district detection
+        let layerCount = 0;
+        for (const layer of layers) {
+          layerCount++;
+          console.log(`\n🔍 === LAYER ${layerCount} ANALYSIS ===`);
+          
+          if (layer.feature && layer.feature.properties) {
+            // Get polygon name from KML properties
+            let polygonName = null;
+            
+            // Log all available properties for debugging
+            console.log('🔍 ALL PROPERTIES:', JSON.stringify(layer.feature.properties, null, 2));
+            console.log('🔍 FEATURE TYPE:', layer.feature.type);
+            console.log('🔍 GEOMETRY TYPE:', layer.feature.geometry?.type);
+            
+            // Try different property names that might contain the polygon name
+            if (layer.feature.properties.name) {
+              polygonName = layer.feature.properties.name;
+              console.log('📍 Found name:', polygonName);
+            } else if (layer.feature.properties.n) {
+              polygonName = layer.feature.properties.n;
+              console.log('📍 Found n:', polygonName);
+            } else if (layer.feature.properties.soum_name) {
+              polygonName = layer.feature.properties.soum_name;
+              console.log('📍 Found soum_name:', polygonName);
+            } else if (layer.feature.properties.Name) {
+              polygonName = layer.feature.properties.Name;
+              console.log('📍 Found Name (capital):', polygonName);
+            } else if (layer.feature.properties.description) {
+              console.log('📍 Found description:', layer.feature.properties.description);
+            }
+            
+            console.log('🎯 Final polygonName:', polygonName);
+            
+            // Determine if this is a district or khoroo based on the name pattern
+            let isDistrict = false;
+            let districtName = '';
+            let khorooName = '';
+            
+            console.log('🔎 Starting analysis for:', polygonName);
+            
+            // Check if it's a district (main districts in Mongolia)
+            const districts = ['Багануур', 'Багахангай', 'Баянгол', 'Баянзүрх', 'Налайх', 'Сонгинохайрхан', 'Сүхбаатар', 'Хан Уул', 'Чингэлтэй'];
+            
+            if (polygonName && districts.includes(polygonName)) {
+              // This is a district
+              isDistrict = true;
+              districtName = polygonName;
+              console.log('✅ DISTRICT detected:', districtName);
+            } else if (polygonName) {
+              // This is likely a khoroo - we need to determine which district it belongs to
+              khorooName = polygonName;
               
-              // Try different property names that might contain the district name
-              if (layer.feature.properties.name) {
-                districtName = layer.feature.properties.name;
-              } else if (layer.feature.properties.n) {
-                districtName = layer.feature.properties.n;
-              } else if (layer.feature.properties.soum_name) {
-                districtName = layer.feature.properties.soum_name;
+              try {
+                // Map khoroo names to their districts using async function
+                districtName = await getDistrictForKhorooName(polygonName);
+                console.log('✅ KHOROO detected:', khorooName, '-> belongs to district:', districtName);
+              } catch (error) {
+                console.error('Error getting district for khoroo:', error);
+                districtName = 'Тодорхойгүй дүүрэг';
               }
               
-              console.log('Processing district:', districtName);
-              console.log('Layer properties:', layer.feature.properties);
-              console.log('Available district colors:', Object.keys(districtColors));
-               
-              const color = districtColors[districtName || ''] || '#808080'; // Default gray
-              console.log('Assigned color for', districtName, ':', color);
-              
-              // Apply style to the layer
-              if (layer.setStyle) {
-                layer.setStyle({
-                  color: color,
-                  weight: 3,
-                  opacity: 0.8,
-                  fillColor: color,
-                  fillOpacity: 0.3
+              // Validate our result
+              if (!districtName || districtName === 'Тодорхойгүй дүүрэг') {
+                console.log('⚠️ FALLBACK USED - might be incorrect mapping for:', polygonName);
+                
+                // Try alternative detection methods
+                Object.keys(layer.feature.properties).forEach(key => {
+                  const value = layer.feature.properties[key];
+                  if (typeof value === 'string') {
+                    districts.forEach(district => {
+                      if (value.includes(district)) {
+                        console.log(`🔍 Found district "${district}" in property "${key}": "${value}"`);
+                        districtName = district;
+                      }
+                    });
+                  }
                 });
               }
-              
-              // Enhanced popup with district info - cluster count will be updated after clustering
-              let clusterCount = 0;
-              
-              // Enhanced popup with district info and cluster count
-              const popupContent = `
+            } else {
+              console.log('❌ NO POLYGON NAME FOUND - using fallback');
+              // Try to find any district name in any property
+              Object.keys(layer.feature.properties).forEach(key => {
+                const value = layer.feature.properties[key];
+                if (typeof value === 'string') {
+                  districts.forEach(district => {
+                    if (value.includes(district)) {
+                      console.log(`🔍 Found district "${district}" in property "${key}": "${value}"`);
+                      districtName = district;
+                      isDistrict = true;
+                    }
+                  });
+                }
+              });
+            }
+            
+            const color = districtColors[districtName] || '#808080'; // Use district color or default gray
+            console.log('Assigned color for', polygonName, ':', color);
+            
+            // Apply style to the layer
+            if (layer.setStyle) {
+              layer.setStyle({
+                color: color,
+                weight: 3,
+                opacity: 0.8,
+                fillColor: color,
+                fillOpacity: 0.3
+              });
+            }
+            
+            // Create appropriate popup content based on polygon type
+            let popupContent = '';
+            
+            console.log('🎨 Creating popup - isDistrict:', isDistrict, 'districtName:', districtName, 'khorooName:', khorooName);
+            
+            if (isDistrict) {
+              // District popup
+              popupContent = `
                 <div style="text-align: center;">
-                  <h4 style="margin: 5px 0; color: ${color};">${districtName || 'Тодорхойгүй'}</h4>
+                  <h4 style="margin: 5px 0; color: ${color};">${districtName || polygonName || 'Тодорхойгүй'}</h4>
+                  <div style="font-size: 14px; font-weight: bold; color: #2563eb; margin: 5px 0;">
+                    ДҮҮРЭГ
+                  </div>
                   <div style="font-size: 12px; color: #666;">
-                    Улаанбаатар хотын дүүрэг
+                    Улаанбаатар хот
                   </div>
                   <div style="font-size: 14px; margin-top: 8px; font-weight: bold;">
-                    🏢 <span class="district-count-${districtName}">Газар: ${clusterCount} ширхэг</span>
+                    🏢 <span class="district-count-${districtName}">Газар: 0 ширхэг</span>
+                  </div>
+                  <div style="font-size: 10px; color: #999; margin-top: 4px;">
+                    DEBUG: ${polygonName || 'No name found'}
                   </div>
                 </div>
               `;
+            } else {
+              // Khoroo popup
+              const displayKhorooName = khorooName || polygonName || 'Тодорхойгүй хороо';
+              const displayDistrictName = districtName || 'Тодорхойгүй дүүрэг';
               
-              layer.bindPopup(popupContent);
+              popupContent = `
+                <div style="text-align: center;">
+                  <h4 style="margin: 5px 0; color: ${color};">${displayKhorooName}</h4>
+                  <div style="font-size: 14px; font-weight: bold; color: #333; margin: 5px 0;">
+                    ${displayDistrictName} дүүрэг
+                  </div>
+                  <div style="font-size: 12px; color: #666; margin: 2px 0;">
+                    Улаанбаатар хот
+                  </div>
+                  <div style="font-size: 14px; margin-top: 8px; font-weight: bold;">
+                    🏢 <span class="khoroo-count-${displayKhorooName}">Газар: 0 ширхэг</span>
+                  </div>
+                  <div style="font-size: 10px; color: #999; margin-top: 4px;">
+                    DEBUG: Original name: ${polygonName || 'No name found'}
+                  </div>
+                </div>
+              `;
             }
-          });
-         
-         // Fit bounds after styling and apply district filter
-         applyDistrictFilter();
-         console.log('District styling completed');
-       })
-       .on("error", function(e: any) {
-         console.error('KML layer error:', e);
-       })
-       .on("click", function (e: any) {
-         // Click handler is now managed by individual layer popups
-         e.layer.openPopup();
-       });
-       
-     console.log('Adding KML layer to map...');
+            
+            layer.bindPopup(popupContent);
+            console.log('✅ Popup created for layer', layerCount);
+          } else {
+            console.log('❌ Layer', layerCount, 'has no feature or properties');
+          }
+          console.log(`🔍 === END LAYER ${layerCount} ANALYSIS ===\n`);
+        }
+        
+        // Fit bounds after styling and apply district filter
+        applyDistrictFilter();
+        console.log('District styling completed');
+      })
+      .on("error", function(e: any) {
+        console.error('KML layer error:', e);
+      })
+      .on("click", function (e: any) {
+        // Click handler is now managed by individual layer popups
+        e.layer.openPopup();
+      });
+      
+    console.log('Adding KML layer to map...');
      kmlLayer.value.addTo(map.value);
      console.log('KML layer added successfully');
   } catch (e) {
@@ -1996,6 +2499,303 @@ watch(
   { deep: true }
 );
 
+// Function to create ebarimt-specific clusters with color-aware grouping
+function createEbarimtClusters(markers: any[]): any[] {
+  if (!map.value || markers.length === 0) return markers;
+
+  const currentZoom = map.value.getZoom();
+  
+  // Dynamic clustering thresholds for smoother transitions
+  const DISTRICT_ZOOM_THRESHOLD = 11;   // Show district clusters
+  const AREA_ZOOM_THRESHOLD = 13;       // Show area clusters
+  const INDIVIDUAL_ZOOM_THRESHOLD = 15; // Show individual markers
+  
+  console.log(`Creating ebarimt clusters at zoom level ${currentZoom}`);
+
+  // At very high zoom, show individual markers with minimal clustering
+  if (currentZoom >= INDIVIDUAL_ZOOM_THRESHOLD) {
+    console.log('High zoom: Using minimal clustering for individual markers');
+    const clusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 30,
+      disableClusteringAtZoom: 18,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      spiderfyDistanceMultiplier: 1.2,
+      animate: true,
+      animateAddingMarkers: true,
+      iconCreateFunction: function(cluster) {
+        const count = cluster.getChildCount();
+        const markers = cluster.getAllChildMarkers();
+        
+        // Analyze cluster composition for color
+        let redCount = 0, yellowCount = 0, greenCount = 0;
+        markers.forEach(marker => {
+          if (marker._ebarimtData) {
+            switch(marker._ebarimtData.color) {
+              case 'red': redCount++; break;
+              case 'yellow': yellowCount++; break;
+              case 'green': greenCount++; break;
+            }
+          }
+        });
+        
+        // Determine dominant color
+        let dominantColor = 'rgba(220, 53, 69, 0.9)'; // red
+        let textColor = 'white';
+        if (greenCount > redCount && greenCount > yellowCount) {
+          dominantColor = 'rgba(40, 167, 69, 0.9)'; // green
+        } else if (yellowCount > redCount && yellowCount >= greenCount) {
+          dominantColor = 'rgba(255, 193, 7, 0.9)'; // yellow
+          textColor = 'black';
+        }
+        
+        return L.divIcon({
+          html: `<div style="background-color: ${dominantColor}; border-radius: 20px; color: ${textColor}; font-weight: bold; text-align: center; line-height: 32px; width: 32px; height: 32px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: all 0.3s ease; font-size: 12px;"><span>${count}</span></div>`,
+          className: 'ebarimt-cluster-marker',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
+        });
+      }
+    });
+    
+    markers.forEach(marker => clusterGroup.addLayer(marker));
+    return [clusterGroup];
+  }
+
+  // At medium zoom, create area-based clusters
+  if (currentZoom >= AREA_ZOOM_THRESHOLD) {
+    console.log('Medium zoom: Creating area-based clusters');
+    return createAreaClusters(markers, currentZoom);
+  }
+
+  // At low zoom, create district-based clusters
+  if (currentZoom >= DISTRICT_ZOOM_THRESHOLD) {
+    console.log('Low zoom: Creating district-based clusters');
+    return createDistrictEbarimtClusters(markers);
+  }
+
+  // At very low zoom, create city-wide cluster
+  console.log('Very low zoom: Creating city-wide cluster');
+  return createCityWideEbarimtCluster(markers);
+}
+
+// Function to create area-based clusters for medium zoom levels
+function createAreaClusters(markers: any[], zoom: number): any[] {
+  const clusters: any[] = [];
+  const processed = new Set();
+  const clusterRadius = Math.max(0.003, 0.015 - (zoom * 0.0008)); // Optimized dynamic radius
+  const clusterRadiusMeters = clusterRadius * 111000; // Convert to meters
+  
+  // Sort markers by latitude for better spatial locality
+  const sortedMarkers = [...markers].sort((a, b) => a.getLatLng().lat - b.getLatLng().lat);
+  
+  sortedMarkers.forEach((marker, index) => {
+    if (processed.has(index)) return;
+    
+    const markerLatLng = marker.getLatLng();
+    const nearbyMarkers = [marker];
+    processed.add(index);
+    
+    // Find nearby markers within cluster radius (optimized search)
+    for (let i = index + 1; i < sortedMarkers.length; i++) {
+      if (processed.has(i)) continue;
+      
+      const otherMarker = sortedMarkers[i];
+      const otherLatLng = otherMarker.getLatLng();
+      
+      // Quick latitude check first (optimization)
+      const latDiff = Math.abs(markerLatLng.lat - otherLatLng.lat);
+      if (latDiff > clusterRadius) break; // Markers are sorted by latitude, so no more matches
+      
+      const distance = markerLatLng.distanceTo(otherLatLng);
+      
+      if (distance < clusterRadiusMeters) {
+        nearbyMarkers.push(otherMarker);
+        processed.add(i);
+        
+        // Limit cluster size for performance
+        if (nearbyMarkers.length >= 20) break;
+      }
+    }
+    
+    if (nearbyMarkers.length > 1) {
+      // Create cluster marker
+      const clusterMarker = createEbarimtClusterMarker(nearbyMarkers, 'area');
+      clusters.push(clusterMarker);
+    } else {
+      // Single marker
+      clusters.push(marker);
+    }
+  });
+  
+  console.log(`Created ${clusters.length} area clusters from ${markers.length} markers`);
+  return clusters;
+}
+
+// Function to create district-based ebarimt clusters
+function createDistrictEbarimtClusters(markers: any[]): any[] {
+  if (!isDistrictDataLoaded || Object.keys(districtPolygons).length === 0) {
+    return markers;
+  }
+
+  const districtGroups: { [key: string]: any[] } = {};
+  const ungroupedMarkers: any[] = [];
+
+  // Group markers by district
+  markers.forEach(marker => {
+    const latLng = marker.getLatLng();
+    const district = getDistrictForPoint(latLng.lat, latLng.lng);
+    
+    if (district) {
+      if (!districtGroups[district]) {
+        districtGroups[district] = [];
+      }
+      districtGroups[district].push(marker);
+    } else {
+      ungroupedMarkers.push(marker);
+    }
+  });
+
+  const clusterMarkers: any[] = [];
+
+  // Create cluster for each district
+  Object.entries(districtGroups).forEach(([districtName, districtMarkers]) => {
+    if (districtMarkers.length > 1) {
+      const clusterMarker = createEbarimtClusterMarker(districtMarkers, 'district', districtName);
+      clusterMarkers.push(clusterMarker);
+    } else if (districtMarkers.length === 1) {
+      clusterMarkers.push(districtMarkers[0]);
+    }
+  });
+
+  clusterMarkers.push(...ungroupedMarkers);
+  return clusterMarkers;
+}
+
+// Function to create city-wide ebarimt cluster
+function createCityWideEbarimtCluster(markers: any[]): any[] {
+  if (markers.length <= 1) return markers;
+  
+  const clusterMarker = createEbarimtClusterMarker(markers, 'city');
+  return [clusterMarker];
+}
+
+// Function to create ebarimt cluster marker with statistics
+function createEbarimtClusterMarker(markers: any[], type: 'area' | 'district' | 'city', districtName?: string): any {
+  const totalCount = markers.length;
+  let redCount = 0, yellowCount = 0, greenCount = 0;
+  let totalOrgs = 0, totalEbarimtOrgs = 0;
+  
+  // Calculate statistics with optimized loop
+  for (const marker of markers) {
+    if (marker._ebarimtData) {
+      const data = marker._ebarimtData;
+      switch(data.color) {
+        case 'red': redCount++; break;
+        case 'yellow': yellowCount++; break;
+        case 'green': greenCount++; break;
+      }
+      totalOrgs += data.totalOrgs || 0;
+      totalEbarimtOrgs += data.ebarimtOrgs || 0;
+    }
+  }
+  
+  // Determine cluster position
+  let clusterPosition;
+  if (type === 'district' && districtName && districtPolygons[districtName]) {
+    clusterPosition = districtPolygons[districtName].center;
+  } else if (type === 'city') {
+    clusterPosition = { lat: 47.9184, lng: 106.9177 }; // Ulaanbaatar center
+  } else {
+    // Calculate centroid for area clusters (optimized)
+    let latSum = 0, lngSum = 0;
+    for (const marker of markers) {
+      const latLng = marker.getLatLng();
+      latSum += latLng.lat;
+      lngSum += latLng.lng;
+    }
+    clusterPosition = { lat: latSum / markers.length, lng: lngSum / markers.length };
+  }
+  
+  // Determine dominant color and size
+  const dominantCounts = [
+    { color: 'rgba(220, 53, 69, 0.9)', textColor: 'white', type: 'Улаан', count: redCount },
+    { color: 'rgba(255, 193, 7, 0.9)', textColor: 'black', type: 'Шар', count: yellowCount },
+    { color: 'rgba(40, 167, 69, 0.9)', textColor: 'white', type: 'Ногоон', count: greenCount }
+  ];
+  
+  const dominant = dominantCounts.reduce((prev, current) => 
+    current.count > prev.count ? current : prev
+  );
+  
+  // Size based on count and type
+  let iconSize = 40;
+  if (type === 'city') iconSize = 60;
+  else if (type === 'district') iconSize = 50;
+  else if (totalCount > 10) iconSize = 45;
+  
+  const clusterIcon = L.divIcon({
+    html: `<div style="background-color: ${dominant.color}; border-radius: 50%; color: ${dominant.textColor}; font-weight: bold; text-align: center; line-height: ${iconSize}px; width: ${iconSize}px; height: ${iconSize}px; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.4); transition: all 0.3s ease; cursor: pointer; font-size: ${iconSize > 45 ? '14px' : '12px'};"><span>${totalCount}</span></div>`,
+    className: `ebarimt-cluster-marker ebarimt-cluster-${type}`,
+    iconSize: [iconSize + 6, iconSize + 6],
+    iconAnchor: [(iconSize + 6) / 2, (iconSize + 6) / 2]
+  });
+
+  const clusterMarker = L.marker([clusterPosition.lat, clusterPosition.lng], { 
+    icon: clusterIcon 
+  });
+
+  // Create detailed popup (optimized string building)
+  const avgPercentage = totalOrgs > 0 ? ((totalEbarimtOrgs / totalOrgs) * 100) : 0;
+  const typeLabel = type === 'district' ? 'дүүрэг' : type === 'city' ? 'хот' : 'бүс';
+  
+  const popupContent = `<div style="width: 280px; font-family: 'Segoe UI', sans-serif;">
+<div style="font-weight: bold; font-size: 18px; margin: 8px 0 4px 0; color: ${dominant.color};">
+${districtName ? `${districtName} ${typeLabel}` : `Е-баримт ${typeLabel}`}
+</div>
+<div style="font-size: 14px; margin-bottom: 8px;">Нийт цэг: ${totalCount} ширхэг</div>
+<div style="border: 1px solid #eee; padding: 8px; border-radius: 6px; margin: 8px 0;">
+<div style="font-size: 13px; margin: 2px 0;"><span style="color: #dc3545;">●</span> Улаан: ${redCount} цэг</div>
+<div style="font-size: 13px; margin: 2px 0;"><span style="color: #ffc107;">●</span> Шар: ${yellowCount} цэг</div>
+<div style="font-size: 13px; margin: 2px 0;"><span style="color: #28a745;">●</span> Ногоон: ${greenCount} цэг</div>
+</div>
+<div style="font-size: 13px; margin: 4px 0;">Нийт байгууллага: ${totalOrgs}</div>
+<div style="font-size: 13px; margin: 4px 0;">Е-баримт гаргадаг: ${totalEbarimtOrgs}</div>
+<div style="font-size: 13px; margin: 4px 0; font-weight: bold;">Дундаж е-баримт: ${avgPercentage.toFixed(1)}%</div>
+<div style="font-size: 12px; color: #666; margin-top: 8px;">Дэлгэрэнгүй харахын тулд дарна уу</div>
+</div>`;
+
+  clusterMarker.bindPopup(popupContent);
+
+  // Click handler for smooth zoom
+  clusterMarker.on('click', function() {
+    if (map.value) {
+      const currentZoom = map.value.getZoom();
+      let targetZoom = Math.min(18, currentZoom + 3);
+      
+      if (type === 'city') targetZoom = 12;
+      else if (type === 'district') targetZoom = 15;
+      
+      map.value.flyTo([clusterPosition.lat, clusterPosition.lng], targetZoom, {
+        duration: 1.2,
+        easeLinearity: 0.25
+      });
+      
+      // Add click animation
+      const element = this._icon;
+      if (element) {
+        element.classList.add('marker-cluster-clicked');
+        setTimeout(() => {
+          element.classList.remove('marker-cluster-clicked');
+        }, 300);
+      }
+    }
+  });
+
+  return clusterMarker;
+}
+
 // Function to update markers with ebarimt colors
 function updateMarkersWithEbarimtColors(payCenterData: any) {
   if (!map.value || !markersLayer.value) return;
@@ -2019,6 +2819,7 @@ function updateMarkersWithEbarimtColors(payCenterData: any) {
   };
   
   let markersCreated = 0;
+  const individualMarkers: any[] = [];
   
   // Process each pay center location
   for (const [payCenterId, locationData] of Object.entries(payCenterData)) {
@@ -2070,21 +2871,43 @@ function updateMarkersWithEbarimtColors(payCenterData: any) {
       <div style='margin-top:8px;'><a href='/entity?id=${data.pay_center_id}' style='color:#1976d2;text-decoration:underline;cursor:pointer;'>дэлгэрэнгүй</a></div>
     </div>`;
     
-    // Create marker
+    // Create marker with ebarimt data
     const leafletMarker = L.marker([lat, lng], { icon: markerIcon });
     leafletMarker.bindPopup(popupHtml);
     
-    markersLayer.value.addLayer(leafletMarker);
+    // Store ebarimt-specific data on the marker for clustering
+    leafletMarker._ebarimtData = {
+      color: data.color,
+      colorName: colorName,
+      percentage: data.ebarimt_percentage || 0,
+      totalOrgs: data.total_organizations || 0,
+      ebarimtOrgs: data.organizations_with_ebarimt || 0
+    };
+    
+    individualMarkers.push(leafletMarker);
     markersCreated++;
     console.log(`Created ebarimt marker: ${data.name} at [${lat}, ${lng}] - ${colorName}`);
   }
+  
+  // Store individual markers for zoom-based clustering
+  if (map.value) {
+    map.value._individualMarkers = individualMarkers;
+  }
+  
+  // Apply ebarimt-specific clustering
+  const clusteredMarkers = createEbarimtClusters(individualMarkers);
+  
+  // Add clustered markers to the map with smooth transition
+  clusteredMarkers.forEach(marker => {
+    markersLayer.value.addLayer(marker);
+  });
   
   // Ensure markers layer is added to map
   if (map.value && !map.value.hasLayer(markersLayer.value)) {
     map.value.addLayer(markersLayer.value);
   }
   
-  console.log(`✅ Updated markers with ebarimt colors: ${markersCreated} markers created`);
+  console.log(`✅ Updated markers with ebarimt colors: ${markersCreated} markers created and clustered`);
 }
 
 // Expose ebarimt statistics to parent component
